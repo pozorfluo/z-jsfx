@@ -1,0 +1,15 @@
+desc:AmpMultiplier
+
+slider1:1<0,10,1> x AMP
+
+@init
+multiplier = slider1;
+
+@slider
+multiplier = slider1;
+
+
+@sample
+spl0 *= multiplier;
+spl1 *= multiplier;
+

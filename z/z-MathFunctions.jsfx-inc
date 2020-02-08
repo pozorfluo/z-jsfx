@@ -1,0 +1,151 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: Math Function Library
+
+
+
+/* TODO []
+  + MAKE FUNCTIONS OUT OF INTERESTING IDENTITIES
+  + COMMENT EACH LINES WITH EXPLICIT EXPRESSION
+  + LEAVE EXPLICIT EXPRESSION AS COMMENT EVEN IF YOU CAN'T MAKE A FUNCTION OUT OF IT YET
+  
+  + do trigonometry
+  
+  https://en.wikipedia.org/wiki/Multiplicative_inverse
+  http://mathworld.wolfram.com/GeneratingFunction.html
+  
+
+  http://www.dspguide.com/CH30.PDF <-- Complex Number DSP use case
+
+  http://folk.ntnu.no/oyvinbra/gdsp/Lessons.html
+  http://mathworld.wolfram.com/DigitCount.html
+  
+  FUNCTION INDEX []
+  
+*/
+
+@init
+
+/* Trivial identities */
+/////////////////////////////////////////////////////////////////
+
+//Canceling exponentials
+
+//Using simpler operations
+ 
+//Change the base
+/*
+bto10_logb_x = log10(x)/log10(b); //
+btoe_logb_x = log(x)/log(b);
+
+bto10_logb_y = log10(y)/log10(b);
+btoe_logb_y = log(y)/log(b);
+
+bto10_logb_xy = log10(x*y)/log10(b);
+btoe_logb_xy = log(x*y)/log(b);
+
+slider12 = bto10_logb_xy;
+slider13 = bto10_logb_x;
+slider14 = bto10_logb_y;
+slider15 = btoe_logb_x + btoe_logb_y;
+
+//Proof
+
+//Find b
+find_b = x ^ (1 / btoe_logb_x);
+
+//Summation/subtraction
+
+//Exponents
+
+//Limits
+/* DO RATE OF CONVERGENCE
+// + NORMALIZE -1;1 0;1
+// + https://en.wikipedia.org/wiki/Convergence_tests
+// + SERIES ACCELERATION
+// https://en.wikipedia.org/wiki/Aitken%27s_delta-squared_process
+//  https://en.wikipedia.org/wiki/Series_acceleration
+// https://en.wikipedia.org/wiki/Sequence_transformation
+https://en.wikipedia.org/wiki/Super-logarithm
+https://en.wikipedia.org/wiki/Iterated_logarithm
+*/
+
+
+  
+/*******************************************************************
+  NthRootToExp
+  -----
+  Converts Nth Roots to Exponents 
+  
+  http://www.dummies.com/how-to/content/how-to-convert-square-roots-to-exponents0.html 
+  
+  N-th_root(a ^ m) = a ^ (m / N)  
+
+*******************************************************************/  
+
+/*******************************************************************
+  multKaratsuba
+  -----
+  
+https://en.wikipedia.org/wiki/Karatsuba_algorithm
+
+procedure karatsuba(num1, num2)
+  if (num1 < 10) or (num2 < 10)
+    return num1*num2
+  // calculates the size of the numbers
+  m = max(size_base10(num1), size_base10(num2))
+  m2 = m/2
+  // split the digit sequences about the middle
+  high1, low1 = split_at(num1, m2)
+  high2, low2 = split_at(num2, m2)
+  // 3 calls made to numbers approximately half the size
+  z0 = karatsuba(low1,low2)
+  z1 = karatsuba((low1+high1),(low2+high2))
+  z2 = karatsuba(high1,high2)
+  return (z2*10^(2*m2))+((z1-z2-z0)*10^(m2))+(z0)
+*******************************************************************/
+
+
+/*******************************************************************
+  multTomCook
+  -----
+https://en.wikipedia.org/wiki/Toom%E2%80%93Cook_multiplication
+
+*******************************************************************/  
+
+/*******************************************************************
+  Signum
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Sign_function 
+  
+  'same' as jsfx sign(x); learning tool; use sign(x) for performance ?
+  
+  f(x) = x / |x|
+   
+
+*******************************************************************/
+function Signum(number)
+  (
+  number / abs(number);
+  );
+
+
+
+
+
+
+

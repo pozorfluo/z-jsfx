@@ -1,0 +1,53 @@
+/*******************************************************************************
+*  2017 Greg Z. - Yesss waaaaaayyyy, Dude !                                    *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+
+
+desc:Misunderstanding Feedback Loop
+
+slider1:0<0,18,1>Input Gain (db)
+slider2:0.1<0.01,1,0.001>Feedback
+slider11:1<1,20,1>Loop Stages
+
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+//import z/z-MathFunctions.jsfx-inc
+//import z/z-Windows.jsfx-inc
+//import z/z-Graph.jsfx-inc
+
+@slider
+
+gain_input = exp(slider1 * 0.11552453);
+feedback = tanh(gain_input * slider2); 
+stages = slider11; //intEven(slider11);
+
+
+@sample
+spl_0 = spl0;
+spl_1 = spl1;
+
+loop(stages,
+  spl_0 = spl_0 * gain_input - feedback * (spl_0 * gain_input - feedback * tanh(spl_0 * gain_input));
+  spl_1 = spl_1 * gain_input - feedback * (spl_1 * gain_input - feedback * tanh(spl_1 * gain_input));
+
+);
+
+spl0 = spl_0;
+spl1 = spl_1;
+
+//||||||||||||||||||||||||||||| STUFF |||||||||||||||||||||||||||||
+

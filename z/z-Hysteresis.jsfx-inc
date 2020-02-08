@@ -1,0 +1,297 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+
+desc: Hysteresis Model and Object Library
+
+/* TODO []
+  
+  https://en.wikipedia.org/wiki/Hysteresis
+  
+  https://en.wikipedia.org/wiki/Bouc%E2%80%93Wen_model_of_hysteresis
+  https://en.wikipedia.org/wiki/Relay
+  https://cran.r-project.org/web/packages/hysteresis/vignettes/index.html
+  https://en.wikipedia.org/wiki/Schmitt_trigger
+  https://en.wikipedia.org/wiki/Hysteresivity
+  http://demonstrations.wolfram.com/MagneticHysteresis/
+  
+  FUNCTION INDEX []
+  
+
+*/
+
+@init
+
+
+
+
+/*******************************************************************
+
+
+  limitedHysteresis    
+  ------------
+  
+  rate-dependant
+
+  https://en.wikipedia.org/wiki/Hysteresis 
+*******************************************************************/
+
+/*******************************************************************
+  preisachHysteron    
+  ------------
+  2stepsRelay
+  
+  
+  
+  Object Oriented : it must be used with a variable name as prefix
+  
+  http://arxiv.org/pdf/1505.03961.pdf
+  
+  
+  k = init rest state
+  input >= on_threshold ? output = 1; k = 1; //switch-on and remember last state | threshold crossed
+  input <= off_threshold ? output = 0; //switch-off and remember last state | threshold crossed
+  off_threshold < input < on_threshold ? output = k;
+  
+  
+  
+ from http://arxiv.org/pdf/1505.03961.pdf 
+ y(t) = min[sign(x-ßa),max[y(t-),sign(x-b)]]
+ 
+ output =  min(sign(input - off), max(memory, sign(input - on)));
+ min(0, output); // -1 | 1  =>> 0 | 1
+
+  this.weightcontrol1 = this.hysteron_weight[1];
+  this.weightcontrol2 = this.hysteron_weight[2];
+  this.weightcontrol3 = this.hysteron_weight[3];
+  this.weightcontrol4 = this.hysteron_weight[4];
+  this.weightcontrol5 = this.hysteron_weight[5];
+  this.weightcontrol6 = this.hysteron_weight[6];
+  
+*******************************************************************/
+function preisachHysteron_weightinit(input)  //TODO [] MERGE WITH function preisachHysteron
+  local(n)
+  (
+  n = 1;
+  this.total_weight = 0;
+  
+  this.weight_distribution == 0 ? // uniform ---------------------------------------------------------------------------
+    (
+    memset(this.hysteron_weight, 1, this.hysteron_population + 1);
+    this.total_weight = this.hysteron_population;
+    ) : (
+    this.weight_distribution == 1 ? //proximity  ---------------------------------------------------------------------------
+      (
+      while (n <= this.hysteron_population)
+        (
+        //this.hysteron_weight[n] = input / (this.step * n); // wrong but funny
+        this.hysteron_weight[n] = 1 - (input - (this.step * n)) ;//
+        this.total_weight += this.hysteron_weight[n];
+        n += 1 ;
+        );
+      
+      ) : (
+      this.weight_distribution == 2 ? //random on Init ---------------------------------------------------------------------------
+        (
+        while (n <= this.hysteron_population)
+          (
+          
+          this.hysteron_weight[n] = rand(1);
+          this.total_weight += this.hysteron_weight[n];
+          n += 1 ;
+          );
+          
+        ) : (
+        this.weight_distribution == 3 ? //random  ---------------------------------------------------------------------------
+          (
+          memset(this.hysteron_weight, 4, this.hysteron_population + 1);
+          ) : (
+          this.weight_distribution == 4 ? //zero pull ---------------------------------------------------------------------------
+            (
+            while (n <= this.hysteron_population)
+              (
+              this.hysteron_weight[n] = n;
+              this.total_weight += this.hysteron_weight[n];
+              n += 1 ;
+              );
+            ) : (
+            this.weight_distribution == 5 ? //peak pull ---------------------------------------------------------------------------
+              (
+              while (n <= this.hysteron_population)
+                (
+                this.hysteron_weight[n] = this.hysteron_population - n + 1;
+                this.total_weight += this.hysteron_weight[n];
+                n += 1 ;
+                );
+              ) : (  //actual attempt to understand preisach wiki mebbe?? ---------------------------------------------------------------------------
+              memset(this.hysteron_weight, 7, this.hysteron_population + 1);
+              );
+            );
+          );
+        );
+      );
+    );
+  );
+
+function preisachHysteron(input, n, memory, on, off)
+  local(output)
+  (
+  input >= on ?
+    (
+    output = 1;
+    this.hysteron_memory[n] = 1;
+     
+    ) : (
+    input <= off ?
+      (
+      output = 0;
+      this.hysteron_memory[n] = 0;
+      ) : (
+      output = memory;
+      )    
+    );
+  output;      
+  );
+
+
+/*******************************************************************
+  naivePreisachHysteresis    
+  ------------
+  
+  Object Oriented : it must be used with a variable name as prefix
+    eg :
+      pos.naivePreisachHysteresis_init(slider37);
+      neg.naivePreisachHysteresis_init(slider52);
+  
+  rate-indepedant
+    
+  Discrete Preisach model Naive Implementation
+  
+  
+  
+  https://en.wikipedia.org/wiki/Preisach_model_of_hysteresis
+  http://demonstrations.wolfram.com/TheDiscretePreisachModelOfHysteresis/
+  https://www.google.fr/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&ved=0CCwQFjABahUKEwj2nLHd1_nGAhUBEywKHWWVDy8&url=http%3A%2F%2Fresearchgroups.msu.edu%2Fsystem%2Ffiles%2Fgroup-publication%2Facc08_fpga.pdf&ei=sEm1VfaEKoGmsAHlqr74Ag&usg=AFQjCNETnI5s45DMdTAql4_b6vm_Qq6kzg&sig2=4ykbGWLfxSuuuWMTfBjT2Q&bvm=bv.98717601,d.bGg&cad=rja
+  file:///C:/Users/pozorfluo/Dropbox/Private/DAW/TUTORIALS/_NEW/fast_preisac_acc08_fpga.pdf
+  http://www.hindawi.com/journals/jam/2011/458768/
+  https://sourceforge.net/projects/hysteresis/files/
+  file:///C:/Users/pozorfluo/Downloads/Algorithm_Preis_class_point.pdf
+  
+  
+  The Preisach Model consists of many relay hysterons connected in parallel, given weights, and summed.
+  
+  Each of these relays has different alpha and beta thresholds and is scaled by mu. 
+  
+  Each relay can be plotted on a so-called Preisach plane with its (alpha,beta) values.
+  
+ 
+  increasing N, the number of hysterons, increases resolution
+  
+  Not sure what to do with mu, what it's supposed to be ?
+     + Are closer relays given more weight ?
+     + Is it because it allows to avoid some relay calculations ?
+     + I do not think relays are given more weight based on how long they've been in a particular state
+     in a rate-independant implementation ? but it's an interesting idea
+     + How about we toss it aside for now :)
+  
+  
+  alpha = off_threshold
+  beta = on_threshold
+  
+  0 <= off_threshold < on_threshold <= 1
+  
+  remap those thresholds from [0,1] to [0,2/resolution]
+  
+  step = 2/resolution
+  
+  offset for relay(n) [0 + step * (n - 1) ,step * n]
+  
+  -1 to go back to [-1,1]
+  
+  TODO []
+  + introduce some randomness in individual relays threshold
+  + use generated ordered pairs to initialize relays threshold
+  
+*******************************************************************/
+function naivePreisachHysteresis_init(resolution, off, on, weight_distribution)
+  local(n)
+  (
+  this.hysteron_population = resolution;
+  this.weight_distribution = weight_distribution;
+  this.step = 2 / resolution; // for [-1,1] step size is ( 1 - (-1) ) / resolution 
+  this.on_threshold = reMap(on, 0, 1, 0, this.step, 1);//1 * this.step; 
+  this.off_threshold = reMap(off, 0, 1, 0, this.step, 1);
+  
+  this.hysteron_memory = memAlloc(resolution + 1, "hysteron_memory"); //if it works as it should, initial state is 0 / switched off for all relays
+  this.hysteron_weight = memAlloc(resolution + 1, "hysteron_weight");  
+  this.hysteron_on = memAlloc(resolution + 1, "hysteron_on"); //try to do as many operation on init as possible and as little as possible during the summation
+  this.hysteron_off = memAlloc(resolution + 1, "hysteron_off");
+  
+  n = 1;  
+  while (n <= this.hysteron_population) //initialize all relays 
+    (
+    this.hysteron_memory[n] = 0; // set initial relays state
+    this.hysteron_on[n] = reMap(this.on_threshold, 0, this.step, this.step * (n - 1), this.step * n, 1); // set up the Preisach plane
+    this.hysteron_off[n] = reMap(this.off_threshold, 0, this.step, this.step * (n - 1), this.step * n, 1);; // haha I really think I'm not getting that part *shrug*
+     
+    n += 1;
+    );   
+  );
+
+function naivePreisachHysteresis(input)
+  local(n)
+  (
+  n = 1;
+  this.output = 0;
+  
+  input += 1; //offset input from [-1,1] to [0,2]
+  
+  this.preisachHysteron_weightinit(input);
+  
+  while (n <= this.hysteron_population) //sum all relays
+    (
+    //this.output += this.preisachHysteron(input, n, this.hysteron_memory[n], rand(1), rand(1));
+    //+ this.hysteron_memory[n] / 10 <<=== just to fuck with things
+    //this.output += this.preisachHysteron(input, n, this.hysteron_memory[n], this.hysteron_on[n] + this.hysteron_memory[n] / 10, this.hysteron_off[n] + this.hysteron_memory[n] / 10);
+    //remove this this.hysteron_weight[n] term for a funny buzz
+    this.output += this.hysteron_weight[n] * this.preisachHysteron(input, n, this.hysteron_memory[n], this.hysteron_on[n], this.hysteron_off[n]);
+    n += 1;
+    );
+  
+  //this.output;
+  this.output = reMap(this.output, 0, this.total_weight, -1, 1, 1);  //remap to [-1,1] and return output
+  );
+
+
+/*******************************************************************
+  3stepsRelay    
+  --------
+  
+*******************************************************************/
+
+/*******************************************************************
+  Schmitt trigger    
+  --------
+  https://en.wikipedia.org/wiki/Schmitt_trigger
+  
+*******************************************************************/
+
+/*******************************************************************
+  playOperator    
+  --------
+  
+*******************************************************************/
+
+
+

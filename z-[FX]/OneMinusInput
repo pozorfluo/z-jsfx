@@ -1,0 +1,13 @@
+desc:OneMinusFuzz
+slider12:1<0,1,0.0001>Threshold
+
+@init
+
+@slider
+threshold = slider12;
+@sample
+abs_spl0 = abs(spl0);
+abs_spl1 = abs(spl1);
+
+abs_spl0 >= threshold ? spl0 = sign(spl0) * (1 - abs_spl0);
+abs_spl1 >= threshold ? spl1 = sign(spl1) * (1 - abs_spl1);

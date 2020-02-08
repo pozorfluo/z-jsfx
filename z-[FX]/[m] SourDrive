@@ -1,0 +1,260 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+
+//http://www.bearfootfx.com/amp-effects/
+//http://www.bearfootfx.com/amp-effects/
+//http://www.bearfootfx.com/amp-effects/
+//http://www.bearfootfx.com/amp-effects/
+//http://www.bearfootfx.com/amp-effects/
+//http://www.bearfootfx.com/amp-effects/
+//http://www.bearfootfx.com/amp-effects/
+
+desc: MONO SourDrive
+
+slider1:0<0,36,1>Input Gain (db)
+
+
+//Tanh
+slider21:0<0,0.3,0.001>Bias (V)
+slider22:0<0,99,1>CLIPPING ME SOFTLY ------ modTanH
+slider23:0<0,3,0.01>Coef a
+slider24:0<0,3,0.01>Coef b
+slider29:20000<5,20000,1>LP (Hz)
+slider30:0<0,500,1>HP (Hz)
+
+slider40:1<1,6,1>Stages
+
+slider51:0<-100,100,1>Feedback Coarse
+slider52:0<-1,1,0.00001>Feedback Fine
+slider53:10<1,100,1>Feedback Depth
+slider54:0<-24,24,1>Pre-Limiter Output Gain (db)
+
+slider64:0<0,1,1{Passthrough Stereo,Force Mono}>x
+
+
+
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Filters.jsfx-inc
+
+@init
+ext_noinit = 1;
+//Init MemoryManager
+memInit(100);
+
+
+memWipe();
+feedback_depth = slider53;
+spl_0.feedback = memAlloc(100, "feedback spl0");
+
+
+//rc_tanh = 1 / (2 * $pi * slider29); // rc filter Smoothing coefficient
+//rc_a_tanh = 1 / (rc_tanh * srate + 1);
+
+
+// Low-pass
+
+function rc_lp(s, a)
+  instance(lp)
+(
+  lp += a * (s - lp);
+);
+
+// High-pass
+
+function rc_hp(s, a)
+(
+  s - this.rc_lp(s, a);
+);
+
+
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+itm1 = otm1 = 0;
+
+@slider
+feedback_depth = slider53;
+
+bias_tanh = slider21;
+
+ceiling_tanh = 1 / ((100 - slider22) / 100); //Leave it like this -> non-linear, 50 yelds 2, max yelds 100
+
+rc_tanh_lp = 1 / (2 * $pi * slider29); // rc filter Smoothing coefficient
+rc_a_tanh_lp = 1 / (rc_tanh_lp * srate + 1);
+
+rc_tanh_hp = 1 / (2 * $pi * slider30); // rc filter Smoothing coefficient
+rc_a_tanh_hp = 1 / (rc_tanh_hp * srate + 1);
+
+coef_a = slider23;
+coef_b = slider24;
+
+mix_feedback = (slider51 + slider52) / 100;
+
+gain_input = exp(slider1 * 0.11552453);
+gain_output = exp(slider54 * 0.11552453);
+
+stages = slider40;
+
+force_mono = slider64;
+
+is_feedback_on = abs(mix_feedback);
+//is_tanh_on = bias_tanh + slider22;
+//is_softlimiter_on = is_feedback_on + is_tanh_on;
+
+@block
+
+@sample
+//|||||||||||||||||||||||||||||Feedback|||||||||||||||||||||||||||||
+is_feedback_on ?
+  (
+  f = 0;
+  moop = ceil(spl0 * feedback_depth);
+  
+  loop(moop,
+    //spl0
+    index = spl_0.feedback_index - f;
+    
+    index < 0 ?
+      (
+      index = feedback_depth - index;    
+      );
+    
+    spl0 += spl_0.feedback[index] * mix_feedback;
+    spl0 /= 1 + abs(mix_feedback);
+        
+    f +=1;
+    );
+  );  
+spl_0.feedback_index += 1;
+
+current_stage = 1;
+
+loop(stages,
+//|||||||||||||||||||||||||||||INPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_input;
+
+spl0_dry = spl0;
+
+
+//|||||||||||||||||||||||||||||Tanh Clip|||||||||||||||||||||||||||||
+//is_tanh_on ?
+//  ( 
+  spl0 += bias_tanh;
+
+  //spl0 = tanh(spl0, 1 / ceiling_tanh * stereo);// * ceiling_tanh;
+  //spl1 = tanh(spl1, 1 / ceiling_tanh);// * ceiling_tanh;
+  //spl0 = tanh(spl0, ceiling_tanh * stereo);
+  //spl1 = tanh(spl1, ceiling_tanh);
+  spl0 = modTanh(spl0, ceiling_tanh, coef_a, coef_b);
+//  );
+
+//|||||||||||||||||||||||||||||STAGE FILTERS|||||||||||||||||||||||||||||
+slider30 ?
+  (
+  
+current_stage == 1 ?  ( spl0 = spl0_tanh_lp_s1.rc_lp(spl0, rc_a_tanh_lp);
+                        spl0 = spl0_tanh_hp_s1.rc_hp(spl0, rc_a_tanh_hp);
+  ):(
+current_stage == 2 ?  ( spl0 = spl0_tanh_lp_s2.rc_lp(spl0, rc_a_tanh_lp);
+                        spl0 = spl0_tanh_hp_s2.rc_hp(spl0, rc_a_tanh_hp);
+  ):(
+current_stage == 3 ?  ( spl0 = spl0_tanh_lp_s3.rc_lp(spl0, rc_a_tanh_lp);
+                        spl0 = spl0_tanh_hp_s3.rc_hp(spl0, rc_a_tanh_hp);
+  ):(
+current_stage == 4 ?  ( spl0 = spl0_tanh_lp_s4.rc_lp(spl0, rc_a_tanh_lp);
+                        spl0 = spl0_tanh_hp_s4.rc_hp(spl0, rc_a_tanh_hp);
+  ):(
+current_stage == 5 ?  ( spl0 = spl0_tanh_lp_s5.rc_lp(spl0, rc_a_tanh_lp);
+                        spl0 = spl0_tanh_hp_s5.rc_hp(spl0, rc_a_tanh_hp);
+  ):(
+                        spl0 = spl0_tanh_lp_s6.rc_lp(spl0, rc_a_tanh_lp);
+                        spl0 = spl0_tanh_hp_s6.rc_hp(spl0, rc_a_tanh_hp);
+  );););););
+
+  ):(
+
+current_stage == 1 ?  ( spl0 = spl0_tanh_lp_s1.rc_lp(spl0, rc_a_tanh_lp);
+  ):(
+current_stage == 2 ?  ( spl0 = spl0_tanh_lp_s2.rc_lp(spl0, rc_a_tanh_lp);
+  ):(
+current_stage == 3 ?  ( spl0 = spl0_tanh_lp_s3.rc_lp(spl0, rc_a_tanh_lp);
+  ):(
+current_stage == 4 ?  ( spl0 = spl0_tanh_lp_s4.rc_lp(spl0, rc_a_tanh_lp);
+  ):(
+current_stage == 5 ?  ( spl0 = spl0_tanh_lp_s5.rc_lp(spl0, rc_a_tanh_lp);
+  ):(
+                        spl0 = spl0_tanh_lp_s6.rc_lp(spl0, rc_a_tanh_lp);
+  );););););  
+  
+  );
+current_stage += 1;
+);
+//|||||||||||||||||||||||||||||FEEDBACK||||||||||||||||||||||||||||
+spl_0.feedback_index >= feedback_depth ? spl_0.feedback_index = 0; //wrap around
+spl_0.feedback[spl_0.feedback_index] = spl0;
+
+//|||||||||||||||||||||||||||||OUTPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_output;
+
+//|||||||||||||||||||||||||||||SOFT LIMITER||||||||||||||||||||||||||||
+//is_softlimiter_on ?
+//  (
+  spl0 = tanH(spl0, 1);
+//  );
+  
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+ 
+otm1 = 0.999 * otm1 + spl0 - itm1; itm1 = spl0; spl0 = otm1;
+
+
+force_mono ? spl1 = spl0;
+/****************************GFX********************************
+****************************************************************/
+/*
+//@gfx 500 500
+
+fillScreen(0.15, 0.04, 0.03);
+
+
+setColor(0.5, 0.1, 0);
+memDiagnostic(30, 40);
+
+//Draw Baseline
+setColor(1, 0.1, 0.1);
+gfx_x = 0; gfx_y = gfx_h / 2;
+gfx_lineto(gfx_w , gfx_y, 0);
+
+//INPUT
+setColor(1, 0.3, 0.1);
+gfx_x = 0; gfx_y = gfx_h / 2;
+x_step_size = gfx_w / feedback_depth; 
+k = 0;
+
+loop(feedback_depth,
+  index = spl_0.feedback_index + k;
+  
+  index > feedback_depth ?
+    (
+    index -= feedback_depth;    
+    );
+  gfx_lineto(x_step_size * k , gfx_h / 2 + (gfx_h - 20) / 2 * spl_0.feedback[index], 0);
+  k +=1;
+  );
+*/
+///////////////////////////DUMP
+
+

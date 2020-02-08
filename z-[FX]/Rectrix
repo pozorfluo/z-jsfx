@@ -1,0 +1,171 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: Rectrix
+
+
+slider1:0<0,64,1>Drive (db)
+
+slider9:0<0,100,0.1>Rectification Amount
+slider10:1<0,2,0.1>Rectification Shape
+//slider10:0.01<0.001,1,0.001>Excursion
+//slider11:10<0,1000,1>Overshoot length (spl)
+slider12:100<0,100,0.1>Stereo Width
+slider13:100<5,20000,1>Stereo Jitter LP Cutoff (Hz)
+
+slider19:7500<5,20000,1>Stage LP Cutoff (Hz)
+slider20:0<0,100,0.1>Dry Inject
+
+slider50:0<-24,24,1>Output Gain (db)
+
+slider64:1<0,6,1>Stages
+
+
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Utilities.jsfx-inc 
+
+@init
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+itm1=itm2=otm1=otm2=0;
+
+//|||||||||||||||||||||||||||||STAGE LP FILTER|||||||||||||||||||||||||||||
+rc = 1 / (2 * $pi * slider19); // rc filter Smoothing coefficient
+rc_a = 1 / (rc * srate + 1);
+
+//|||||||||||||||||||||||||||||STEREO NON-LINEARITIES|||||||||||||||||||||||||||||
+rc_jitter = 1 / (2 * $pi * slider13); // rc filter Smoothing coefficient
+rc_a_jitter = 1 / (rc_jitter * srate + 1);
+
+// Low-pass
+
+function rc_lp(s, a)
+(
+  this.lp += a * (s - this.lp);
+);
+
+@slider
+
+gain_input = exp(slider1 * 0.11552453);
+
+
+rectify_spl0 = rectify_spl1 = rectify = 1 - slider9 / 100;
+rectify_shape = slider10;
+stereo = slider12 / 100;
+
+dry_inject = slider20 / 100;
+
+//|||||||||||||||||||||||||||||STAGE LP FILTER|||||||||||||||||||||||||||||
+rc = 1 / (2 * $pi * slider19); // rc filter Smoothing coefficient
+rc_a = 1 / (rc * srate + 1);
+
+//|||||||||||||||||||||||||||||STEREO NON-LINEARITIES|||||||||||||||||||||||||||||
+rc_jitter = 1 / (2 * $pi * slider13); // rc filter Smoothing coefficient
+rc_a_jitter = 1 / (rc_jitter * srate + 1);
+
+gain_output = dBtoAmp(slider50); //exp(slider20 * 0.11552453);
+
+
+stages = slider64;
+
+@block
+
+
+@sample
+rectify_spl0 = rectify * (1 - stereo / 2 + rand(1) * stereo);
+rectify_spl0 = rectify_spl0.rc_lp(rectify_spl0, rc_a_jitter);
+
+rectify_spl1 = rectify * (1 - stereo / 2 + rand(1) * stereo);
+rectify_spl1 = rectify_spl1.rc_lp(rectify_spl1, rc_a_jitter);
+
+rectify_shape_spl0 = rectify_shape * (1 - stereo / 2 + rand(1) * stereo);
+rectify_shape_spl0 = rectify_shape_spl0.rc_lp(rectify_shape_spl0, rc_a_jitter);
+
+rectify_shape_spl1 = rectify_shape * (1 - stereo / 2 + rand(1) * stereo);
+rectify_shape_spl1 = rectify_shape_spl1.rc_lp(rectify_shape_spl1, rc_a_jitter);
+
+spl0dry = tanh(spl0, 1);
+spl1dry = tanh(spl1, 1);
+
+current_stage = 1;
+
+loop(stages,
+//|||||||||||||||||||||||||||||INPUT GAIN||||||||||||||||||||||||||||
+
+spl0 *= gain_input;
+spl1 *= gain_input;
+
+
+
+
+//|||||||||||||||||||||||||||||LAB||||||||||||||||||||||||||||
+
+spl0 = tanH(spl0, 1);
+
+spl0 > 0 ? //Rectify
+  (
+  spl0 = reMap(spl0, 0, 1, 0, rectify_spl0, rectify_shape_spl0);
+  );
+
+spl1 = tanH(spl1, 1);
+
+spl1 > 0 ? //Rectify
+  (
+  spl1 = reMap(spl1, 0, 1, 0, rectify_spl1, rectify_shape_spl1);
+  );
+  
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+
+otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+
+spl0 *= 1 + 1 - rectify_spl0;
+spl1 *= 1 + 1 - rectify_spl1;
+
+spl0 = spl0dry * dry_inject + spl0 * (1 - dry_inject);
+spl1 = spl1dry * dry_inject + spl1 * (1 - dry_inject);
+
+//|||||||||||||||||||||||||||||STAGE LP FILTER|||||||||||||||||||||||||||||
+
+current_stage == 1 ?  ( spl0 = spl0_s1.rc_lp(spl0, rc_a);  spl1 = spl1_s1.rc_lp(spl1, rc_a);
+  ):(
+current_stage == 2 ?  ( spl0 = spl0_s2.rc_lp(spl0, rc_a);  spl1 = spl1_s2.rc_lp(spl1, rc_a);
+  ):(
+current_stage == 3 ?  ( spl0 = spl0_s3.rc_lp(spl0, rc_a);  spl1 = spl1_s3.rc_lp(spl1, rc_a);
+  ):(
+current_stage == 4 ?  ( spl0 = spl0_s4.rc_lp(spl0, rc_a);  spl1 = spl1_s4.rc_lp(spl1, rc_a);
+  ):(
+current_stage == 5 ?  ( spl0 = spl0_s5.rc_lp(spl0, rc_a);  spl1 = spl1_s5.rc_lp(spl1, rc_a);
+  ):(
+                        spl0 = spl0_s6.rc_lp(spl0, rc_a);  spl1 = spl1_s6.rc_lp(spl1, rc_a);
+  );););););
+
+
+current_stage += 1;
+);
+
+// SHOULDN'T THIS BE HERE ??
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+
+//otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+//otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+
+//|||||||||||||||||||||||||||||OUTPUT GAIN||||||||||||||||||||||||||||
+
+spl0 *= gain_output;
+spl1 *= gain_output;
+

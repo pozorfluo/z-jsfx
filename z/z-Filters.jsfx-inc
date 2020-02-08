@@ -1,0 +1,82 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+desc: Filters Library
+
+/* TODO []
+
+  
+  
+  
+  http://www.ecircuitcenter.com/Circuits.htm
+  http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
+  https://en.wikipedia.org/wiki/Center_frequency
+  https://en.wikipedia.org/wiki/Filter_design
+  http://fr.mathworks.com/help/dsp/ref/dsp.biquadfilter-class.html
+  
+  https://en.wikipedia.org/wiki/RC_circuit
+  
+  
+  http://www.dspguide.com/CH21.PDF
+  http://www.dspguide.com/CH20.PDF
+  
+  
+  Filter Implementation : 
+    + Convolution -> Finite Impulse Response (fir)    
+          https://en.wikipedia.org/wiki/Infinite_impulse_response
+          http://www.dspguide.com/CH19.PDF
+          
+          
+          
+    + Recursion -> Infinite Impulse Response (iir)    
+          https://en.wikipedia.org/wiki/Finite_impulse_response
+          http://www.dspguide.com/CH18.PDF
+
+
+  Filter Application :
+    + Time Domain
+         
+          
+    + Frequency Domain
+          http://www.dspguide.com/CH16.PDF
+    
+    + Custom
+          http://www.dspguide.com/CH17.PDF
+          
+  FUNCTION INDEX []
+  
+*/
+@init
+
+
+
+/*******************************************************************
+  firMovingAverage    
+  --------
+  
+  http://www.dspguide.com/CH14.PDF
+  https://en.wikipedia.org/wiki/Moving_average_(disambiguation)
+  https://en.wikipedia.org/wiki/Moving_average
+  http://www.edaboard.com/thread208665.html
+  https://en.wikipedia.org/wiki/Moving-average_model  
+  
+*******************************************************************/
+
+
+/*******************************************************************
+  recursiveMovingAverage    
+  --------
+  
+  http://www.dspguide.com/CH15.PDF
+  
+*******************************************************************/

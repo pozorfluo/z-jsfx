@@ -1,0 +1,186 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: linear to tanh fold-oscillating clipping to tanh
+
+
+slider1:0<0,64,1>Input Gain (db)
+
+slider9:0<0,1,0.001>DC Bias (V)
+slider10:0.01<0.001,1,0.001>Excursion
+slider11:10<0,1000,1>Overshoot length (spl)
+
+slider19:200<5,20000,1>Stage LP Cutoff (Hz)
+
+slider20:0<-24,24,1>Output Gain (db)
+
+slider63:0<0,1,1>Mode
+slider64:1<0,6,1>Stages
+
+
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Utilities.jsfx-inc 
+
+@init
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+itm1=itm2=otm1=otm2=0;
+
+//|||||||||||||||||||||||||||||STAGE LP FILTER|||||||||||||||||||||||||||||
+rc = 1 / (2 * $pi * slider19); // rc filter Smoothing coefficient
+
+rc_a = 1 / (rc * srate + 1);
+
+// Low-pass
+
+function rc_lp(s, a)
+(
+  this.lp += a * (s - this.lp);
+);
+
+@slider
+
+gain_input = exp(slider1 * 0.11552453);
+
+
+bias = slider9;
+
+overshoot_period = slider11;// * srate / 1000000;
+
+excursion = slider10;
+
+rc = 1 / (2 * $pi * slider19); // rc filter Smoothing coefficient
+rc_a = 1 / (rc * srate + 1);
+
+gain_output = exp(slider20 * 0.11552453);
+
+
+
+mode = slider63;
+stages = slider64;
+
+@block
+
+
+@sample
+current_stage = 1;
+
+loop(stages,
+//|||||||||||||||||||||||||||||INPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_input;
+spl1 *= gain_input;
+
+
+
+//|||||||||||||||||||||||||||||DC BIAS PRE-EMPHASIS||||||||||||||||||||||||||||
+spl0 -= bias;
+spl1 -= bias;
+
+//|||||||||||||||||||||||||||||LAB||||||||||||||||||||||||||||
+/*
+abs(spl0) >= 1 || abs(spl1) >= 1 ?
+  (
+  clipping = 1;
+  ):(
+  clipping =  0;
+  );
+*/
+
+//spl0 = foldExClip(spl0, 1, excursion);
+tanh_spl0 = tanH(spl0, 1);
+
+abs(spl0) >= 1 ? // Are we clipping ?
+  (
+  mode ?
+    (
+    fold_spl0 = foldExClip(spl0, 1, excursion) + sign(spl0) * excursion / 2;
+    ):(
+    fold_spl0 = foldExClip(spl0, abs(tanh_spl0) + excursion / 2, excursion);
+    );
+    
+  overshoot_period ?
+    (
+    overshoot_ratio = min(1, Normalize(clipping_spl0_count, 0, overshoot_period));  
+    ):(
+    overshoot_ratio = 1;
+    );
+  clipping_spl0_count += 1;  
+  spl0 = (1 - overshoot_ratio ) * fold_spl0 + overshoot_ratio * tanh_spl0;
+  
+  
+  ):(
+  clipping_spl0_count = 0;
+  spl0 = tanh_spl0;
+  );
+
+
+tanh_spl1 = tanH(spl1, 1);
+
+abs(spl1) >= 1 ? // Are we clipping ?
+  (
+  mode ?
+    (
+    fold_spl1 = foldExClip(spl1, 1, excursion) + sign(spl1) * excursion / 2;
+    ):(
+    fold_spl1 = foldExClip(spl1, abs(tanh_spl1) + excursion / 2, excursion);
+    );  
+    
+  overshoot_period ?
+    (
+    overshoot_ratio = min(1, Normalize(clipping_spl1_count, 0, overshoot_period));  
+    ):(
+    overshoot_ratio = 1;
+    );
+  clipping_spl1_count += 1;  
+  spl1 = (1 - overshoot_ratio ) * fold_spl1 + overshoot_ratio * tanh_spl1;
+  
+  
+  ):(
+  clipping_spl1_count = 0;
+  spl1 = tanh_spl1;
+  );
+
+
+//|||||||||||||||||||||||||||||DC BIAS DE-EMPHASIS||||||||||||||||||||||||||||
+spl0 += bias;
+spl1 += bias;
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+
+otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+
+//|||||||||||||||||||||||||||||STAGE LP FILTER|||||||||||||||||||||||||||||
+current_stage == 1 ?  ( spl0 = spl0_s1.rc_lp(spl0, rc_a);  spl1 = spl1_s1.rc_lp(spl1, rc_a);
+  ):(
+current_stage == 2 ?  ( spl0 = spl0_s2.rc_lp(spl0, rc_a);  spl1 = spl1_s2.rc_lp(spl1, rc_a);
+  ):(
+current_stage == 3 ?  ( spl0 = spl0_s3.rc_lp(spl0, rc_a);  spl1 = spl1_s3.rc_lp(spl1, rc_a);
+  ):(
+current_stage == 4 ?  ( spl0 = spl0_s4.rc_lp(spl0, rc_a);  spl1 = spl1_s4.rc_lp(spl1, rc_a);
+  ):(
+current_stage == 5 ?  ( spl0 = spl0_s5.rc_lp(spl0, rc_a);  spl1 = spl1_s5.rc_lp(spl1, rc_a);
+  ):(
+                        spl0 = spl0_s6.rc_lp(spl0, rc_a);  spl1 = spl1_s6.rc_lp(spl1, rc_a);
+  );););););
+
+current_stage += 1;
+);
+
+//|||||||||||||||||||||||||||||OUTPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_output;
+spl1 *= gain_output;
+

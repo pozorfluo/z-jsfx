@@ -1,0 +1,120 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+
+desc: Mouse + Touch Library
+
+/* TODO []
+  
+  
+  
+  FUNCTION INDEX []
+  
+  mouse_cap
+  
+  mouse_cap is a bitfield of mouse and keyboard modifier state.
+  
+  1: left mouse button
+  2: right mouse button
+  4: Control key (Windows), Command key (OSX)
+  8: Shift key
+  16: Alt key (Windows), Option key (OSX)
+  32: Windows key (Windows), Control key (OSX) -- REAPER 4.60+
+  64: middle mouse button
+
+*/
+
+@init
+
+
+/*******************************************************************
+  
+  ===============
+
+
+*******************************************************************/
+
+function init_mouse() (
+  !X ? (X = mouse_x;);
+  !Y ? (Y = mouse_y;);
+);
+function uninit_mouse() (
+  X = 0;
+  Y = 0;
+);
+mouse_cap ? init_mouse() : uninit_mouse();
+//mouse_cap == 5 ? // CTRL + CLICK
+
+
+/*******************************************************************
+  interfaceInit
+  ===============
+
+  type 
+  
+  _BUTTON = 0;
+  _SLIDER = 1;
+  _KNOB = 2;
+
+*******************************************************************/
+_BUTTON = 0;
+_SLIDER = 1;
+_KNOB   = 2;
+  
+function interfaceInit(size)
+  (
+  this.element_count = 0;
+  this.size = size;
+
+  //this.knob.name = memAlloc(this.size, "knob.x"); //default/current value    
+  this.element.x = memAlloc(this.size, "element.x");
+  this.element.y = memAlloc(this.size, "element.y");
+  this.element.width = memAlloc(this.size, "element.width");
+  this.element.height = memAlloc(this.size, "element.height");
+  this.element.type = memAlloc(this.size, "element.type");
+  );
+
+/*******************************************************************
+  sliderAlloc
+  ===============
+  
+  steps == 0 ? continuous 
+
+*******************************************************************/
+
+function interfaceAlloc(x, y, width, height, type)
+  (
+  this.element_count < this.size ?
+    (
+    this.element.x[this.slider_count] = x;
+    this.element.y[this.slider_count] = y;
+    this.element.width[this.slider_count] = width;
+    this.element.height[this.slider_count] = height;
+    this.element.type[this.slider_count] = type;
+    this.element_count += 1;
+    ):(
+    -1;
+    );
+  );
+  
+/*******************************************************************
+  interfaceDiagnose
+  ===============
+  
+  Highlights knobs/buttons/sliders map
+  Dumps knobs/buttons/sliders stats
+
+*******************************************************************/
+
+

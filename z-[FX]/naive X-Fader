@@ -1,0 +1,15 @@
+desc:naive X-Fader <-- NEED TO ADD A FILTER
+
+slider1:50<0,100,1>1+2 <|> 3+4
+
+
+@init
+
+@slider
+x_fade = slider1 / 100;
+@block
+
+@sample
+//|||||||||||||||||||||||||||||X-FADE||||||||||||||||||||||||||||
+spl0 = spl0 * (1 - x_fade) + spl2 * x_fade;
+spl1 = spl1 * (1 - x_fade) + spl3 * x_fade;

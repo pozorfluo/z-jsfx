@@ -1,0 +1,914 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: Analysis tool Library
+/* TODO []
+
+  https://en.wikipedia.org/wiki/Shape_parameter
+  
+  https://en.wikipedia.org/wiki/Time_series
+  https://en.wikipedia.org/wiki/Estimation_theory
+  https://en.wikipedia.org/wiki/Kalman_filter
+  http://www.dspguide.com/CH2.PDF
+  
+  https://en.wikipedia.org/wiki/Total_variation
+  
+  https://en.wikipedia.org/wiki/Trix_(technical_analysis)
+  https://en.wikipedia.org/wiki/Technical_analysis
+  
+  
+  https://en.wikipedia.org/wiki/Linear_predictive_coding
+  https://en.wikipedia.org/wiki/Linear_predictive_analysis
+  https://en.wikipedia.org/wiki/Linear_prediction
+  
+  https://en.wikipedia.org/wiki/Censoring_(statistics)
+  https://en.wikipedia.org/wiki/Truncation_(statistics)
+  https://en.wikipedia.org/wiki/Semivariance
+  https://en.wikipedia.org/wiki/Pooled_variance
+  https://en.wikipedia.org/wiki/Mean_absolute_difference
+  https://en.wikipedia.org/wiki/Mean_absolute_error
+  https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+  https://en.wikipedia.org/wiki/Variance#Examples
+  
+  FUNCTION INDEX []
+  
+  
+*/
+
+
+
+@init
+
+
+/*******************************************************************
+  Etc ... Meaannns
+  -----
+   
+   
+  http://www.sengpielaudio.com/calculator-geommean.htm
+  
+  https://en.wikipedia.org/wiki/Mean_value_theorem
+  https://en.wikipedia.org/wiki/Trimmed_estimator
+  https://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_variance 
+  
+ 
+
+*******************************************************************/
+
+/*******************************************************************
+  oneScalingTest   
+  --------
+  
+  https://en.wikipedia.org/wiki/Benford%27s_law
+  http://www.dspguide.com/CH34.PDF
+  
+*******************************************************************/
+
+
+
+/*******************************************************************
+  arithmeticMean   
+  --------
+  
+  http://www.dspguide.com/CH2.PDF
+  https://en.wikipedia.org/wiki/Mean
+  https://en.wikipedia.org/wiki/Cardinal_number
+  
+  Returns mu, the arithmetic mean of a given 1-tuple finite set  
+  
+  In electronics, the mean is commonly called the DC (direct current) value.
+  
+ mu = sum{n=1 cardinality}(value_n) / cardinality
+  
+*******************************************************************/
+function arithmeticMean(set_ptr, cardinality)
+  local(n, mu)
+  (
+  n = 1;
+  mu = 0;
+  
+  while(n <= cardinality)
+    (
+    mu += set_ptr[n];
+    n += 1;
+    );
+  
+  mu /= cardinality; 
+  );
+
+
+/*******************************************************************
+  weightedArithmeticMean   
+  --------
+  
+  https://en.wikipedia.org/wiki/Weighted_arithmetic_mean
+  
+  takes an ordered pair ( 2-tuple ) as input and set length
+  
+  value, weight
+  
+  mu = sum{n=1 cardinality}(weight_n * value_n) / sum{n=1 cardinality}(weight_n)
+  
+  
+*******************************************************************/
+function weightedArithmeticMean(set_value_ptr, set_weight_ptr, cardinality)
+  local(n, mu, total_weight)
+  (
+  n = 1;
+  mu = 0;
+  total_weight = 0;
+  
+  while(n <= cardinality)
+    (
+    mu += set_value_ptr[n] * set_weight_ptr[n];
+    total_weight += set_weight_ptr[n];
+    n += 1;
+    );
+  
+  mu /= total_weight; 
+  );
+  
+/*******************************************************************
+  geometricMean   
+  --------
+  
+  http://www.dummies.com/how-to/content/how-to-convert-square-roots-to-exponents0.html
+  https://en.wikipedia.org/wiki/Geometric_mean#Proportional_growth
+  
+  average of growth
+  
+  actual_banana_growth = 100 * 400 * 3600 * 4500 * 5000 * 7500; 
+  // => geometric mean of growth 400%, 3600%, 4500%, 5000%, 7500% = 3000%
+  control_banana_growth = 100 * 3000 * 3000 * 3000 * 3000 *3000;
+  
+  mu = product{n=1 cardinality}(value_n) ^ (1 / cardinality)
+      
+*******************************************************************/
+function geometricMean(set_ptr, cardinality)
+  local(n, mu)
+  (
+  n = 1;
+  mu = 1;
+  
+  while(n <= cardinality)
+    (
+    mu *= set_ptr[n];
+    n += 1;
+    );
+  
+  mu ^= 1 / cardinality; 
+  );
+
+/*******************************************************************
+  weightedGeometricMean   
+  --------
+  
+  https://en.wikipedia.org/wiki/Weighted_geometric_mean
+  
+*******************************************************************/
+
+/*******************************************************************
+  harmonicMean  
+  --------
+  
+  https://en.wikipedia.org/wiki/Harmonic_mean
+  https://en.wikipedia.org/wiki/Rate_(mathematics)
+  
+  average of rates
+  
+  if a vehicle travels a certain distance at a speed x (e.g. 60 kilometres per hour) and then the same distance again
+  at a speed y (e.g. 40 kilometres per hour), then its average speed is the harmonic mean of x and y (48 kilometres per hour),
+  and its total travel time is the same as if it had traveled the whole distance at that average speed. However, if the vehicle
+  travels for a certain amount of time at a speed x and then the same amount of time at a speed y, then its average speed is the
+  arithmetic mean of x and y, which in the above example is 50 kilometres per hour. The same principle applies to more than two
+  segments: given a series of sub-trips at different speeds, if each sub-trip covers the same distance, then the average speed
+  is the harmonic mean of all the sub-trip speeds; and if each sub-trip takes the same amount of time, then the average speed
+  is the arithmetic mean of all the sub-trip speeds. (If neither is the case, then a weighted harmonic mean or weighted 
+  arithmetic mean is needed.)
+  
+  mu = 1 / sum{n=1 cardinality}(1 / value_n) * cardinality
+  
+*******************************************************************/
+function harmonicMean(set_ptr, cardinality)
+  local(n, mu)
+  (
+  n = 1;
+  mu = 0;
+  
+  while(n <= cardinality)
+    (
+    mu += 1 / set_ptr[n];
+    n += 1;
+    );
+  
+  mu = 1 / mu * cardinality; 
+  );
+  
+/*******************************************************************
+  weightedHarmonicMean   
+  --------
+  
+  https://en.wikipedia.org/wiki/Harmonic_mean#Weighted_harmonic_mean
+  
+*******************************************************************/
+
+/*******************************************************************
+  rootMeanSquare
+  --------
+  aka quadratic mean
+  
+  https://en.wikipedia.org/wiki/Quadratic_mean
+  
+  
+  The RMS value of a set of values is the square root of the arithmetic mean of the squares of the values
+  
+  sqrt(x) = x ^ (1 / 2)
+  
+  mu = (sum{n=1 cardinality}value_n ^ 2) / cardinality) ^ (1 / 2) 
+  
+  
+  
+*******************************************************************/
+function rootMeanSquare(set_ptr, cardinality)
+  local(n, mu)
+  (
+  n = 1;
+  mu = 0;
+  
+  while(n <= cardinality)
+    (
+    mu += set_ptr[n] ^ 2;
+    n += 1;
+    );
+  
+  mu /= cardinality;
+  mu ^= 1 / 2; 
+  );
+  
+/*******************************************************************
+  frequencyDomainRootMeanSquare
+  --------
+  
+  
+  https://en.wikipedia.org/wiki/Quadratic_mean
+  https://en.wikipedia.org/wiki/Parseval%27s_theorem
+  
+  
+  
+  
+*******************************************************************/
+
+/*******************************************************************
+  cubicMean  
+  --------
+  
+  https://en.wikipedia.org/wiki/Cubic_mean
+  
+*******************************************************************/
+
+/*******************************************************************
+  generalizedMean  
+  --------
+  
+  https://en.wikipedia.org/wiki/Generalized_mean
+  
+  mu = (sum{n=1 cardinality}value_n ^ power) / cardinality) ^ (1 / power)
+  
+  power -> +inf     maximum 
+  power = 2          quadratic mean
+  power = 1          arithmetic mean
+  power -> 0          geometric mean
+  power = -1         harmonic mean
+  power -> -inf      minimum
+  
+*******************************************************************/
+function generalizedMean(set_ptr, cardinality, power)
+  local(n, mu)
+  (
+  n = 1;
+  mu = 0;
+  
+  while(n <= cardinality)
+    (
+    mu += set_ptr[n] ^ power;
+    n += 1;
+    );
+  
+  mu /= cardinality;
+  mu ^= 1 / power; 
+  );
+
+/*******************************************************************
+  Median   
+  --------
+  
+  https://en.wikipedia.org/wiki/Median
+  
+*******************************************************************/
+
+/*******************************************************************
+  geometricMedian   
+  --------
+  
+  https://en.wikipedia.org/wiki/Geometric_median
+  
+*******************************************************************/
+
+/*******************************************************************
+  Mode   
+  --------
+  
+  https://en.wikipedia.org/wiki/Mode_(statistics)
+  
+*******************************************************************/
+
+/*******************************************************************
+  truncatedMean
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Truncated_mean  
+ 
+
+*******************************************************************/
+
+/*******************************************************************
+  interquartileMean
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Interquartile_mean  
+ 
+
+*******************************************************************/
+
+/*******************************************************************
+  midRange
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Midrange  
+ 
+
+*******************************************************************/
+
+/*******************************************************************
+  winsorizedMean
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Winsorized_mean
+  https://en.wikipedia.org/wiki/Winsorising 
+ 
+
+*******************************************************************/ 
+
+/*******************************************************************
+  logarithmicMean
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Logarithmic_mean 
+ 
+
+*******************************************************************/
+
+ 
+
+/*******************************************************************
+  centralMoment
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Central_moment 
+ 
+
+*******************************************************************/
+ 
+/*******************************************************************
+  averageDeviation
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Average_absolute_deviation
+  https://en.wikipedia.org/wiki/Deviation_(statistics)
+  
+  average of the absolute deviations from a central point
+  the central point can be the mean, median, mode, 
+  or the result of another measure of central tendency
+ 
+  sigma = sum{n=1 cardinality}|value_n - mu| / cardinality
+  
+*******************************************************************/
+function averageDeviation(set_ptr, cardinality, mu)
+  local(n, sigma)
+  (
+  n = 1;
+  sigma = 0;
+  
+  while(n <= cardinality)
+    (
+    sigma += abs(set_ptr[n] - mu);
+    n += 1;
+    );
+  
+  sigma /= cardinality;
+  );
+  
+/*******************************************************************
+  standardDeviation
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Standard_deviation
+ 
+  sigma = ((sum{n=1 cardinality}|value_n - mu| ^ 2) / cardinality) ^ (1 / 2)
+
+*******************************************************************/
+function standardDeviation(set_ptr, cardinality, mu)
+  local(n, sigma)
+  (
+  n = 1;
+  sigma = 0;
+  
+  while(n <= cardinality)
+    (
+    sigma += abs(set_ptr[n] - mu) ^ 2;
+    n += 1;
+    );
+  
+  sigma /= cardinality;
+  sigma = sqrt(sigma); //sigma ^= 1 / 2;
+  );
+  
+/*******************************************************************
+  correctedStandardDeviation
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Standard_deviation
+ 
+  sigma = ((sum{n=1 cardinality}|value_n - mu| ^ 2) / (cardinality - 1)) ^ (1 / 2)
+
+*******************************************************************/
+function correctedStandardDeviation(set_ptr, cardinality, mu)
+  local(n, sigma)
+  (
+  n = 1;
+  sigma = 0;
+  
+  while(n <= cardinality)
+    (
+    sigma += abs(set_ptr[n] - mu) ^ 2;
+    n += 1;
+    );
+  
+  sigma /= cardinality - 1;
+  sigma = sqrt(sigma); //sigma ^= 1 / 2;
+  );
+
+/*******************************************************************
+  meanAbsoluteDeviation
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Mean_absolute_deviation
+ 
+
+*******************************************************************/
+
+/*******************************************************************
+  medianAbsoluteDeviation
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Median_absolute_deviation
+ 
+
+*******************************************************************/
+
+/*******************************************************************
+  maximumAbsoluteDeviation
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Maximum_absolute_deviation
+ 
+
+*******************************************************************/
+
+/*******************************************************************
+  Variance
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Variance
+ 
+
+*******************************************************************/
+/*******************************************************************
+  Form Factor
+  -----
+   
+   
+  https://en.wikipedia.org/wiki/Form_factor_(electronics)
+ 
+
+*******************************************************************/    
+  
+/*******************************************************************
+  runningSet   
+  --------
+  
+  Object Oriented : it must be used with a variable name as prefix
+  
+  https://en.wikipedia.org/wiki/Running_total
+     
+  
+*******************************************************************/
+function runningSet_init(period)
+  (
+  //memset(this.samples, 0, this.period); 
+  this.period = ceil(period);
+  this.samples = memAlloc(this.period, "running Set");
+  
+  this.n = 0;
+  this.sum = 0;
+  this.sum_of_squares = 0;
+  );
+  
+function runningSet(input)
+  (
+  this.n >= this.period ? this.n = 0; //if sample set is full, wrap around  
+  
+  this.sum -= this.samples[this.n]; //substract the sample about to be overwritten from the sum
+  this.sum_of_squares -= sqr(this.samples[this.n]); //substract the sample about to be overwritten from the sum of squares
+  
+  this.samples[this.n] = input; //overwrite oldest sample with input
+  
+  this.sum += this.samples[this.n]; //update the sum with the new sample
+  this.sum_of_squares += sqr(this.samples[this.n]);  //update the sum of squares with the new sample^2
+  
+  this.n += 1; //keep track of the number of samples | sample index  
+  );
+
+/*******************************************************************
+  runningArithmeticMean   
+  --------
+  
+  Object Oriented : it must be used with a variable name as prefix
+  
+  Do a FIR version later
+  
+  Cumulative moving average
+  
+  http://www.dspguide.com/CH2.PDF
+  https://en.wikipedia.org/wiki/Moving_average
+  
+  In electronics, the mean is commonly called the DC (direct current) value.
+  
+  
+*******************************************************************/
+
+function runningArithmeticMean()
+  (
+  this.arithmetic_mean = this.sum / this.period; //AritmeticMean is WRONG on first go-around, but I want avoid extra branching for now and I can live with it.
+  );
+  
+/*******************************************************************
+  runningRMS   
+  --------
+  
+  Object Oriented : it must be used with a variable name as prefix
+  
+  Do a FIR version later
+  
+  AC + DC 
+  
+  while(n <= cardinality)
+  (
+  mu += set_ptr[n] ^ 2;
+  n += 1;
+  );
+  
+  mu /= cardinality;
+  mu ^= 1 / 2;
+  
+*******************************************************************/
+
+function runningRMS()
+  (
+  this.RMS = sqrt(this.sum_of_squares / this.period);
+  );
+/*******************************************************************
+  runningCrestFactor   
+  --------
+  
+  https://en.wikipedia.org/wiki/Crest_factor
+     
+  
+*******************************************************************/
+/*******************************************************************
+  runningStandardDeviation
+  -----
+   
+  Object Oriented : it must be used with a variable name as prefix
+  
+  Do a FIR version later
+  
+   
+  https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+  
+  AC
+ 
+  sigma = ((sum{n=1 cardinality}|value_n - mu| ^ 2) / (cardinality - 1)) ^ (1 / 2)
+  
+  (1 / (n - 1) (sum of squares - (sum ^ 2 ) / n)) ^ (1 / 2)
+
+*******************************************************************/
+
+function runningStandardDeviation(input)
+  (
+  this.standard_deviation = sqrt((this.sum_of_squares - (sqr(this.sum) / this.period)) / (this.period - 1));
+  );
+  
+  
+/*******************************************************************
+  runningHistogram   
+  --------
+  
+  Object Oriented : it must be used with a variable name as prefix
+  
+  period : number of samples to hold / window size  
+  length : number of bins / length of the histogram
+  range : expected peak to peak amplitude of the signal
+  //input_max : expected range [-input_max; input_max] of the signal
+  
+  TODO []
+  260 MEAN = 0 'Calculate the mean via Eq. 2-6
+  270 FOR I% = 0 TO 255
+  280 MEAN = MEAN + I% * H%[I%]
+  290 NEXT I%
+  300 MEAN = MEAN / N%
+  310 '
+  320 VARIANCE = 0 'Calculate the standard deviation via Eq. 2-7
+  330 FOR I% = 0 TO 255
+  340 VARIANCE = VARIANCE + H%[I%] * (I%-MEAN)^2
+  350 NEXT I%
+  360 VARIANCE = VARIANCE / (N%-1)
+  370 SD = SQR(VARIANCE)
+  
+  //this.arithmetic_mean = 0;
+  //this.standard_deviation = 0;
+ 
+  //this.probability_mass_function = memAlloc(this.length, "pmf"); 
+  each value in the histogram is divided by the total
+  number of samples to approximate the pmf. This means that each value in the
+  pmf must be between zero and one, and that the sum of all of the values in the
+  pmf will be equal to one.
+  
+  
+*******************************************************************/
+function runningHistogram_init(period, length, range)
+  (
+  this.period = ceil(period);
+  this.length = ceil(length);
+  this.range = range;
+  
+  this.samples = memAlloc(this.period, "Histogram samples");
+  this.histogram = memAlloc(this.length, "Histogram bins");
+  this.probability_mass_f = memAlloc(this.length, "pmf bins");
+    
+  this.bin_ratio = this.length / this.range;
+  
+  this.n = 0;
+  this.sum = 0;
+  //this.max = 0;
+  this.warm_up_done = 0; //meh flag to avoid decremeting bins in error on first pass  
+  );
+  
+function runningHistogram(input)
+  local(bin, pmf)
+  (
+  this.n >= this.period ? 
+    (
+    this.n = 0; //if sample set is full, wrap around
+    this.warm_up_done = 1;
+    );
+  
+  this.bin_num_check = bin;
+  
+  this.sum -= this.samples[this.n]; //substract the sample about to be overwritten from the sum  
+  
+  bin = floor((this.samples[this.n] + (this.range / 2)) * this.bin_ratio); //remap the sample value about to be overwritten to [0;this.range] find which bin it falls into
+  this.warm_up_done == 1 ? 
+    (
+    this.histogram[bin] -= 1; //decrement occurence count
+    pmf /= this.period; //update pmf this.probability_mass_f[bin]
+    this.probability_mass_f[bin] = pmf;
+    );
+  
+  this.samples[this.n] = input; //overwrite oldest sample with input
+  
+  //this.sum += this.samples[this.n]; //update the sum with the new sample  
+  this.sum += input;
+  
+  bin = floor((this.samples[this.n] + (this.range / 2)) * this.bin_ratio); //remap the new sample value to [0;this.range] find which bin it falls into
+  this.histogram[bin] += 1; //increment occurence count
+  pmf = this.histogram[bin] / this.period; //update pmf this.probability_mass_f[bin]
+  this.probability_mass_f[bin] = pmf;
+  
+  //this.max = max(this.histogram[bin], this.max);
+  this.n += 1; //keep track of the number of samples | sample index 
+  );
+  
+  
+/*******************************************************************
+  Kurtosis   
+  --------
+  
+  https://en.wikipedia.org/wiki/Kurtosis
+
+    
+*******************************************************************/
+
+/*******************************************************************
+  Skewness  
+  --------
+  
+  https://en.wikipedia.org/wiki/Skewness
+    
+*******************************************************************/
+
+/*******************************************************************
+  skewNormalDistribution   
+  --------
+  
+  https://en.wikipedia.org/wiki/Skew_normal_distribution
+
+  the skew normal distribution is a continuous probability distribution
+  that generalises the normal distribution to allow for non-zero skewness.
+    
+*******************************************************************/
+
+   
+/*******************************************************************
+  samplePeak   
+  --------
+  
+  https://en.wikipedia.org/wiki/Peak_programme_meter
+    
+  Sample peak programme meter (SPPM). This is a PPM for digital audio which shows only peak sample values, 
+  not the true waveform peaks (which may fall between samples and be up to 3 dB higher in amplitude). 
+  It may have either a 'true' or a 'quasi' integration characteristic.
+  
+*******************************************************************/
+
+/*******************************************************************
+  truePeak   
+  --------
+  
+  https://en.wikipedia.org/wiki/Peak_programme_meter
+  
+  This is a PPM for digital audio which shows only peak sample values, not the true waveform peaks
+  (which may fall between samples and be up to 3 dB higher in amplitude). 
+  It may have either a 'true' or a 'quasi' integration characteristic.
+  
+*******************************************************************/
+
+
+/*******************************************************************
+  quasiPeak   
+  --------
+  
+  https://en.wikipedia.org/wiki/Peak_programme_meter
+  
+  This only shows the true level of the peak if it exceeds a certain duration, typically a few milliseconds.
+  On peaks of shorter duration, it will indicate less than the true peak level. 
+  The extent of the shortfall is determined by the 'integration time'.
+    
+  
+*******************************************************************/
+
+/*******************************************************************
+  holdPeak   
+  --------
+  
+  Object Oriented : it must be used with a variable name as prefix
+  
+  https://en.wikipedia.org/wiki/Precision_rectifier#Peak_detector
+  
+  Compare Input value to  Max and Min Amplitude Value in memory,
+  store highest and lowest
+  (interestingly it means it can only remember what it 'saw', and it's not looking at anything, unless called upon)
+    
+  
+*******************************************************************/
+function holdPeak(input)
+  (
+  this.max_peak = max(input, this.max_peak);
+  this.min_peak = min(input, this.min_peak);
+  );
+
+/*******************************************************************
+  setPeak   
+  --------
+  
+  Object Oriented : it must be used with a variable name as prefix
+  
+  https://en.wikipedia.org/wiki/Precision_rectifier#Peak_detector
+  
+  Set Peak Max and Min stored in memory to any value, in case you want to warn it about what it missed since last call,
+  lie about the highest/lowest value he ever witnessed 
+  or forget everything and reset    
+  
+*******************************************************************/
+
+
+  
+//|||||||||||||||||||||||||||||DUMP |||||||||||||||||||||||||||||  
+  
+/*******************************************************************
+  runningDirectConvolution   
+  --------
+  
+  Object Oriented : it must be used with a variable name as prefix
+     
+  
+*******************************************************************/
+/*
+function runningDirectConvolution_init()
+  (
+  this.impulse = memAlloc(this.period, "running Impulse");
+  this.product = memAlloc(this.period, "running Product");
+  this.convolution = memAlloc(this.period, "running Convolution");
+  this.integral = 0; 
+  this.n = 0;
+  );
+*/
+/*  
+function runningDirectConvolution(input)
+  local(c)
+  (
+  this.window[this.n] = - input; //overwrite oldest sample with input 
+  );
+*/
+/*
+function runningDirectConvolution(input)
+  local(c)
+  (
+  c = this.n;
+  this.output = 0;
+  
+  loop(this.period,
+  c >= this.period ? c = 1; //wrap around 
+  
+  this.output += this.samples[c] * this.window[this.period - c];
+  
+  c += 1;
+  );
+  
+  this.output /= this.period;
+  this.convolution[this.n] = this.output;
+   
+  );
+*/
+
+/*
+function runningDirectConvolution(input)
+  (
+  this.n >= this.period ? this.n = 0; //if sample set is full, wrap around  
+  
+  this.sum -= this.samples[this.n]; //substract the sample about to be overwritten from the sum
+  this.integral -= this.samples[this.n] * this.impulse[this.n];
+  
+  this.samples[this.n] = input; //overwrite oldest sample with input
+  this.impulse[this.n] = 1; //overwrite oldest sample with input 
+  
+  this.sum += this.samples[this.n]; //update the sum with the new sample
+  this.integral += this.samples[this.n] * this.impulse[this.n];
+  
+  
+  this.convolution[this.n] = this.integral / this.period;
+  
+  this.n += 1; //keep track of the number of samples | sample index 
+  );  
+*/
+
+
+
+
+
+
+

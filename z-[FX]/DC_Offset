@@ -1,0 +1,34 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:DC Offset
+
+slider1:0<-1,1,0.00001>DC offset (Coarse)
+slider2:0<-0.1,0.1,0.00001>DC offset (Fine)
+//slider2:1<1,5,1>Scale (1 is linear)
+
+//import z/z-Utilities.jsfx-inc
+
+@init
+
+
+@slider
+//dc_offset = reMap(slider1, -1, 1, -1, 1, slider2);
+dc_offset = slider1 + slider2;
+
+
+@sample
+//DC OFFSET -> DUTY CYCLE MODULATION
+spl0 += dc_offset;
+spl1 += dc_offset;

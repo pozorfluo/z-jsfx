@@ -1,0 +1,77 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:tanh is alive ! but could be more efficient :)
+
+
+slider8:100<0,100,1>Stereo Width
+slider9:200<5,20000,1>Jitter Smoothness Cutoff (Hz)
+slider10:1<0,200,1>Jitteriness Coarse
+slider11:1<0.01,1,0.01>Jitteriness
+slider12:5<0,500,1>Tolerance (%)
+
+
+slider20:1<0,100,1>tanH
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+
+@init
+rc = 1 / (2 * $pi * slider9); // rc filter Smoothing coefficient
+// Convert attack/decay/release time to RC time constant
+// rc_set(0.2 * t);
+rc_a = 1 / (rc * srate + 1);
+
+// Low-pass
+
+function rc_lp(s, a)
+  instance(lp)
+(
+  lp += a * (s - lp);
+);
+
+@slider
+
+transfer_tanh_drive = slider20;
+
+stereo_width = slider8 / 100;
+
+rc = 1 / (2 * $pi * slider9); // rc filter Smoothing coefficient
+rc_a = 1 / (rc * srate + 1);
+tolerance = slider12 / 100;
+tolerance_r = slider12 / 100;
+jitter = slider10 + slider11;
+
+@block
+
+
+@sample
+
+//TOLERANCE ACCUMULATOR
+tolerance = max(0, min(slider12, (tolerance + ((rand(2) - 1) * jitter) )));
+tolerance = l.rc_lp(tolerance, rc_a);
+
+//TOLERANCE ACCUMULATOR - another one for stereo mode
+tolerance_r = max(0, min(slider12, (tolerance_r + ((rand(2) - 1) * jitter) )));
+tolerance_r = r.rc_lp(tolerance_r, rc_a);
+
+
+transfer_tanh_drive > 0 ?
+  (
+  transfer_tanh_drive = slider20 * (1 + (tolerance / 100));
+  spl0 = tanh(spl0, transfer_tanh_drive);
+  transfer_tanh_drive = (transfer_tanh_drive * (1 - stereo_width)) + ((slider20 * (1 + (tolerance_r / 100))) * stereo_width); //mix for stereo width
+  spl1 = tanh(spl1, transfer_tanh_drive);
+  );
+

@@ -1,0 +1,110 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:naive Preisach Hysteresis - I guess...
+
+/* TODO []
+*/
+slider37:10<1,100,1>Hysteron Population
+slider38:100<0,100,1>Relays On Threshold
+slider39:0<0,100,1>Relays Off Threshold
+slider40:0<0,6,1{Uniform,Proximity,Random on Init,History,Zero Pull,Peak Pull, Streak}>Weight Distribution - spl0
+slider41:0<0,6,1{Uniform,Proximity,Random on Init,History,Zero Pull,Peak Pull, Streak}>Weight Distribution - spl1
+
+
+
+//IMPORT CRITICAL STUFF FIRST - IF THERE IS A CONFLICT IMPORT FROM INSIDE THE LIBRARY ?
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-ListManager.jsfx-inc
+import z/z-MathFunctions.jsfx-inc
+//import z/z-IntegralOperators.jsfx-inc
+//import z/z-DifferentialOperators.jsfx-inc
+//import z/z-OtherOperators.jsfx-inc
+import z/z-Matrices.jsfx-inc
+import z/z-StochasticProcesses.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-Windows.jsfx-inc
+import z/z-Analysis.jsfx-inc
+import z/z-Graph.jsfx-inc
+import z/z-Hysteresis.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Filters.jsfx-inc
+import z/z-NoiseGenerators.jsfx-inc
+import z/z-Oscillators.jsfx-inc
+import z/z-Resonators.jsfx-inc
+import z/z-Midi.jsfx-inc
+import z/z-DynamicProcessors.jsfx-inc
+
+//OBSERVER, ANALYSER, INTEGRER, RESTITUER
+//import cookdsp_0.2_2015-05-12/cookdsp.jsfx-inc
+//import tale/adsr.jsfx-inc
+//import tale/array.jsfx-inc 
+//import tale/lfo.jsfx-inc 
+//import tale/malloc.jsfx-inc 
+//import tale/midi_queue.jsfx-inc 
+//import tale/noise_generator.jsfx-inc 
+//import tale/oversampler.jsfx-inc 
+//import tale/poly_blep.jsfx-inc
+//import tale/rbj_filter.jsfx-inc
+//import tale/rc_filter.jsfx-inc
+//import tale/sine_oscillator.jsfx-inc
+//import tale/zdf_filter.jsfx-inc
+
+
+
+@init
+
+/* TODO
+http://ajaxsoundstudio.com/cookdspdoc/cookdsp/effects.jsfx-inc
+http://ajaxsoundstudio.com/cookdspdoc/scale.html
+http://ajaxsoundstudio.com/cookdspdoc/cookdsp/filters.jsfx-inc
+http://www.embedded.com/design/configurable-systems/4025591/Digital-filtering-without-the-pain
+https://en.wikipedia.org/wiki/Inverse_trigonometric_functions
+https://en.wikipedia.org/wiki/Diode
+http://aries.ucsd.edu/NAJMABADI/CLASS/ECE65/12-W/Slides/ECE65_W12-Diode-2.pdf
+
+*/
+
+//Init MemoryManager
+memInit(100);
+
+  
+
+
+@slider
+memWipe(); // wipe ptr_map alloc + reset memory heap region to 0 
+
+spl_0.naivePreisachHysteresis_init(slider37, slider39 / 100, slider38 / 100, slider40);
+spl_1.naivePreisachHysteresis_init(slider37, slider39 / 100, slider38 / 100, slider41);
+
+
+
+@sample
+
+spl0 = spl_0.naivePreisachHysteresis(spl0);
+spl1 = spl_1.naivePreisachHysteresis(spl1);
+
+@gfx 500 500
+
+fillScreen(.4,.2,.15);
+
+
+gfx_x = 0; gfx_y = 490; setColor(1,.3,0);
+gfx_drawstr("Waves&Meters");gfx_drawstr(" ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+
+drawAxes(0,0.5,1);
+
+memDiagnostic(30,40);

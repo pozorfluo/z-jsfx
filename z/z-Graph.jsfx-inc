@@ -1,0 +1,427 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+desc: Graph Tool Library
+
+/* TODO []
+
+  
+  REDO NAMING CONVENTION and just settle on something like :
+  
+  FUNCTION
+  -----------------------------------------------
+  setPackedColor(color)                       =>    colorSetPacked(color)
+  packRGB(red, green, blue)                   =>    colorPackRGB(red, green, blue) 
+  setColor(color)                             =>    colorSet(red, green, blue)
+  invertColor()                               =>    colorInvert(that_color) 
+                                                    colorInvertCurrent()
+  
+  initScreenBuffer(buffer, width, height)     =>    screenInitBuffer(buffer, width, height)
+  
+  nounVerb()
+  objectActionQualifier(argument)
+  objectAction()
+  familyActionQualifier()
+  familyNoun()
+  objectQualifier()
+  Verb()
+  
+  
+  GLOBAL VARIABLES, NAMESPACE PSEUDO-OBJECTS
+  -----------------------------------------------
+  
+  lower_case
+  this_is_a_global_variable
+  this.is_global_variable_in_relative_namespace
+  this..variable_higher_in_namespace_hierarchy  
+  global_variable.blah_blah
+  
+  LOCAL VARIABLES, FUNCTION ARGUMENTS
+  -----------------------------------------------
+  function screenInitBuffer(_buffer, _width, _height)
+    (
+    local(_i, _j, _red)
+    
+    ...
+    blehh
+    ...
+    
+  function screenInitBuffer(buffer, width, height)
+    (
+    local(i, j, red)
+    ...
+    
+    dunno
+ 
+ 
+  CONSTANTS(ish) / ALIAS
+  -----------------------------------------------   
+  
+  _OFF    = 0;
+  _ON     = 1;
+  _TOGGLE = 2;
+  _QUERY  = 3;
+  
+  _ALL_CAPS_ALWAYS
+  
+  STRINGS
+  -----------------------------------------------   
+  
+    
+  
+  
+  The current mess is super confusing. eg :
+  
+  
+  function drawFunction(gfx_size)  
+  ....
+  gfx_x = graphFunction.x[1] * gfx_size / 2 + gfx_size / 2;
+  while (i <= graphFunction.set_length)
+  ...
+  
+  wth is graphFunction.x[1] graphFunction.set_length ?? 
+  
+  
+  ----
+  
+  graph_functioname.functionDraw(gfx_size);
+  
+  graph_functioname.set_length       this.set_length      this.set.length        <--- variable 
+  graph_functioname.lengthSet(size)  this.lengthSet(size) this.lengthSet(size)                    <--- function call
+  
+  probably
+
+  FUNCTION INDEX []
+  
+*/
+
+@init
+
+/*******************************************************************
+  displayInitBuffer // screenInitBuffer    
+  -----
+  
+  Initialize target Screen Buffer and directs drawing operation it.
+  
+  initScreenBuffer
+  
+*******************************************************************/
+function displayInitBuffer(buffer, width, height)
+  ( 
+  gfx_dest = buffer; 
+  gfx_setimgdim(buffer, width, height); 
+  );
+  
+
+/*******************************************************************
+  colorSetPacked   
+  -----
+  PACKED version
+  
+  Sets current color, alpha left as is.
+*******************************************************************/
+function colorSetPacked(color)
+  (          
+  gfx_b = (color & $x0000FF) / 256; 
+  gfx_g = ((color & $x00FF00) >> 8) / 256; 
+  gfx_r = ((color & $xFF0000) >> 16)/ 256; 
+  );
+  
+
+/*******************************************************************
+  colorSet     
+  -----
+  Sets current color, alpha left as is.
+*******************************************************************/
+function colorSet(red, green, blue)
+  (
+  gfx_r = red; 
+  gfx_g = green; 
+  gfx_b = blue; 
+  );
+
+/*******************************************************************
+  colorPackRGB     
+  -------
+  
+  BBBBBBBB0000000000000000
+          GGGGGGGG00000000
+                  RRRRRRRR
+  ------------------------
+  RRRRRRRRGGGGGGGGBBBBBBBB
+  
+  bitshift to the left
+  
+  
+  testing 
+  
+  red = 128;
+  green = 128;
+  blue = 128;
+  
+  times256 = green * 256;
+  times65536 = blue * 65536;
+  bit_shift8 = green << 8;
+  bit_shift16 = blue << 16;
+   
+*******************************************************************/
+function colorPackRGB(red, green, blue)
+  local(sum)
+  (  
+  //
+  //sum = red << 8 + green << 16 + blue << 24; // take [0,1] value as input, * 256 , pack
+  //sum = red + green * 256 + blue * 65536;   
+  //red *= 255; green *= 255; blue *= 255; // take [0,1] values as input, remap to [0,255]
+  //sum = red + green << 8 + blue << 16; //bitshift yelds integers
+  sum = blue + green << 8 + red << 16; //bitshift yelds integers
+  );
+
+/*******************************************************************
+  colorInvert     
+  --------
+*******************************************************************/
+function colorInvert()
+  (
+  gfx_r = 1 - gfx_r;
+  gfx_g = 1 - gfx_g;
+  gfx_b = 1 - gfx_b;
+  );
+
+/*******************************************************************
+  screenFill     
+  ----------
+  
+  Doesn't work too well if you draw to an offscreen buffer and intend to scale GUI
+  
+*******************************************************************/
+function screenFill(red, green, blue)
+  (
+  //gfx_clear = packRGB(red, green, blue); //this only set the color the frame buffer clears to
+  colorSet(red, green, blue);
+  gfx_rect(0, 0, gfx_w ,gfx_h);
+  ); 
+
+/*******************************************************************
+  drawAxes     
+  --------
+*******************************************************************/
+function drawAxes(red, green, blue)
+  (
+  this.bg_square = min(gfx_w, gfx_h ); //define a graph_square area that fits within whatever gfx format is
+
+  colorSet(red,green,blue);
+
+  gfx_x = this.bg_square / 2; gfx_y = 0;
+  gfx_lineto(this.bg_square / 2, this.bg_square, 0); //draw x-axis
+  gfx_x = 0; gfx_y = this.bg_square / 2;
+  gfx_lineto(this.bg_square, this.bg_square / 2, 0);
+
+  );
+ 
+  
+    
+/*******************************************************************
+  calcSlope     
+  ---------
+  
+  TODO []
+    + Redo by calling/as the proper Differential Operator function
+  
+  https://en.wikipedia.org/wiki/Slope
+  
+  
+  
+  theta = atan(slope)
+  slope = delta y / delta x = vertical change / horizontal change
+   
+  
+*******************************************************************/  
+function calcSlope(x1, x2, y1, y2)
+  local(slope)  
+  (
+  slope = (y2 - y1) / (x2 - x1);
+  slope;
+  );
+
+/*******************************************************************
+  graphFunction     
+  ----------  
+  
+  https://en.wikipedia.org/wiki/Graph_of_a_function
+  https://fr.wikipedia.org/wiki/Repr%C3%A9sentation_graphique_d%27une_fonction_math%C3%A9matique
+  https://en.wikipedia.org/wiki/Ordered_pair
+  https://en.wikipedia.org/wiki/Tuple
+  
+*******************************************************************/
+function graphFunction(x1, xN, sample_interval, function_ID, function_Param)
+   //instance(x, y, slope, set_length)
+  local(n)
+  ( 
+  
+  this.set_length = abs(xN - x1) / sample_interval; // figure how much memory we need
+  this.x = memAlloc(this.set_length, "graph_function.x");
+  this.y = memAlloc(this.set_length, "graph_function.y");
+  this.slope = memAlloc(this.set_length, "graph_function.slope");
+  
+  this.x[1] = x1; // init  
+  this.slope[1] = 0; //is there an option making sense to init slope[1] ? It's 0 by default if we don't
+  
+  //this.y[1] = functionCall(function_ID, function_Param, this.x[1]); //have fun w all the way to fuck with this later  
+  
+  
+  n=2; //skip first point for slope, save some conditionnal branching, yay
+  while(n <= this.set_length)
+    (
+    this.x[n] = this.x[n-1] + sample_interval;
+    
+    //this.y[n] = functionCall(function_ID, function_Param, this.x[n]); //have fun w all the way to fuck with this later
+    
+    this.x[n] - this.x[n-1] ? //function graph_slope() fails for a vertical line parallel to the y-axis, but it isn't clear how that could happen with that setup. Investigate
+    (    
+    this.slope[n] = calcSlope(this.x[n-1], this.x[n], this.y[n-1], this.y[n]); //Calculate slope   
+    );
+         
+    );
+  
+  //this.x; //return ordered triplets set memory index, add set_length to get to next indexes, or ping x | y | slope
+  );
+
+/*******************************************************************
+  graphParametricEquation
+  -----
+  
+  https://en.wikipedia.org/wiki/Parametric_equation
+  https://www.math.hmc.edu/calculus/tutorials/parametric_eq/
+  http://tutorial.math.lamar.edu/Classes/CalcII/ParametricEqn.aspx
+  http://math.stackexchange.com/questions/447010/equation-for-a-distorted-circle
+  http://fr.mathworks.com/help/signal/ug/parametric-modeling.html
+  
+  
+  
+  
+  Usefulness :
+  
+  +Analysis
+  https://en.wikipedia.org/wiki/Lissajous_curve
+  https://en.wikipedia.org/wiki/Nyquist_plot
+  
+  
+  +Plot funky TRANSFER CURVES :
+         Build ordered pairs set with graphParametricEquation
+         Normalize any of its subsets
+         Interpolate any way you want between samples and get a transfer curve
+         Waveshape using the resulting transfer curve
+         
+         Use as Wavetable for an oscillator
+         http://hackmeopen.com/2010/11/bandlimited-wavetable-synthesis/
+         http://greenteapress.com/thinkdsp/html/thinkdsp004.html
+         
+          
+  
+ 
+
+*******************************************************************/
+
+  
+/*******************************************************************
+  drawFunction     
+  ----------
+*******************************************************************/  
+  
+function drawFunction(gfx_size)  
+  local(i)
+  (
+  i=1;
+  colorSet(0,0,0);
+  gfx_x = graphFunction.x[1] * gfx_size / 2 + gfx_size / 2;
+  gfx_y = graphFunction.y[1] * gfx_size / 2 + gfx_size / 2;
+  
+  while (i <= graphFunction.set_length)
+    (
+    i += 1;
+    gfx_lineto( graphFunction.x[n] * gfx_size / 2 + gfx_size / 2 , graphFunction.y[n] * gfx_size / 2 + gfx_size / 2, 1); // Draw curve
+    );
+  
+  );
+  
+/*******************************************************************
+  drawDerivative     
+  ----------
+*******************************************************************/ 
+function drawDerivative(gfx_size)  
+  local(i)
+  (
+  i=1;
+  colorSet(1,1,1); 
+  gfx_x = graphFunction.x[1] * gfx_size / 2 + gfx_size / 2;
+  gfx_y = graphFunction.slope[1] * gfx_size / 2 + gfx_size / 2;
+  
+  while (i <= graphFunction.set_length)
+    (
+    i += 1;
+    gfx_lineto( graphFunction.x[n] * gfx_size / 2 + gfx_size / 2 , graphFunction.slope[n] * gfx_size / 2 + gfx_size / 2, 1); // Draw curve
+    );
+  
+  );
+  
+  
+/*******************************************************************
+  drawSet     
+  ----------
+  
+*******************************************************************/  
+  
+function drawSet(x_ptr, y_ptr, cardinality, , gfx_size, packedRGB_color)  
+  local(i)
+  (
+  i = 1;
+  colorSet(0,0,0); //NEED TO UNPACK RGB 
+  
+  //first point
+  //gfx_x = x_ptr[1] * gfx_size / 2 + gfx_size / 2;
+  //gfx_y = y_ptr[1] * gfx_size / 2 + gfx_size / 2;
+  gfx_x = 0;
+  gfx_y = y_ptr[1] * gfx_size / 2 + gfx_size / 2;
+  
+  while (i <= cardinality)
+    (
+    i += 1;
+    //gfx_lineto(x_ptr[i] * gfx_size / 2 + gfx_size / 2 , y_ptr[i] * gfx_size / 2 + gfx_size / 2, 1); // Draw curve
+    gfx_lineto(i, y_ptr[i] * gfx_size / 2 + gfx_size / 2, 1); // Draw curve
+    );
+  
+  );  
+  
+  
+  /*
+  function graph_derivative(red, green, blue, alpha, x, slope, y_min, yMax)
+  local(lastx, lasty)
+  (
+  
+  (lastx + lasty) == 0 ? // No line to draw on first call, only a dot
+  (
+  gfx_setpixel(gfx_r, gfx_g, gfx_b)
+  ) : (
+  gfx_x = lastx; gfx_y = lasty; //set current position to last known point
+  gfx_lineto(x * size / 2 + size /2 , y * graph_square / 2 + graph_square  /2, 1); // Draw derivative curve
+  
+  
+  gfx_x = this.x; gfx_y = this.y; //set current position to last function curve point
+  );
+  
+  lastx = x;
+  lasty = slope; 
+  //x ? // old irrelevant test
+  
+  ); */
+

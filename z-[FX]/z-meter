@@ -1,0 +1,120 @@
+ // This effect Copyright (C) 2004 and later Cockos Incorporated
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+desc: z-VU meter
+//slider1:0<-96,6,0.1>volume dB
+
+slider3:-6<-18,0,1>target db
+slider4:24<6,48,1>range db
+slider5:300<30,500,1> sample time (ms)
+
+@init
+
+function dBtoAmp(dB)
+  (
+  exp(dB * 0.11552453);
+  //exp(dB / 8.65617025);
+  );
+  
+  
+function AmpTodB(amp)
+  ( 
+  log(amp) / 0.11552453;
+  );
+
+
+  
+
+  weight = 1; 
+@slider
+  sampletime = slider5 * srate / 1000;
+
+  
+  range  =  dBtoAmp(slider4);
+  target =  dBtoAmp(slider3);
+     
+@block
+
+ bscnt>sampletime ? 
+ (
+      spl_0.meter  = AmpTodB(spl_0.peakvol);
+      spl_1.meter  = AmpTodB(spl_1.peakvol);
+      spl_2.meter  = AmpTodB(spl_1.peakvol);
+      
+      total  = spl_0.peakvol + spl_1.peakvol + spl_2.peakvol;
+      
+      total ?
+        (
+        weight =  target / total;
+        ):(
+        weight = 1.001;
+        );
+       // weight_db =  min(range, AmpTodB(weight)); 
+      
+      peakweight = max(peakweight, weight); 
+      //peakweight_db = max(peakweight_db, weight_db);      
+      
+      //slider1 = weight_db; sliderchange(1);
+      bscnt = spl_0.peakvol = spl_1.peakvol = spl_2.peakvol = 0;
+      
+     
+ );
+
+
+
+bscnt += samplesblock;
+
+
+
+
+
+@sample
+
+spl_0.peakvol = max(spl_0.peakvol,abs(spl0)); 
+spl_1.peakvol = max(spl_1.peakvol,abs(spl1));  
+spl_0_tmp = spl0 * weight;
+
+spl_1_tmp = spl1 * weight ;  
+
+spl0 = spl_0_tmp;
+spl1 = spl_1_tmp; 
+/*
+(spl0_tmp > 1) || (spl1_tmp > 1)  ?
+  (
+  total  = spl0 + spl1;// + spl_2.peakvol;
+  
+  total ?
+    (
+    weight =  range / total;
+    ):(
+    weight = 1;
+    );
+  weight_db =  min(range, AmpTodB(weight)); 
+  
+  //spl0 *= weight_db;
+  //spl1 *= weight_db;
+  ):(
+  spl0 = spl_0_tmp;
+  spl1 = spl_1_tmp;
+  );
+
+*/
+
+@gfx 650 530
+
+gfx_r = 0.5; gfx_g = 0; gfx_b = 1; gfx_x = 5; gfx_y = 5;
+  
+gfx_drawstr(" ch1    | ");  gfx_drawnumber(spl_0.peakvol, 4); 
+gfx_x = 5; gfx_y += 10;
+gfx_drawstr(" ch2    | ");  gfx_drawnumber(spl_1.peakvol, 4); 
+//gfx_drawstr(" ch3    | ");  gfx_drawnumber(spl_2.peakvol, 0); 
+gfx_x = 5; gfx_y += 10;
+gfx_drawstr(" total  | ");  gfx_drawnumber(total, 4); 
+gfx_x = 5; gfx_y += 10;
+gfx_drawstr(" weight | ");  gfx_drawnumber(weight, 4); 
+gfx_x = 5; gfx_y += 10;
+gfx_drawstr(" weight db | ");  gfx_drawnumber(weight_db, 4); 
+gfx_x = 5; gfx_y += 10;
+gfx_drawstr(" weight pk| ");  gfx_drawnumber(peakweight, 4); 
+gfx_x = 5; gfx_y += 10;
+gfx_drawstr(" weight db pk| ");  gfx_drawnumber(peakweight_db, 4);

@@ -1,0 +1,42 @@
+/*******************************************************************************
+*  2017 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+desc:>>Send Dummy
+
+// these lines tell Reaper the effect has no audio input/output,
+// which enables processing optimizations.
+// MIDI-only FX should always have these lines.
+//in_pin:none
+//out_pin:none
+
+///////////////////////////////////////////////////////////////////////////////
+@init
+
+///////////////////////////////////////////////////////////////////////////////
+@slider
+
+///////////////////////////////////////////////////////////////////////////////
+@sample
+////FEED [ MAIN ] >> WET
+
+// ???? WHY ??? <<-- was used on old room delay lines
+/*
+spl34 = spl0;
+spl35 = spl1;
+*/
+////FEED Send 1 >> [ MAIN ]
+//spl0 = spl2;
+//spl1 = spl3;
+//spl0;
+0;
+    

@@ -1,0 +1,43 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: Complex Arithmetic Library
+
+
+
+/* TODO []
+
+  http://www.verklagekasper.de/synths/dsfsynthesis/dsfsynthesis.html
+  
+  https://en.wikibooks.org/wiki/C_Programming/C_Reference/complex.h
+  https://en.wikipedia.org/wiki/Complex_number
+  
+  http://www.dspguide.com/CH30.PDF <-- Complex Number DSP use case
+  
+  
+*/
+
+
+@init
+
+/*******************************************************************
+  complex_init
+  -----
+  
+  (number)
+  number.i //or j wink wink nudge nudge
+  number.r
+
+*******************************************************************/
+

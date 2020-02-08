@@ -1,0 +1,44 @@
+desc:Pan Law Study (not stereo pan)
+
+slider1:50<0,100,1>pan
+slider10:0<0,6,1{linear,0ed,sqrt,sin -3dB,sin -4.5dB,sin -6dB}>pan law
+
+slider20:0<0,100,1>L
+slider21:0<0,100,1>R
+
+@init
+
+pi = 3.1415926535;
+halfpi = pi / 2;
+
+  
+pan = slider1 / 100;
+law = slider10;
+
+@slider
+pan = slider1 / 100;
+law = slider10;
+
+law == 0 ? ( pan_L = 1 - pan; pan_R = pan;
+  ):(
+law == 1 ? ( pan_L = min(1, 1 - (2 * pan - 1)); pan_R = min(1, 2 * pan);
+  ):(
+law == 2 ? ( pan_L = sqrt(1 - pan); pan_R = sqrt(pan);
+  ):(
+law == 3 ? ( pan_L = sin((1 - pan) * halfpi); pan_R = sin(pan * halfpi);
+  ):(
+law == 4 ? ( pan_L = sin((1 - pan) * halfpi) ^ 1.5; pan_R = sin(pan * halfpi) ^ 1.5;
+  ):(
+law == 5 ? ( pan_L = sin((1 - pan) * halfpi) ^ 2; pan_R = sin(pan * halfpi) ^ 2;
+  ););););););
+
+slider20 = pan_L * 100;  
+slider21 = pan_R * 100;
+
+@block
+
+@sample
+
+spl0 = pan_L * spl0;
+spl1 = pan_R * spl1;
+

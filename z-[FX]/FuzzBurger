@@ -1,0 +1,249 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:FuzzBurger
+
+slider1:0<-96,64,0.1>L Gain - Replace LR Control w RCTolerandomness Width
+slider2:0<-96,64,0.1>R Gain
+
+slider5:0<-0.1,0.5,0.00001>DC Bias
+
+slider6:0<0,100,1>Square
+slider7:0<0,10,1>Distributor (0->off)
+
+slider8:1<0,100,1>Stereo Width
+slider9:1000<5,20000,1>Jitter Smoothness Cutoff (Hz)
+slider10:1<0,200,1>Jitteriness Coarse
+slider11:1<0.01,1,0.01>Jitteriness
+slider12:5<0,500,1>Tolerance (%)
+
+slider13:0<0,100,0.1>Pulse Train
+slider14:0<0,10,1>Pulse Train Mode
+slider15:0<0,100,1>Pulse Train Mix
+
+
+slider20:1<1,100,1>tanH
+slider21:0<0,100,1>Mirror Log
+slider22:0<0,100,1>Logistic
+slider23:0<0,100,1>Weibull CDF
+
+slider16:0<-60,12,0.1>L Clip
+slider17:0<-60,12,0.1>R Clip
+
+
+slider18:0<0,1,0{FREE,LINKED}>Mode
+
+slider60:100<0,100,1>L Dry | Wet
+slider61:100<0,100,1>R Dry | Wet
+
+slider62:0<-96,12,0.1>L Level
+slider63:0<-96,12,0.1>R Level
+slider64:0<-96,12,0.1>Master Volume
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+
+@init
+rc = 1 / (2 * $pi * slider9); // rc filter Smoothing coefficient
+// Convert attack/decay/release time to RC time constant
+// rc_set(0.2 * t);
+rc_a = 1 / (rc * srate + 1);
+
+// Low-pass
+
+function rc_lp(s, a)
+  instance(lp)
+(
+  lp += a * (s - lp);
+);
+
+@slider
+/*
+gain_input = dBtoAmp(slider1);  
+
+dc_offset = slider5 + slider6 + slider7;
+
+transfer_lewd_drive = slider10;
+
+hard_clip = dBtoAmp(slider16);
+gain_compensation = dBtoAmp(abs(slider16));
+
+
+transfer_square_drive = slider11 / 100;
+transfer_triangle_drive = slider12 / 100;
+
+dry = dBtoAmp(slider20);
+wet = dBtoAmp(slider21);
+
+gain_output = dBtoAmp(slider64);  
+*/
+modulation_pulse_train_drive = slider13;
+modulation_pulse_train_mode = slider14;
+modulation_pulse_train_mix = slider15 / 100;
+//transfer_gomperz_drive = slider22;
+
+transfer_tanh_drive = slider20;
+
+stereo_width = slider8 / 100;
+
+rc = 1 / (2 * $pi * slider9); // rc filter Smoothing coefficient
+rc_a = 1 / (rc * srate + 1);
+tolerance = slider12 / 100;
+tolerance_r = slider12 / 100;
+jitter = slider10 + slider11;
+
+@block
+//TOLERANCE ACCUMULATOR
+//tolerance = max(0, min(slider12, (tolerance + ((rand(2) - 1) * jitter) )));
+
+
+@sample
+spl0dry = spl0; //store dry value
+spl1dry = spl1; //store dry value
+
+/*
+
+//TOLERANCE ACCUMULATOR
+tolerance = max(0, min(slider12, (tolerance + ((rand(2) - 1) * jitter) )));
+tolerance = l.rc_lp(tolerance, rc_a);
+
+//TOLERANCE ACCUMULATOR - another one for stereo mode
+tolerance_r = max(0, min(slider12, (tolerance_r + ((rand(2) - 1) * jitter) )));
+tolerance_r = r.rc_lp(tolerance_r, rc_a);
+*/
+
+/*
+
+//INPUT GAIN
+spl0 *= gain_input;
+spl1 *= gain_input;
+
+//DC OFFSET -> DUTY CYCLE MODULATION - PRE-EMPHASIS
+spl0 += dc_offset; 
+spl1 += dc_offset;
+*/
+
+//TRANSFER CURVE - GOMPERTZ https://en.wikipedia.org/wiki/Gompertz_function
+/*a = 1; //a is an asymptote
+b = -1; //b sets the displacement along the x axis
+//drive sets the growth rate (y scaling)
+spl0 =(a * exp(-b * exp(-transfer_gomperz_drive * spl0))) - (1 /  2.71828)  ;
+*/
+//Pulse Train https://en.wikipedia.org/wiki/Pulse-width_modulation
+//pulse_train = sinArcsin(spl0, modulation_pulse_train_drive);
+
+//tolerance = 1 + (slider12 * rand(1) / 100);
+//tolerance = tolerance + rand(1) - 0.5;
+
+
+
+modulation_pulse_train_drive = slider13 * (1 + (tolerance / 100));
+
+
+modulation_pulse_train_mode == 0 ? pulse_train = sinArcsin(spl0, modulation_pulse_train_drive);
+modulation_pulse_train_mode == 1 ? pulse_train = cosArcsin(spl0, modulation_pulse_train_drive);
+modulation_pulse_train_mode == 2 ? pulse_train = sign(spl0) * cosArccos(spl0, modulation_pulse_train_drive);
+modulation_pulse_train_mode == 3 ? pulse_train = sign(spl0) * cosArcsin(spl0, modulation_pulse_train_drive);
+/*modulation_pulse_train_mode == 4 ? pulse_train = sinArcsinPow(spl0, modulation_pulse_train_drive) * 10 ^ modulation_pulse_train_drive;
+modulation_pulse_train_mode == 5 ? pulse_train = cosArcsinPow(spl0, modulation_pulse_train_drive);
+modulation_pulse_train_mode == 6 ? pulse_train = cosArccosPow(spl0, modulation_pulse_train_drive);
+modulation_pulse_train_mode == 7 ? pulse_train = cosArcsinPow(spl0, modulation_pulse_train_drive);
+*/
+pulse_train = asin(spl0 * modulation_pulse_train_drive) / $pi * 2;
+//pulse_train *= sign(spl0);
+
+//pulse_train = sign(spl0) * abs(pow(spl0, transfer_harmonic_drive)/ sqrt(1 + spl0 ^ transfer_harmonic_drive));
+//spl0 = pow(spl0, drive)/ sqrt(1 + spl0 ^ dr ive);
+//pulse_train *= transfer_harmonic_drive;
+
+
+
+spl0 > pulse_train ? //Add spl0 = pulsetrain ?!
+  (
+  //pulse_train_spl0 = 1;
+  pulse_train_spl0 = spl0;
+  ) : (
+  pulse_train_spl0 = -1;
+  //pulse_train_spl0 = -spl0;
+  );
+
+spl0 = pulse_train_spl0 * modulation_pulse_train_mix + spl0 * (1 - modulation_pulse_train_mix);
+
+spl0 = pulse_train;
+spl1 = spl0;
+/*
+transfer_tanh_drive = slider20;// * (1 + (tolerance / 100));
+spl0 = tanh(spl0, transfer_tanh_drive);
+transfer_tanh_drive = (transfer_tanh_drive * (1 - stereo_width)) + ((slider20 * (1 + (tolerance_r / 100))) * stereo_width); //mix for stereo width
+spl1 = tanh(spl1, transfer_tanh_drive);
+*/
+//sinArcsin(input, drive)
+
+/*
+//TRANSFER CURVES - HARMONIC DISTRIBUTOR - nice control of harmonics distribution
+spl0 = sign(spl0) * abs(pow(spl0, transfer_harmonic_drive)/ sqrt(1 + spl0 ^ transfer_harmonic_drive));
+//spl0 = pow(spl0, drive)/ sqrt(1 + spl0 ^ drive);
+spl0 *= transfer_harmonic_drive;
+
+
+//TRANSFER CURVES - LEWD - equivalent to Stillwell's louderizer, but he anticipates for drive = 0
+spl0 *= transfer_lewd_drive;
+spl0 = spl0 /(1 + abs(spl0));
+
+ 
+//TRANSFER CURVES - Sign - Square Distortion -  Blend
+transfer_square_drive ? 
+  (
+  transfer_square_spl0 = sign(spl0); //Boom Square
+  spl0 = transfer_square_spl0 * transfer_square_drive + spl0 * (1 - transfer_square_drive);
+  
+  transfer_square_spl1 = sign(spl1); //Boom Square
+  spl1 = transfer_square_spl1 * transfer_square_drive + spl1 * (1 - transfer_square_drive); 
+  );
+  
+//TRANSFER CURVES - Arcsin - Triangle Distortion -  Blend
+transfer_triangle_drive ?
+  ( 
+  transfer_triangle_spl0 = asin(spl0) / $pi *2; //Boom Tri-an-guuuuule
+  spl0 = transfer_triangle_spl0 * transfer_triangle_drive + spl0 * (1 - transfer_triangle_drive); 
+
+  transfer_triangle_spl1 = asin(spl1 / $pi *2); //Boom Tri-an-guuuuule
+  spl1 = transfer_triangle_spl1 * transfer_triangle_drive + spl1 * (1 - transfer_triangle_drive);
+  );
+
+//Hard Clip
+spl0 = hardClip(spl0, -hard_clip, hard_clip);
+spl1 = hardClip(spl1, -hard_clip, hard_clip);
+
+spl0 *= gain_compensation; //compensate for hardClip induced gain loss
+spl1 *= gain_compensation;
+
+
+//DC OFFSET -> DUTY CYCLE MODULATION - DE-EMPHASIS
+spl0 -= dc_offset;
+spl1 -= dc_offset;
+
+
+//MIX
+
+spl0 = spl0dry * dry + spl0 * wet;
+spl1 = spl1dry * dry + spl1 * wet;
+//spl1 = spl0;
+
+//INPUT GAIN
+spl0 *= gain_output;
+spl1 *= gain_output;
+*/
+

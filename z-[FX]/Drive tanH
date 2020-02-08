@@ -1,0 +1,20 @@
+desc:tanH Drive
+
+slider15:1<0,100,1>tanH Drive
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+
+@init
+
+@slider
+transfer_tanh_drive = slider15;
+@block
+
+@sample
+//|||||||||||||||||||||||||||||TANH DRIVE||||||||||||||||||||||||||||
+transfer_tanh_drive > 0 ?
+  (
+  spl0 = tanh(spl0, transfer_tanh_drive);
+  spl1 = tanh(spl1, transfer_tanh_drive); 
+  );

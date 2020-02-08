@@ -1,0 +1,92 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:Wrap Around The Clip
+
+
+slider8:0<0,64,1>Input Gain (db)
+slider9:0<0,1,0.001>DC Bias (V)
+slider10:0<-96,6,1>Wrap - Threshold (db) 
+slider11:0<-96,6,1>Fold - Threshold (db) 
+
+slider20:0<-24,24,1>Output Gain (db)
+
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+
+@init
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+itm1=itm2=otm1=otm2=0;
+
+@slider
+
+gain_input = exp(slider8 * 0.11552453);
+bias = slider9;
+wrap_threshold = exp(slider10 * 0.11552453);
+fold_threshold = exp(slider11 * 0.11552453);
+
+gain_output = exp(slider20 * 0.11552453);
+
+
+
+@block
+
+
+@sample
+
+//|||||||||||||||||||||||||||||DC BIAS PRE-EMPHASIS||||||||||||||||||||||||||||
+spl0 -= bias;
+spl1 -= bias;
+
+//|||||||||||||||||||||||||||||INPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_input;
+spl1 *= gain_input;
+
+//|||||||||||||||||||||||||||||LOOP WRAP CLIP||||||||||||||||||||||||||||
+while (abs(spl0) > wrap_threshold)
+  (
+  spl0 = wrapClip(spl0, wrap_threshold);
+  );
+  
+while (abs(spl1) > wrap_threshold)
+  (
+  spl1 = wrapClip(spl1, wrap_threshold);
+  );
+
+//|||||||||||||||||||||||||||||LOOP FOLD CLIP||||||||||||||||||||||||||||
+//spl0 = foldClip(spl0, fold_threshold);
+
+while (abs(spl0) > fold_threshold)
+  (
+  spl0 = foldClip(spl0, fold_threshold);
+  );
+while (abs(spl1) > fold_threshold)
+  (
+  spl1 = foldClip(spl1, fold_threshold);
+  );
+  
+//|||||||||||||||||||||||||||||DC BIAS DE-EMPHASIS||||||||||||||||||||||||||||
+spl0 += bias;
+spl1 += bias;
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+
+//|||||||||||||||||||||||||||||OUTPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_output;
+spl1 *= gain_output;

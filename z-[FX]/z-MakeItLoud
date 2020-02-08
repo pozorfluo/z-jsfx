@@ -1,0 +1,46 @@
+/*******************************************************************************
+*  2016 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     2006, Thomas Scott Stillwell                                             *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+desc:MakeItLoud
+
+slider1:0<0,36,1>Input Gain (db)
+slider2:0<0,100,0.1>Mix (%)
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+
+@init
+  
+  pi = 3.1415926535;
+  halfpi = pi / 2;
+
+@slider
+  
+  gain_input = exp(slider1 * 0.11552453);
+  mix = slider2 / 100;
+  mix1 = 1 - mix;
+
+@sample
+
+  dry0 = spl0 * gain_input; //moved before clipping
+  dry1 = spl1 * gain_input;
+
+  //spl0=min(max(spl0,-1),1);
+  //spl1=min(max(spl1,-1),1);
+
+
+  wet0 = sin(tanh(dry0) * halfpi);
+  wet1 = sin(tanh(dry1) * halfpi); 
+
+  spl0 = mix1 * dry0 + mix * wet0;
+  spl1 = mix1 * dry1 + mix * wet1;

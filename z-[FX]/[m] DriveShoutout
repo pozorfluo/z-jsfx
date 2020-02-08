@@ -1,0 +1,130 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+
+
+desc: MONO DriveShoutout
+
+slider1:0<0,36,1>Input Gain (db)
+slider3:0<0,99,1>stillGain 
+
+slider11:0<0,0.3,0.001>Bias (V)
+
+slider18:0<0,99,1>stillGain 
+
+slider22:0<0,99,1>controlTanH 
+slider23:0<0,99,1>tp1TanH 
+slider24:0<0,99,1>tp3TanH 
+slider25:0<0,99,1>vosTanH 
+slider26:0<0,99,1>gauss3TanH 
+slider27:0<0,99,1>gauss5TanH 
+slider28:0<0,99,1>gauss7TanH 
+slider29:0<0,99,1>gauss9TanH 
+slider30:0<0,99,1>gauss13TanH 
+slider31:0<0,99,1>sqrtSigmoid
+slider32:0<0,99,1>atanSigmoid
+slider33:0<0,99,1>tanH
+slider34:0<0,99,1>fastSigmoid
+slider35:0<0,99,1>stillLoud
+slider36:0<0,99,1>stillReaLoud
+
+slider54:0<-24,24,1>Pre-Limiter Output Gain (db)
+
+slider64:0<0,1,1{Passthrough Stereo,Force Mono}>x
+
+
+
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Filters.jsfx-inc
+
+
+@init
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+itm1 = otm1 = 0;
+
+@slider
+gain_input = exp(slider1 * 0.11552453);
+gain_output = exp(slider54 * 0.11552453);
+
+bias = slider11;
+
+drive_stillGainPreBias           = 1 / ((100 - slider3 ) / 100); //Leave it like this -> non-linear, 50 yelds 2, max yelds 100 w sliderXX:0<0,99,1>
+drive_stillGainPostBias          = 1 / ((100 - slider18) / 100);
+
+drive_controlTanH                = 1 / ((100 - slider22) / 100);
+drive_tp1TanH                    = 1 / ((100 - slider23) / 100);
+drive_tp3TanH                    = 1 / ((100 - slider24) / 100);
+drive_vosTanH                    = 1 / ((100 - slider25) / 100);
+drive_gauss3TanH                 = 1 / ((100 - slider26) / 100);
+drive_gauss5TanH                 = 1 / ((100 - slider27) / 100);
+drive_gauss7TanH                 = 1 / ((100 - slider28) / 100);
+drive_gauss9TanH                 = 1 / ((100 - slider29) / 100);
+drive_gauss13TanH                = 1 / ((100 - slider30) / 100);
+drive_sqrtSigmoid                = 1 / ((100 - slider31) / 100);
+drive_atanSigmoid                = 1 / ((100 - slider32) / 100);
+drive_tanH                       = 1 / ((100 - slider33) / 100);
+drive_fastSigmoid                = 1 / ((100 - slider34) / 100);
+drive_stillLoud                  = 1 / ((100 - slider35) / 100);
+drive_stillReaLoud               = 1 / ((100 - slider36) / 100);
+
+
+force_mono = slider64;
+
+@block
+
+@sample
+//|||||||||||||||||||||||||||||INPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_input;
+
+//|||||||||||||||||||||||||||||DRIVE SHOUTOUT||||||||||||||||||||||||||||
+
+loop(10,
+slider3 ? spl0 = stillGain(spl0, drive_stillGainPreBias);
+
+spl0 += bias;
+
+slider18 ? spl0 = stillGain(spl0, drive_stillGainPostBias);
+
+
+slider22 ? spl0 = controlTanH(spl0, drive_controlTanH);
+slider23 ? spl0 = tp1TanH(spl0, drive_tp1TanH);
+slider24 ? spl0 = tp3TanH(spl0, drive_tp3TanH);
+slider25 ? spl0 = vosTanH(spl0, drive_vosTanH);
+slider26 ? spl0 = gauss3TanH(spl0, drive_gauss3TanH);
+slider27 ? spl0 = gauss5TanH(spl0, drive_gauss5TanH);
+slider28 ? spl0 = gauss7TanH(spl0, drive_gauss7TanH);
+slider29 ? spl0 = gauss9TanH(spl0, drive_gauss9TanH);
+slider30 ? spl0 = gauss13TanH(spl0, drive_gauss13TanH);
+slider31 ? spl0 = sqrtSigmoid(spl0, drive_sqrtSigmoid);
+slider32 ? spl0 = atanSigmoid(spl0, drive_atanSigmoid);
+slider33 ? spl0 = tanH(spl0, drive_tanH);
+slider34 ? spl0 = fastSigmoid(spl0, drive_fastSigmoid);
+slider35 ? spl0 = stillLoud(spl0, drive_stillLoud);
+slider36 ? spl0 = stillReaLoud(spl0, drive_stillReaLoud);
+);
+
+//|||||||||||||||||||||||||||||OUTPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_output;
+
+//|||||||||||||||||||||||||||||SOFT LIMITER||||||||||||||||||||||||||||
+//  spl0 = tanH(spl0, 1);
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL||||||||||||||||||||||||||||| 
+//otm1 = 0.999 * otm1 + spl0 - itm1; itm1 = spl0; spl0 = otm1;
+
+
+force_mono ? spl1 = spl0;

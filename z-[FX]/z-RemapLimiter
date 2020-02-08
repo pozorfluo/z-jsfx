@@ -1,0 +1,129 @@
+/*******************************************************************************
+*  2016 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: RemapLimiter Leveler
+
+//slider10:100<1,10000,1>Window Size (spl)
+slider10:300<0.1,1000,1>Window Size (ms)
+slider11:1<0,1,1{ON,OFF}>Stereo Link
+slider12:1<1,6,0.1>Max Gain (amp)
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-Strings.jsfx-inc
+import z/z-ListManager.jsfx-inc
+import z/z-Oversampler.jsfx-inc
+import z/z-Complex.jsfx-inc
+import z/z-MathFunctions.jsfx-inc
+import z/z-TaylorApproximations.jsfx-inc
+import z/z-Integrals.jsfx-inc
+import z/z-Differentials.jsfx-inc
+import z/z-Transforms.jsfx-inc
+import z/z-Matrices.jsfx-inc
+import z/z-StochasticProcesses.jsfx-inc
+import z/z-Utilities.jsfx-inc 
+import z/z-Windows.jsfx-inc
+import z/z-Analysis.jsfx-inc
+import z/z-Graph.jsfx-inc
+import z/z-Hysteresis.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Electronics.jsfx-inc
+import z/z-Filters.jsfx-inc
+import z/z-NoiseGenerators.jsfx-inc
+import z/z-Oscillators.jsfx-inc
+import z/z-Resonators.jsfx-inc
+import z/z-Midi.jsfx-inc
+import z/z-DynamicProcessors.jsfx-inc
+import z/z-Mouse.jsfx-inc
+
+@init
+ext_noinit = 1;
+//Init MemoryManager
+memInit(100);
+
+/*
+memWipe();
+window.size = slider10;
+
+window.spl = memeAlloc(10000, "window spl");
+*/
+@slider
+
+memWipe(); // wipe ptr_map alloc + reset memory heap region to 0 
+
+period = slider10 * srate / 1000;
+
+spl_0.runningSet_init(period);
+spl_1.runningSet_init(period);
+
+stereo = slider11;
+gain_max = slider12;
+
+@block
+
+@sample
+
+spl_dry = spl0;
+spl_0.runningSet(spl0);
+
+spl_0.RMS = spl_0.runningRMS();
+
+
+spl_dry = spl1;
+spl_1.runningSet(spl1);
+
+spl_1.RMS = spl_1.runningRMS();
+
+
+stereo ?
+  (
+  stereo.RMS = max(spl_0.RMS, spl_1.RMS);
+  spl0 *= min(gain_max,(0.71 / stereo.RMS));
+  spl1 *= min(gain_max,(0.71 / stereo.RMS));
+  ):(
+  spl0 *= min(gain_max,(0.71 / spl_0.RMS));
+  spl1 *= min(gain_max,(0.71 / spl_1.RMS));
+  );
+
+
+/****************************GFX********************************
+****************************************************************/
+
+@gfx 500 500
+
+fillScreen(0.15, 0.15, 0.15);
+
+memDiagnostic(30, 40);
+
+
+gfx_x = 0; gfx_y = 600;
+gfx_drawstr("       period : "); gfx_drawnumber(period, 2);gfx_drawstr(" samples");
+
+
+//sample index (n)
+gfx_x = 0; gfx_y += 12;
+setColor(0, 0, 0); gfx_rect(0, gfx_y, period / 44100 * 500, 10); //black rectangle BG
+setColor(1 * n / period, .3 * n / period, 0 * n / period); gfx_rect(0, gfx_y, n / 44100 * 500, 10); //orange rectangle fill 
+setColor(0, 0.5 ,1); gfx_line(n / 44100 * 500, gfx_y, n / 44100 * 500, gfx_y + 10, 1); // value line
+gfx_y += 1; setColor(1, 1, 0); gfx_drawstr("      index n : "); gfx_drawnumber(abs(n), 2);
+
+//
+gfx_x = 0; gfx_y += 12;
+setColor(0, 0, 0); gfx_rect(0, gfx_y, 500, 10); //black rectangle BG
+setColor(1, 0, 0); gfx_line(250, gfx_y - 2, 250, gfx_y + 12, 1); //0 dB red line
+setColor(0 * spl_0.RMS, 0.5 * spl_0.RMS, 0 * spl_0.RMS);gfx_rect(0, gfx_y, spl_0.RMS / 2 * 500, 10); //value rectangle fill 
+setColor(1 , 0.5 ,1); gfx_line(spl_0.RMS / 2 * 500, gfx_y, spl_0.RMS / 2 * 500, gfx_y + 10, 1); //value line
+gfx_y += 1; setColor(1, 1, 0); gfx_drawstr(" spl_0.RMS : ");  gfx_drawnumber(spl_0.RMS, 2);  gfx_drawstr("    "); gfx_drawnumber(ampToDb(spl_0.RMS), 2); gfx_drawstr(" dB");
+
+

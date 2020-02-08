@@ -1,0 +1,558 @@
+/*******************************************************************************
+*  2018 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:muLaw (μ-law) Compander prototype
+
+/* TODO []
+
+
+
+*/
+slider1:255<1,1023,1>mu  μ spl0
+slider2:255<1,1023,1>mu  μ spl1
+slider3:0<-36,36,1>Input Gain (db)
+slider4:0<0,1,1{off,on}>Soft Limit Input
+slider5:0<0,1,1{off,on}>Difference
+
+slider37:300<0.1,1000,1>window (ms)
+
+slider38:256<2,1024,1>histogram length
+slider39:0<-36,36,1>histogram range
+
+slider40:0<-36,36,1>scope range
+slider41:0<-1000,1000,1>scope y offset
+
+slider50:30<1,1000,1>center_x
+slider51:575<1,1000,1>center_y
+slider52:18<1,500,1>radius
+
+slider60:1<1,100,1>crude pdf smoother
+
+slider61:1<-1000,1000,1>center X - accuracy calibration
+slider62:100<1,100,1>scale Y
+slider63:1<1,25,1>number of rnd
+slider64:0.58<0.01,1,0.001>standard deviation
+
+
+
+//IMPORT CRITICAL STUFF FIRST - IF THERE IS A CONFLICT IMPORT FROM INSIDE THE LIBRARY ?
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-ListManager.jsfx-inc
+import z/z-Oversampler.jsfx-inc
+import z/z-MathFunctions.jsfx-inc
+import z/z-TaylorApproximations.jsfx-inc
+import z/z-Integrals.jsfx-inc
+import z/z-Differentials.jsfx-inc
+import z/z-Transforms.jsfx-inc
+import z/z-Matrices.jsfx-inc
+import z/z-StochasticProcesses.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-Windows.jsfx-inc
+import z/z-Analysis.jsfx-inc
+import z/z-Graph.jsfx-inc
+import z/z-Hysteresis.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Filters.jsfx-inc
+import z/z-NoiseGenerators.jsfx-inc
+import z/z-Oscillators.jsfx-inc
+import z/z-Resonators.jsfx-inc
+import z/z-Midi.jsfx-inc
+import z/z-DynamicProcessors.jsfx-inc
+
+//OBSERVER, ANALYSER, INTEGRER, RESTITUER
+//import cookdsp_0.2_2015-05-12/cookdsp.jsfx-inc
+//import tale/adsr.jsfx-inc
+//import tale/array.jsfx-inc 
+//import tale/lfo.jsfx-inc 
+//import tale/malloc.jsfx-inc 
+//import tale/midi_queue.jsfx-inc 
+//import tale/noise_generator.jsfx-inc 
+//import tale/oversampler.jsfx-inc 
+//import tale/poly_blep.jsfx-inc
+//import tale/rbj_filter.jsfx-inc
+//import tale/rc_filter.jsfx-inc
+//import tale/sine_oscillator.jsfx-inc
+//import tale/zdf_filter.jsfx-inc
+
+
+
+@init
+
+
+//Init MemoryManager
+memInit(100);
+
+@slider
+memWipe(); // wipe ptr_map alloc + reset memory heap region to 0 
+
+period = slider37 * srate / 1000;
+length = slider38;
+range = dBtoAmp(slider39);
+
+scope.range    = dBtoAmp(-slider40);
+scope.y_offset = slider41;
+
+spl_0.runningSet_init(period);
+spl_1.runningSet_init(period);
+
+spl_0.muLawEncode_init(slider1);
+spl_0.muLawEncode.runningSet_init(period);
+
+spl_1.muLawEncode_init(slider2);
+spl_1.muLawEncode.runningSet_init(period);
+
+//spl_0.windowTriangular(period);
+//Do not call sub-namespaces the same as instanced variables
+spl_0_histo.runningHistogram_init(period, length, range); 
+
+center_x = slider50;
+center_y = slider51;
+radius = slider52;
+phase_shift = - $pi / 2;
+
+signus = 1;
+
+gain_input = exp(slider3 * 0.11552453);
+is_softlimiter_on = slider4;
+is_difference_on = slider5;
+@block
+  
+//windowed_DC = weightedArithmeticMean(spl_0.samples, spl_0.window, period);
+//spl_0_histo.max = 0;
+@sample
+
+//spl0 = sign(spl0); //boom square
+
+//spl0 += sign(spl0) / 2;//TO CHECK LATER funky pmf here
+//spl0 += 0.5; //control DC offset
+//spl0 = 1;
+
+spl0 *= gain_input;
+spl1 *= gain_input;
+
+//|||||||||||||||||||||||||||||SOFT LIMITER||||||||||||||||||||||||||||
+is_softlimiter_on ?
+(
+  spl0 = tanH(spl0);  //tanH(spl0, 1);
+  spl1 = tanH(spl1);  //tanH(spl1, 1);
+);
+  
+
+spl_0.dry = spl0;
+spl_1.dry = spl1;
+//spl0 = spl1 = noiseCLT(slider63, slider64);
+//spl0 = spl_feedback;
+
+//spl0 += 0.5; //control DC offset
+
+/*calc = (1 / sqrt(12))^2;
+calc2 = 1 / sqrt(6);
+calc3 = sqrt(0.0833333333 * 4);
+calc4 = sqrt(12);*/
+
+spl_0.runningSet(spl0);
+spl_1.runningSet(spl1);
+spl_0_histo.runningHistogram(spl0);
+
+spl0 = spl_0.muLawEncode(spl0);
+spl1 = spl_1.muLawEncode(spl1);
+
+  spl0 = tanH(spl0);  //tanH(spl0, 1);
+  spl1 = tanH(spl1);  //tanH(spl1, 1);
+  
+spl0 = spl_0.muLawDecode(spl0);
+spl1 = spl_1.muLawDecode(spl1);
+
+is_difference_on ?
+(
+  spl0 -= spl_0.dry;
+  spl1 -= spl_1.dry;
+);
+spl_0.muLawEncode.runningSet(spl0);
+spl_1.muLawEncode.runningSet(spl1);
+
+//spl0 = tanh(spl0);
+//spl0 = spl1;
+
+DC = spl_0.runningArithmeticMean();
+RMS = spl_0.runningRMS();
+standard_deviation = spl_0.runningStandardDeviation();
+n = spl_0.n;
+sum = spl_0.sum;
+sum_of_squares = spl_0.sum_of_squares;
+amplitude = spl_0.samples[n];
+
+// Detects Error in Histogram range calibration and attempts to auto-adjust
+
+sum_delta === 0 ? 
+  (
+  sum_delta = spl_0.sum - spl_0_histo.sum;
+  /*
+  slider37 != 0.1 ?
+  (
+  sum_delta = spl_0.sum - spl_0_histo.sum; 
+  ) : (
+  slider37 = remember_period;  
+  slider_automate(slider37);
+  
+  
+  memWipe(); // wipe ptr_map alloc + reset memory heap region to 0 
+  
+  period = slider37 * srate / 1000;
+  length = slider38;
+  range = dBtoAmp(slider39);
+  
+  spl_0.runningSet_init(period);
+  spl_0_histo.runningHistogram_init(period, length, range); 
+  sum_delta = 0;
+  
+  ); */
+  ) : (
+  
+  slider39 = min(slider39 + 1, 36);  
+  slider_automate(slider39);
+  
+  remember_period = slider37; //store current period setting, drop to lowest setting during calibration
+  
+  //slider37 = 0.1;  
+  //slider_automate(slider37);
+  
+  
+  memWipe(); // wipe ptr_map alloc + reset memory heap region to 0 
+  
+  period = slider37 * srate / 1000;
+  length = slider38;
+  range = dBtoAmp(slider39);
+  
+  spl_0.runningSet_init(period);
+  spl_0_histo.runningHistogram_init(period, length, range); 
+  sum_delta = 0;
+  );  
+  
+/*
+//naive attempt at periodic mapping
+periodic_n >= spl_0_histo.length ? 
+  (
+  periodic_n = 0; //wrap around
+  signus = -signus; //mirror
+  );
+//spl0 = spl1 = spl_0_histo.probability_mass_f[periodic_n]; //SOMETHING IS VERY WRONG W PMF CALCULATION
+spl0 = spl1 = signus * spl_0_histo.histogram[periodic_n] / spl_0_histo.period;
+periodic_n += 1;
+
+//naive attempt at transferSet
+spl0 = spl1 = spl_dry + min(18, spl_0_histo.histogram[spl_dry * length / 2]) / 24 ;
+
+//naive attempt at feedback model
+spl_feedback = spl0;
+*/
+
+
+
+
+
+
+
+
+/****************************GFX********************************
+****************************************************************/
+
+@gfx 500 500
+
+//screenFill(0.15, 0.15, 0.15);
+screenFill(0.15, 0.04, 0.03);
+
+
+drawAxes(0, 0.5 ,1);
+
+//memDiagnostic(30, 40, 0);
+
+// drawHistogram WIP
+k = 0; 
+gfx_x = 0; gfx_y = gfx_h / 2;
+
+bin_width = ceil(gfx_w / spl_0_histo.length);
+auto_y_max = 0;
+while (k <= spl_0_histo.length)
+  (
+  //gfx_drawnumber(spl_0.histo.histogram[k], 2);gfx_drawstr(" | ");
+  //gfx_x = 0; gfx_y += 10;
+  k +=1;
+  //color_mult = normalize(spl_0_histo.histogram[k], 0 , spl_0_histo.max);
+  color_mult = spl_0_histo.histogram[k] / spl_0_histo.length ;
+  colorSet(1 * color_mult, 0 * color_mult, 0 * color_mult);
+  //colorSet(1, 0, 0.4 - 0.5 * normalize(spl_0_histo.histogram[k], 0 , spl_0_histo.max));
+  //k == spl_0.histo.bin_num_check ? colorSet(0, 0, 0);  
+  gfx_x = bin_width * k + slider61; gfx_y = gfx_h;
+  auto_y = reMap(spl_0_histo.histogram[k],0 ,spl_0_histo.period, 0, gfx_h * slider62, 1);
+  
+  auto_y_max = max(auto_y, auto_y_max);
+  gfx_rectto(gfx_x + bin_width, gfx_h - auto_y); //1 / slider62
+  );
+  
+  
+//Auto adjust Y axis Scale 
+ auto_y_max >= gfx_h ?
+   (
+   slider62 -= 5;
+   ):( 
+   
+   auto_y_max <= (gfx_h - 200) ? slider62 += 1;
+   );
+
+
+   
+ // drawPMF WIP
+ k = 0; 
+ gfx_x = 0; gfx_y = gfx_h / 2;
+ 
+ bin_width = ceil(gfx_w / spl_0_histo.length);
+ while (k <= spl_0_histo.length)
+   (
+ //gfx_drawnumber(spl_0.histo.histogram[k], 2);gfx_drawstr(" | ");
+ //gfx_x = 0; gfx_y += 10;
+   k +=1;
+ //color_mult = normalize(spl_0_histo.histogram[k], 0 , spl_0_histo.max);
+   color_mult = spl_0_histo.histogram[k] / spl_0_histo.length;
+   colorSet(1 * color_mult, .3 * color_mult, 1 - color_mult);
+ //colorSet(normalize(spl_0_histo.histogram[k], 0 , spl_0_histo.max), normalize(spl_0_histo.histogram[k], 0 , spl_0_histo.max),0);
+ //k == spl_0.histo.bin_num_check ? colorSet(0, 0, 0);  
+   gfx_x = bin_width * k + slider61; gfx_y = gfx_h;
+   gfx_rectto(gfx_x + bin_width, gfx_h - ( spl_0_histo.histogram[k] * gfx_h * slider62 / 2 / spl_0_histo.period ));
+   );
+
+
+// drawPDF approx Curve
+colorSet(0, 1, 0);
+k = 1; 
+gfx_x = bin_width * k + slider61 + bin_width / 2; gfx_y =  gfx_h - (spl_0_histo.histogram[k] * gfx_h * slider62 / 2 / spl_0_histo.period); 
+while (k <= spl_0_histo.length)
+   (
+   k += 1 * slider60;
+   gfx_lineto(gfx_x + bin_width * slider60, gfx_h - (spl_0_histo.histogram[k] * gfx_h * slider62 / 2 / spl_0_histo.period) ,0);
+   //gfx_x += bin_width / 2;
+   );
+
+//Approximate location of '0'
+colorSet(1, .3, 0);
+gfx_x = bin_width * (spl_0_histo.length + 1) / 2; gfx_y = gfx_h / 2;
+gfx_drawstr("|"); 
+gfx_x = bin_width * (spl_0_histo.length - 1) / 2; gfx_y = gfx_h / 2;
+gfx_drawstr("|");
+
+colorSet(0, 0.5 ,1);
+gfx_x = bin_width * (spl_0_histo.length + 1) / 2;gfx_y = 0;
+gfx_lineto(gfx_x, gfx_h, 1);
+
+colorSet(1, 1 ,0.7);
+save_gfx_x = gfx_x + 5;
+gfx_y = gfx_h - reMap(spl_0_histo.histogram[(spl_0_histo.length - 1) / 2],0 ,spl_0_histo.period, 0, gfx_h * slider62, 1);
+gfx_drawnumber(spl_0_histo.histogram[(spl_0_histo.length - 1) / 2], 2);
+
+
+// draw Axis | Scale WIP
+
+// Y-axis
+colorSet(1, 0.5 ,1);
+axis_scale = 0;
+while (axis_scale <= spl_0_histo.period)
+  (
+  gfx_x = save_gfx_x - 500;
+  gfx_y = gfx_h - reMap(axis_scale,0 ,spl_0_histo.period, 0, gfx_h * slider62, 1);
+  gfx_drawnumber(axis_scale, 0);
+  axis_scale += 100;
+  );
+
+/* X-axis
+colorSet(0.2, 1 ,0.2);
+axis_scale = - spl_0_histo.range / 2;
+while (axis_scale <= spl_0_histo.range / 2)
+  (
+  gfx_x = gfx_w / spl_0_histo.range * abs(axis_scale) * 2;
+  gfx_y = gfx_h - 50;
+  gfx_drawnumber(axis_scale, 2);
+  axis_scale += 0.1;
+  );
+*/
+gfx_x = 0; gfx_y = 600;
+gfx_drawstr("       period : "); gfx_drawnumber(period, 2);gfx_drawstr(" samples");
+
+
+//sample index (n)
+gfx_x = 0; gfx_y += 12;
+colorSet(0, 0, 0); gfx_rect(0, gfx_y, period / 44100 * 500, 10); //black rectangle BG
+colorSet(1 * n / period, .3 * n / period, 0 * n / period); gfx_rect(0, gfx_y, n / 44100 * 500, 10); //orange rectangle fill 
+colorSet(0, 0.5 ,1); gfx_line(n / 44100 * 500, gfx_y, n / 44100 * 500, gfx_y + 10, 1); // value line
+gfx_y += 1; colorSet(1, 1, 0); gfx_drawstr("      index n : "); gfx_drawnumber(abs(n), 2);
+
+//sum
+gfx_x = 0; gfx_y += 12;
+colorSet(0, 0, 0); gfx_rect(0, gfx_y, period / 44100 * 500, 10); //black rectangle BG
+colorSet(0.8, .3, 0.2); gfx_rect(0, gfx_y, sum / 44100 * 500, 10); //orange rectangle fill 
+colorSet(0, 0.5 ,1); gfx_line(sum / 44100 * 500, gfx_y, sum / 44100 * 500, gfx_y + 10, 1); //blue value line
+gfx_y += 1; colorSet(1, 1, 0); gfx_drawstr("      sum     : "); gfx_drawnumber(sum, 2);
+
+//sum of squares
+gfx_x = 0; gfx_y += 12;
+colorSet(0, 0, 0); gfx_rect(0, gfx_y, period / 44100 * 500, 10); //black rectangle BG
+colorSet(0.6, .3, 0.4); gfx_rect(0, gfx_y, sum_of_squares / 44100 * 500, 10); //orange rectangle fill 
+colorSet(0, 0.5 ,1); gfx_line(sum_of_squares / 44100 * 500, gfx_y, sum_of_squares / 44100 * 500, gfx_y + 10, 1); //blue value line
+gfx_y += 1; colorSet(1, 1, 0); gfx_drawstr("   sum_of_squares : "); gfx_drawnumber(sum_of_squares, 2);
+
+
+k = 10; // display the 10 last possible memory slots
+gfx_x = 0; gfx_y += 12;
+while (k)
+  (
+  gfx_drawnumber(spl_0.samples[44100 - k], 2);gfx_drawstr(" | ");
+  k -=1;
+  );
+
+//DC
+gfx_x = 0; gfx_y += 32;
+colorSet(0, 0, 0); gfx_rect(0, gfx_y, 500, 10); //black rectangle BG
+colorSet(1, 0, 0); gfx_line(250, gfx_y - 2, 250, gfx_y + 12, 1); //0 dB red line
+colorSet(0.3, 0.5, 0); gfx_rect(0, gfx_y, DC / 2 * 500, 10); //value rectangle fill 
+colorSet(0.7, 0.5, 1); gfx_line(DC / 2 * 500, gfx_y, DC / 2 * 500, gfx_y + 10, 1); //value line
+gfx_y += 1; colorSet(1, 1, 0); gfx_drawstr(" DC  : "); gfx_drawnumber(abs(DC), 2); gfx_drawstr("    "); gfx_drawnumber(ampToDb(abs(DC)), 2); gfx_drawstr(" dB");
+
+
+//RMS
+gfx_x = 0; gfx_y += 12;
+colorSet(0, 0, 0); gfx_rect(0, gfx_y, 500, 10); //black rectangle BG
+colorSet(1, 0, 0); gfx_line(250, gfx_y - 2, 250, gfx_y + 12, 1); //0 dB red line
+colorSet(0 * RMS, 0.5 * RMS, 0 * RMS);gfx_rect(0, gfx_y, RMS / 2 * 500, 10); //value rectangle fill 
+colorSet(1 , 0.5 ,1); gfx_line(RMS / 2 * 500, gfx_y, RMS / 2 * 500, gfx_y + 10, 1); //value line
+gfx_y += 1; colorSet(1, 1, 0); gfx_drawstr(" RMS : ");  gfx_drawnumber(RMS, 2);  gfx_drawstr("    "); gfx_drawnumber(ampToDb(RMS), 2); gfx_drawstr(" dB");
+
+
+//standard variation (AC)
+gfx_x = 0; gfx_y += 12;
+colorSet(0, 0, 0); gfx_rect(0, gfx_y, 500, 10); //black rectangle BG
+colorSet(1, 0, 0); gfx_line(250, gfx_y - 2, 250, gfx_y + 12, 1); //0 dB red line
+colorSet(0 * standard_deviation, 0.5 * standard_deviation, 0.2 * standard_deviation); gfx_rect(0, gfx_y, standard_deviation / 2 * 500, 10); //value rectangle fill 
+colorSet(1, 0.5 ,0.8); gfx_line(standard_deviation / 2 * 500, gfx_y, standard_deviation /2 * 500, gfx_y + 10, 1); //value line
+gfx_y += 1; colorSet(1, 1, 0); gfx_drawstr(" AC  : "); gfx_drawnumber(standard_deviation, 2); gfx_drawstr("    "); gfx_drawnumber(ampToDb(standard_deviation), 2); gfx_drawstr(" dB");
+
+//circle
+
+colorSet(0, 0, 0); gfx_circle(center_x, center_y, radius, 1); //black circle BG
+colorSet(1 * n / period, .3 * n / period, 0 * n / period); gfx_circle(center_x, center_y, radius, 1);
+colorSet(0, 0.5 ,1); gfx_arc(center_x, center_y, radius, 0, 2 * $pi * n / period);
+
+
+gfx_x = radius * 2 * cos(2 * $pi * n / period + phase_shift) / 2 + center_x;
+gfx_y = radius * 2 * sin(2 * $pi * n / period + phase_shift) / 2 + center_y;
+gfx_circle(gfx_x, gfx_y,2,1);
+
+
+/****************************GFX from z-MilleFuzz********************************
+****************************************************************/
+colorSet(0.5, 0.1, 0);
+gfx_x = 0; gfx_y = 0;
+
+gfx_a = 0.25;
+memDiagnostic(30, 40, 6);
+gfx_a = 1;
+
+//Draw Baseline
+colorSet(1, 0.1, 0.1);
+gfx_x = 0; gfx_y = gfx_h / 2;
+gfx_lineto(gfx_w , gfx_y, 0);
+
+//INPUT spl_0
+colorSet(1, 0.3, 0.1);
+gfx_x = 0; gfx_y = gfx_h / 2;
+scope.x_step_size = gfx_w /  spl_0.period; 
+scope.index = 0;
+scope.verbose_step_size =  spl_0.period * 0.625; // /16
+
+scope.height = gfx_h * 0.5;
+scope.y_scale = scope.range * scope.height; // dBtoAmp(view_maxdb)  * scope_height; //sc = exp(view_maxdb*(log(10)/20)) * scope_height;
+scope.y =  gfx_h * 0.5 + scope.y_offset; 
+
+loop( spl_0.period,
+  scope.index >  spl_0.period ?
+  (
+    scope.index -=  spl_0.period;
+  );
+  
+  gfx_lineto(scope.x_step_size * scope.index , scope.y + scope.y_scale * spl_0.samples[scope.index], 0);
+  
+  (scope.index % scope.verbose_step_size ) == 0 ?
+  (
+    gfx_drawnumber(spl_0.samples[scope.index], 2);
+  );
+  
+  scope.index +=1;
+);
+
+//muLawEncode spl_0
+colorSet(0, 1, 0.1);
+gfx_x = 0; gfx_y = gfx_h / 2;
+scope.x_step_size = gfx_w /  spl_0.period; 
+scope.index = 0;
+scope.verbose_step_size =  spl_0.period * 0.625; // /16
+
+scope.height = gfx_h * 0.5;
+scope.y_scale = scope.range * scope.height; // dBtoAmp(view_maxdb)  * scope_height; //sc = exp(view_maxdb*(log(10)/20)) * scope_height;
+scope.y =  gfx_h * 0.5 + scope.y_offset; 
+
+loop( spl_0.period,
+  scope.index >  spl_0.period ?
+  (
+    scope.index -=  spl_0.period;
+  );
+  
+  gfx_lineto(scope.x_step_size * scope.index , scope.y + scope.y_scale * spl_0.muLawEncode.samples[scope.index], 0);
+  
+  (scope.index % scope.verbose_step_size ) == 0 ?
+  (
+    gfx_drawnumber(spl_0.muLawEncode.samples[scope.index], 2);
+  );
+  
+  scope.index +=1;
+);
+
+//muLawEncode spl_1
+colorSet(0, 1, 0.5);
+gfx_x = 0; gfx_y = gfx_h / 2;
+scope.x_step_size = gfx_w /  spl_1.period; 
+scope.index = 0;
+scope.verbose_step_size =  spl_1.period * 0.625; // /16
+
+scope.height = gfx_h * 0.5;
+scope.y_scale = scope.range * scope.height; // dBtoAmp(view_maxdb)  * scope_height; //sc = exp(view_maxdb*(log(10)/20)) * scope_height;
+scope.y =  gfx_h * 0.5 + scope.y_offset; 
+
+loop( spl_1.period,
+  scope.index >  spl_1.period ?
+  (
+    scope.index -=  spl_1.period;
+  );
+  
+  gfx_lineto(scope.x_step_size * scope.index , scope.y + scope.y_scale * spl_1.muLawEncode.samples[scope.index], 0);
+  
+  (scope.index % scope.verbose_step_size ) == 0 ?
+  (
+    gfx_drawnumber(spl_1.muLawEncode.samples[scope.index], 2);
+  );
+  
+  scope.index +=1;
+);
+
+/* DUMP
+

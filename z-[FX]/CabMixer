@@ -1,0 +1,206 @@
+/*******************************************************************************
+*  2017 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        Lifted from                                                           *
+*         8x Stereo to 1x Stereo Mixer [IXix]                                  *
+*          and tweaked                                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:cab mixer
+
+slider1:-96<-96,0,0.01>Dry
+slider2:  0<-96,0,0.01>Cab A
+slider3:  0<-96,0,0.01>Cab B
+slider4:  0<-96,0,0.01>Cab C
+slider5:  0<-96,0,0.01>Cab D
+slider6:-96<-96,0,0.01>Cab E
+slider7:-96<-96,0,0.01>Cab F
+slider8:-96<-96,0,0.01>Cab G
+
+slider31:0<-100,100,0.1>Dry pan
+slider32:0<-100,100,0.1>Cab A pan
+slider33:0<-100,100,0.1>Cab B pan
+slider34:0<-100,100,0.1>Cab C pan
+slider35:0<-100,100,0.1>Cab D pan
+slider36:0<-100,100,0.1>Cab E pan
+slider37:0<-100,100,0.1>Cab F pan
+slider38:0<-100,100,0.1>Cab G pan
+
+
+slider54:1<0,2,1{OFF,ON,ON STEREO}>Naive Gain Compensation
+
+////////PIN DESCRIPTION////////////////////
+in_pin:Dry L
+in_pin:Dry R
+in_pin:Cab A L
+in_pin:Cab A R
+in_pin:Cab B 1 L
+in_pin:Cab B 3 R
+in_pin:Cab C 4 L
+in_pin:Cab C 4 R
+in_pin:Cab D 5 L
+in_pin:Cab D 5 R
+in_pin:Cab E 6 L
+in_pin:Cab E 6 R
+in_pin:Cab F 7 L
+in_pin:Cab F 7 R
+in_pin:Cab G 8 L
+in_pin:Cab G 8 R
+out_pin:output L
+out_pin:output R
+///////////////////////////////////////////////////////////////////////////////
+@init
+
+
+///////////////////////////////////////////////////////////////////////////////
+@slider
+
+slider1 > -96 ?
+  (
+  dry  = exp(slider1 * 0.11552453);
+  pan = (slider31 + 100) / 200;
+  dry_L = dry * min(1, 1 - (2 * pan - 1));
+  dry_R = dry * min(1, 2 * pan); 
+  ):(
+  dry = dry_L = dry_R = 0;
+  );
+
+slider2 > -96 ?
+  (
+  cab_a  = exp(slider2 * 0.11552453);
+  pan = (slider32 + 100) / 200;
+  cab_a_L = cab_a * min(1, 1 - (2 * pan - 1));
+  cab_a_R = cab_a * min(1, 2 * pan); 
+  ):(
+  cab_a = cab_a_L = cab_a_R = 0;
+  );
+  
+slider3 > -96 ?
+  (
+  cab_b  = exp(slider3 * 0.11552453);
+  pan = (slider33 + 100) / 200;
+  cab_b_L = cab_b * min(1, 1 - (2 * pan - 1));
+  cab_b_R = cab_b * min(1, 2 * pan); 
+  ):(
+  cab_b = cab_b_L = cab_b_R = 0;
+  );
+
+slider4 > -96 ?
+  (
+  cab_c  = exp(slider4 * 0.11552453);
+  pan = (slider34 + 100) / 200;
+  cab_c_L = cab_c * min(1, 1 - (2 * pan - 1));
+  cab_c_R = cab_c * min(1, 2 * pan); 
+  ):(
+  cab_c = cab_c_L = cab_c_R = 0;
+  );
+
+slider5 > -96 ?
+  (
+  cab_d  = exp(slider5 * 0.11552453);
+  pan = (slider35 + 100) / 200;
+  cab_d_L = cab_d * min(1, 1 - (2 * pan - 1));
+  cab_d_R = cab_d * min(1, 2 * pan); 
+  ):(
+  cab_d = cab_d_L = cab_d_R = 0;
+  );
+  
+slider6 > -96 ?
+  (
+  cab_e  = exp(slider6 * 0.11552453);
+  pan = (slider36 + 100) / 200;
+  cab_e_L = cab_e * min(1, 1 - (2 * pan - 1));
+  cab_e_R = cab_e * min(1, 2 * pan); 
+  ):(
+  cab_e = cab_e_L = cab_e_R = 0;
+  );
+  
+slider7 > -96 ?
+  (
+  cab_f  = exp(slider7 * 0.11552453);
+  pan = (slider37 + 100) / 200;
+  cab_f_L = cab_f * min(1, 1 - (2 * pan - 1));
+  cab_f_R = cab_f * min(1, 2 * pan); 
+  ):(
+  cab_f = cab_f_L = cab_f_R = 0;
+  );
+  
+slider8 > -96 ?
+  (
+  cab_g  = exp(slider8 * 0.11552453);
+  pan = (slider38 + 100) / 200;
+  cab_g_L = cab_g * min(1, 1 - (2 * pan - 1));
+  cab_g_R = cab_g * min(1, 2 * pan); 
+  ):(
+  cab_g = cab_g_L = cab_g_R = 0;
+  );
+
+
+
+
+slider54 == 1 ? ( gain =    dry 
+                          + cab_a
+                          + cab_b
+                          + cab_c
+                          + cab_d
+                          + cab_e
+                          + cab_f
+                          + cab_g;
+                          
+                  gain = min(1, 1 / gain);
+                  gain_L = gain_R = gain;
+  ):(
+slider54 == 2 ? ( gain_L =  dry_L 
+                          + cab_a_L
+                          + cab_b_L
+                          + cab_c_L
+                          + cab_d_L
+                          + cab_e_L
+                          + cab_f_L
+                          + cab_g_L;
+                          
+                  gain_R =  dry_R 
+                          + cab_a_R
+                          + cab_b_R
+                          + cab_c_R
+                          + cab_d_R
+                          + cab_e_R
+                          + cab_f_R
+                          + cab_g_R;
+                  
+                  gain_L = min(1, 1 / gain_L);
+                  gain_R = min(1, 1 / gain_R);
+                  gain = 1; 
+  ):(
+                  gain = gain_L = gain_R = 1;
+  ););     
+////////////////////////////////////////////////////////////////////////////
+@sample
+// Do the left mix
+
+spl0  =  gain_L * (   spl0  * dry_L
+                    + spl2  * cab_a_L
+                    + spl4  * cab_b_L
+                    + spl6  * cab_c_L
+                    + spl8  * cab_d_L
+                    + spl10 * cab_e_L
+                    + spl12 * cab_f_L
+                    + spl14 * cab_g_L );
+        
+        
+
+// Do the right mix
+spl1  =  gain_R * (   spl1  * dry_R
+                    + spl3  * cab_a_R
+                    + spl5  * cab_b_R
+                    + spl7  * cab_c_R
+                    + spl9  * cab_d_R
+                    + spl11 * cab_e_R
+                    + spl13 * cab_f_R
+                    + spl15 * cab_g_R );

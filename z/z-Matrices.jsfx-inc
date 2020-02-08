@@ -1,0 +1,92 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+
+desc: Matrix | Kernel Library
+
+/* TODO []
+
+The behaviour of many electronic components can be described using matrices. 
+Let A be a 2-dimensional vector with the component's input voltage v1 and input current i1 as its elements,
+and let B be a 2-dimensional vector with the component's output voltage v2 and output current i2 as its elements.
+Then the behaviour of the electronic component can be described by B = H · A,
+where H is a 2 x 2 matrix containing one impedance element (h12), one admittance element (h21) and two
+dimensionless elements (h11 and h22). Calculating a circuit now reduces to multiplying matrices.
+
+  https://en.wikipedia.org/wiki/List_of_matrices
+  https://en.wikipedia.org/wiki/Kernel_(linear_algebra)
+  
+  
+  https://en.wikipedia.org/wiki/Transformation_matrix
+  https://en.wikipedia.org/wiki/Linear_map
+  http://www.idomaths.com/linear_transformation.php 
+  https://en.wikipedia.org/wiki/Transformation_(function) 
+  
+  
+  https://en.wikipedia.org/wiki/Periodic_matrix_set
+  https://en.wikipedia.org/wiki/Matrix_(mathematics)
+  https://en.wikipedia.org/wiki/Nilpotent
+  https://en.wikipedia.org/wiki/Idempotence
+  
+  https://en.wikipedia.org/wiki/Gaussian_blur
+  https://en.wikipedia.org/wiki/Median_filter
+  https://en.wikipedia.org/wiki/Lulu_smoothing
+  https://en.wikipedia.org/wiki/Infinite_impulse_response
+  https://en.wikipedia.org/wiki/Stochastic_matrix
+  
+  
+  
+  http://ltcconline.net/greenl/courses/203/MatrixOnVectors/kernelRange.htm
+  
+  FUNCTION INDEX []
+  
+
+*/
+
+@init
+
+
+
+/*******************************************************************
+  find2x2Determinant   
+  --------
+  http://www.mathsisfun.com/algebra/matrix-determinant.html
+  
+*******************************************************************/
+
+/*******************************************************************
+  find3x3Determinant   
+  --------
+  http://www.mathsisfun.com/algebra/matrix-determinant.html
+  
+*******************************************************************/
+
+/*******************************************************************
+  laplaceExpansion  
+  --------
+  http://www.mathsisfun.com/algebra/matrix-determinant.html
+  
+*******************************************************************/
+
+
+
+
+
+
+
+
+
+
+
+

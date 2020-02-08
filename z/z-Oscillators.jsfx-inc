@@ -1,0 +1,114 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: Oscillator Library
+/* TODO []
+  
+  
+  
+  http://ajaxsoundstudio.com/cookdspdoc/cookdsp/oscil.jsfx-inc
+  http://ajaxsoundstudio.com/cookdspdoc/cookdsp/oscil.jsfx-inc
+  http://ajaxsoundstudio.com/cookdspdoc/cookdsp/oscil.jsfx-inc
+  
+  http://www.ecircuitcenter.com/Circuits.htm
+  https://en.wikipedia.org/wiki/Oscillation#Coupled_oscillations
+  https://en.wikipedia.org/wiki/Harmonic_oscillator
+  https://en.wikipedia.org/wiki/Parametric_oscillator
+  https://en.wikipedia.org/wiki/Distortion_synthesis
+  Discrete Summation Formula
+  
+  FUNCTION INDEX []
+  
+  
+*/
+
+@init
+
+
+
+/*******************************************************************
+  clockPhaseAcc
+  --------
+  
+  https://en.wikipedia.org/wiki/Numerically_controlled_oscillator
+  
+  frequency_cw => frequency control word
+  
+*******************************************************************/
+function clockPhaseAcc()
+  (
+  this.phase = this.phase + this.frequency_cw;
+  (this.phase >= 2 * $pi) ? this.phase -= 2 * $pi; 
+  //(this.phase >= 2 * $pi) ? this.phase = 0;
+  );
+
+
+/*******************************************************************
+  Sine
+  --------
+  
+  naive, non-bandlimited, aliased oscillator
+  
+*******************************************************************/
+function Sine()
+  (
+  this.amplitude = cos(this.phase);
+  );
+/*******************************************************************
+  Triangle
+  --------
+  
+  naive, non-bandlimited, aliased oscillator
+  
+*******************************************************************/
+function Triangle()
+  (
+  this.amplitude = 2 * this.phase / $pi - 1;
+  (this.amplitude > 1.0) ? this.amplitude = 2 - this.amplitude;
+  );
+/*******************************************************************
+  Sawtooth
+  --------
+  
+  naive, non-bandlimited, aliased oscillator
+  
+*******************************************************************/
+function Sawtooth()
+  (
+  this.amplitude = 1 - this.phase / $pi;
+  );
+/*******************************************************************
+  Square
+  --------
+  
+  naive, non-bandlimited, aliased oscillator
+  
+*******************************************************************/
+function Square()
+  (
+  this.amplitude = 2 * this.phase / $pi - 1;
+  (this.amplitude > 1.0) ? this.amplitude = 2 - this.amplitude;
+  this.amplitude = sign(this.amplitude);
+  );
+
+
+
+
+
+
+
+
+
+
+

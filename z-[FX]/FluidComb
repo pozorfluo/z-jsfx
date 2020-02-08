@@ -1,0 +1,346 @@
+/*******************************************************************************
+*  2017 Greg Z. - Yesss waaaaaayyyy, Dude !                                    *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       // (C) 2007, Michael Gruhn.                                            *
+*        //tags: stereo delay
+*         //author: LOSER 
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+desc:Stereo Comb Filter
+
+slider1:0<0,1,0{FREE,LINKED}>Mode
+
+
+slider7:45<0,127,1>note             L   .ıI!
+slider8:45<0,127,1>          R   .ıI!
+
+slider20:-6<-96,0,0.01>dB             Dry   .ıI!
+slider21:63<0,127,1>vel         Wet L   .ıI!
+slider22:63<0,127,1>          Wet R   .ıI!
+
+slider30:0<0,2400,1>spl      Offset L    .ıI!
+slider31:0<0,2400,1>             Offset R    .ıI!
+
+//slider40:60<0.0001,100,0.0001>Fader Curve Power   .ıI!
+
+
+-slider54:0<-100,2401,1>ms     ┌═▇▇╡     Delay        L   ╞▇▇
+-slider55:0<-100,2401,1>        ┌═▇▇╡      Delay       R   ╞▇▇
+-slider57:24000<10,24000,0.01>Hz     ┌═▇▇╡  Frequency    L   ╞▇▇
+-slider58:24000<10,24000,0.01>       ┌═▇▇╡  Frequency   R   ╞▇▇
+
+-slider63:15<0,15,1>Midi Channel L
+-slider64:15<0,15,1>Midi Channel R
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-Analysis.jsfx-inc
+import z/z-Graph.jsfx-inc
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+@init
+/*******************************************************************
+  delayLineInit 
+  ---- 
+*******************************************************************/
+function delayLineInit(gain_dry_amp, note_midi, offset_spl, gain_wet_vel) //buffer_length_spl,
+  (
+  //this.delay = memAlloc(buffer_length_spl, "delay line");
+    
+  //this.delay.sum_v         = 0;
+  
+  
+  this.dry_v                 = 0;
+  
+  this.delay.note_midi       = note_midi;
+  this.delay.offset_spl      = offset_spl;
+  
+  
+  
+  
+  
+  //Dry Gain
+  gain_dry_amp > -96 ?
+    (
+    this.gain_dry_amp  = exp(gain_dry_amp * 0.11552453);
+    ):(
+    this.gain_dry_amp = 0;
+    );
+  
+  note_midi !== 0 ?
+    (
+    this.delay.note_hz   = 440.0 * pow(2.0, (this.delay.note_midi - 45) / 12.0);
+    this.delay.length_ms = (this.delay.offset_spl * 1000 / srate) + 1000 / this.delay.note_hz;
+    ):(
+    this.delay.note_hz = 0;
+    this.delay.length_ms = (this.delay.offset_spl * 1000 / srate);
+    );
+  
+  this.delay.gain_wet_amp  = (((gain_wet_vel + 1) * 2  - 128) / 2) / 64;
+  
+  this.delay.length_spl = ceil(this.delay.length_ms / 1000 * srate);
+  
+  this.delay.freq_hz = 1 / this.delay.length_ms * 1000;
+  
+  this.delay.index %= this.delay.length_spl;
+  //this.delay = memAlloc(this.delay.length_spl, "delay line");
+  );  
+
+
+ext_noinit = 1;
+  
+//MemoryManager
+memInit(100);
+
+_BUFFER_LENGTH_SPL = 48000;
+//Can definitely pile this up and go nuts
+l.delay = memAlloc(_BUFFER_LENGTH_SPL, "l delay line");
+r.delay = memAlloc(_BUFFER_LENGTH_SPL, "r delay line");
+
+l.delayLineInit(slider20, slider7, slider30, slider21); //_BUFFER_LENGTH_SPL, 
+r.delayLineInit(slider20, slider8, slider31, slider22);
+
+//test.delay = memAlloc(_BUFFER_LENGTH_SPL, "t delay line");
+//test.delayLineInit(slider20, slider8, slider31, slider22);
+
+//l_clone.delayLineInit(slider20, slider7, slider30, slider21);
+//r_clone.delayLineInit(slider20, slider8, slider31, slider22);
+
+midi_ch   = 0;
+midi_note = midi_amp = 0;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+@slider
+
+mode = slider1;
+
+mode ?
+  (
+  slider8 = slider7;
+  slider22 = 127 - slider21;
+  );
+
+//memWipe(); // DUH DON'T YOU EVER FORGET THAT AGAIN
+
+l.delayLineInit(slider20, slider7, slider30, slider21);
+r.delayLineInit(slider20, slider8, slider31, slider22);
+
+//test.delayLineInit(slider20, slider8, slider31, slider22);
+
+
+midi_ch   = 0;
+midi_note = midi_amp = 0;
+
+  
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////  
+@block
+
+    //Midi Inputs
+    while (midirecv(offset, msg1, msg2, msg3)) 
+        (    
+        /////// NOTEON NOTEOFF all channels ///////////////////////////
+        (msg1 & ($xF0 + midi_ch)) == ($x90 + midi_ch) || (msg1 & ($xF0 + midi_ch)) == ($x80 + midi_ch) ? 
+          (
+          msg3 != 0 ? 
+            (
+            // noteon 
+            midi_note = msg2;
+            // convert midi note to frequency in Hz
+            slider7 = slider8 = midi_note;
+                
+            //memWipe(); // DUH DON'T YOU EVER FORGET THAT AGAIN
+            
+            //Consider smoothing transitation w filter, or interpolation between clones
+            
+            l.delayLineInit(slider20, slider7, slider30, slider21);
+            r.delayLineInit(slider20, slider8, slider31, slider22);
+            
+              
+            // scales velocity to amplitude
+            midi_amp = msg3 / 127;            
+                
+            ) : (
+            // noteoff (only with current pitch)
+            msg2 == midi_note ? midi_amp = 0;
+            );
+        
+
+        ) : (
+        
+          /////// PITCH WHEEL all channels ///////////////////////////
+          (msg1 & $xF0) == $xE0 ? 
+            (
+            slider21 = msg3;
+            slider22 = 127 - msg3;
+            l.delay.gain_wet_amp  = (((slider21) * 2  - 128)) / 64;
+            r.delay.gain_wet_amp  = (((slider22 + 1) * 2  - 128)) / 64;
+            
+            
+            ) : (
+            
+            /////// MOD WHEEL all channels ///////////////////////////
+            (msg1 & $xF0) == $xB0 ?
+              (
+              // Too coarse 1 / (127 - msg3 / 2) * 1000;// / 127; 
+              midi_detune = msg3 / 127 * 0.25;
+              
+              //this.delay.length_spl = ceil(this.delay.length_ms / 1000 * srate);
+                
+              //this.delay.length_ms  = 1000 / this.delay.freq_hz;
+              
+              l.delay.length_spl = ceil(1000 / (l.delay.freq_hz * (1 + midi_detune)) / 1000 * srate);
+              r.delay.length_spl = ceil(1000 / (r.delay.freq_hz * (1 - midi_detune)) / 1000 * srate);
+              
+              ):(
+              
+              // passthrough other events
+              midisend(offset,msg1,msg2,msg3);
+              );
+            
+            );
+        );
+    );
+
+//////////////////Test line
+/*    
+test.delay[test.delay.index] = 9; //store
+test.delay.index         += 1;            //move index
+test.delay.index         >= test.delay.length_spl ? test.delay.index = 0; //loop
+*/
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+@sample
+
+l.dry_v = spl0;
+r.dry_v = spl1;
+
+l.delay[l.delay.index] = spl0; //store
+l.delay.index          = (l.delay.index + 1) % l.delay.length_spl;            //move index
+//l.delay.index         >= l.delay.length_spl ? l.delay.index = 0; //loop
+
+
+r.delay[r.delay.index] = spl1; //store
+r.delay.index          = (r.delay.index + 1) % r.delay.length_spl;             //move index
+//r.delay.index         >= r.delay.length_spl ? r.delay.index = 0; //loop
+
+
+//The other way around, to see how it works
+/*
+r.delay[0] = spl1;                   //store
+r.delay    = r.delay + 1;            //move index ptr
+r.delay   >= r.delay.length_spl + l.delay ? r.delay = l.delay + _BUFFER_LENGTH_SPL; //loop
+*/
+
+    
+spl0 = l.dry_v * l.gain_dry_amp  + l.delay[l.delay.index] * l.delay.gain_wet_amp; 
+spl1 = r.dry_v * r.gain_dry_amp  + r.delay[r.delay.index] * r.delay.gain_wet_amp; 
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+@gfx 750 850  
+//gfx_setfont(0);
+//gfx_setfont(1, "Crisp", 11);
+//gfx_setfont(1, "Courier New", 12);
+//gfx_setfont(1, "CodingFontTobi", 12);
+gfx_setfont(1, "CG Mono", 2);
+
+screenFill(0.05, 0.05, 0.05);
+
+colorSet(0, 0.5 ,1);
+
+gfx_x = 0; gfx_y = 65;
+
+//memDiagnostic(30, 40, 4);
+colorSet(1, 0.5 ,0.1);
+gfx_mode = 0;
+gfx_x = 0; gfx_y = 5; // gfx_w / 4 - 50;
+//gfx_setfont(1, "Andale Mono", 13);
+//  ϴ┐∆∑Ω℮
+
+gfx_setfont(1, "CG Mono", 10);
+colorSet( 0.8 , 0.8 ,   1);  gfx_drawstr("┣▇▇▇═──  Left ");
+colorSet( 0.4 , 0.65 , 0.9); gfx_drawnumber(l.delay.freq_hz,    2); gfx_drawstr(" Hz ");
+colorSet( 0.4 , 0.5 , 0.6); gfx_drawnumber(l.delay.length_ms,  2); gfx_drawstr(" ms ");
+colorSet( 0.45 , 0.7 ,0.6); gfx_drawnumber(l.delay.length_spl, 0); gfx_drawstr(" spl ← ");
+
+
+colorSet( 0.4 , 0.5,  0.5); gfx_drawstr("note "); gfx_drawnumber(l.delay.note_midi,0); gfx_drawstr(" @ "); 
+colorSet( 0.7 , 0.8 , 0.6); gfx_drawnumber(l.delay.note_hz,    2); gfx_drawstr(" Hz + ");
+colorSet( 0.7 , 0.8 , 0.6); gfx_drawnumber(l.delay.offset_spl, 0); gfx_drawstr(" spl ");
+colorSet( 0.5 , 0.2 , 0.2); gfx_drawstr(" ═─╪─═  ");
+
+colorSet( 0.8 , 0.7 , 0.3); gfx_drawnumber(r.delay.offset_spl, 0); gfx_drawstr(" spl + ");
+colorSet( 1   , 0.5 , 0.1); gfx_drawstr("note "); gfx_drawnumber(r.delay.note_midi,0);  gfx_drawstr(" @ ");
+colorSet( 1   , 0.3,  0.25); gfx_drawnumber(r.delay.note_hz,    2); gfx_drawstr(" Hz → ");
+
+colorSet( 0.7 , 0.25, 0.0 ); gfx_drawnumber(r.delay.length_spl, 0); gfx_drawstr(" spl ");
+colorSet( 1   , 0.5 , 0.1); gfx_drawnumber(r.delay.length_ms,  2); gfx_drawstr(" ms ");
+colorSet( 0.7 , 0.2 , 0.2); gfx_drawnumber(r.delay.freq_hz,    2); gfx_drawstr(" Hz ");
+colorSet( 0.7 , 0.2 , 0.2);gfx_drawstr("Right ──═▇▇▇╡");
+
+
+////
+gfx_x = 0; gfx_y = 20; 
+colorSet( 0.8 , 0.8 ,   1);  gfx_drawstr("┣▇▇▇═── Right ");
+colorSet( 0.4 , 0.65 , 0.9); gfx_drawnumber(r.delay.freq_hz,    2); gfx_drawstr(" Hz ");
+colorSet( 0.4 , 0.5 , 0.6); gfx_drawnumber(r.delay.length_ms,  2); gfx_drawstr(" ms ");
+colorSet( 0.45 , 0.7 ,0.6); gfx_drawnumber(r.delay.length_spl, 0); gfx_drawstr(" spl ← ");
+
+
+colorSet( 0.4 , 0.5,  0.5); gfx_drawstr("note "); gfx_drawnumber(r.delay.note_midi,0); gfx_drawstr(" @ "); 
+colorSet( 0.7 , 0.8 , 0.6); gfx_drawnumber(r.delay.note_hz,    2); gfx_drawstr(" Hz + ");
+colorSet( 0.7 , 0.8 , 0.6); gfx_drawnumber(r.delay.offset_spl, 0); gfx_drawstr(" spl");
+
+colorSet( 0.5 , 0.2 , 0.2); gfx_drawstr("   ═╪═");
+colorSet( 0.5 , 0.2 , 0.2); gfx_drawstr("  ∆ ");
+colorSet( 0.8 , 0.7 , 0.3); gfx_drawnumber(abs(l.delay.offset_spl - r.delay.offset_spl), 0); gfx_drawstr(" spl");
+colorSet( 0.5 , 0.2 , 0.2); gfx_drawstr(" ∆ ");
+colorSet( 1   , 0.5 , 0.1); gfx_drawstr("note "); gfx_drawnumber(abs(l.delay.note_midi - r.delay.note_midi),0);
+colorSet( 0.5 , 0.2 , 0.2); gfx_drawstr(" ∆ ");
+colorSet( 1   , 0.3,  0.25); gfx_drawnumber(r.delay.note_hz,    2); gfx_drawstr(" Hz");
+colorSet( 0.5 , 0.2 , 0.2); gfx_drawstr(" ∆ ");
+colorSet( 0.7 , 0.25, 0.0 ); gfx_drawnumber(abs(l.delay.length_spl - r.delay.length_spl), 0); gfx_drawstr(" spl");
+colorSet( 0.5 , 0.2 , 0.2); gfx_drawstr(" ∆ ");
+colorSet( 1   , 0.5 , 0.1); gfx_drawnumber(abs(l.delay.length_ms - r.delay.length_ms),  2); gfx_drawstr(" ms");
+colorSet( 0.5 , 0.2 , 0.2); gfx_drawstr(" ∆ ");
+colorSet( 0.7 , 0.2 , 0.2); gfx_drawnumber(abs(l.delay.freq_hz - r.delay.freq_hz),    2); gfx_drawstr(" Hz ");
+//colorSet( 0.7 , 0.2 , 0.2);gfx_drawstr("Right ──═▇▇▇╡");
+
+
+gfx_x = 0; gfx_y = gfx_h - 10; // gfx_w / 4 - 50;
+colorSet( 0.8 , 0.7 , 0.3);gfx_drawstr(" ch");
+colorSet( 0.5 , 0.2 , 0.2); gfx_drawstr(" ∆ ");
+colorSet( 0.8 , 0.7 , 0.3); gfx_drawnumber(midi_ch, 0);
+colorSet( 0.5 , 0.2 , 0.2); gfx_drawstr(" ═╪═");
+
+gfx_drawstr(" run a Copy of the buffers in // and interpolate for abrupt changes █ ▀█▀ █▬█ █ ▀█▀ ──═▇▇▇╡");
+ 
+gfx_x = 0; gfx_y = 0;
+
+gfx_x = mouse_x; gfx_y = mouse_y;
+
+// MEMORY DUMP ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//gfx_x = mouse_x; gfx_y = mouse_y + 8;
+//memMap(1);
+gfx_x = mouse_x; gfx_y = mouse_y - 20;
+gfx_mode = 0;
+//memDiagnostic(30, 40, 4);
+//Index bars
+/*
+gfx_rect(0,35,gfx_w * test.delay.index / test.delay.length_spl,10);
+//gfx_rect(0,50,gfx_w * r.delay.index / r.delay.length_spl,10);
+gfx_x = 0; gfx_y = 60;
+colorSet( 0.45 , 0.7 ,0.6); 
+gfx_drawnumber(test.delay.index, 0); gfx_drawstr(" / ");
+gfx_drawnumber(test.delay.length_spl, 0); gfx_drawstr(" spl  ");
+gfx_x = 0; gfx_y = 70;
+rizult = (rizult + 1) % 50;
+gfx_drawnumber(rizult, 0);
+*/

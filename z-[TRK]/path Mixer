@@ -1,0 +1,121 @@
+/*******************************************************************************
+*  2018 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      Phase Control [IXix] Copyright 2007 - 2011, Philip S. Considine         *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+desc:>>Stereo Path Mixer (dB)
+
+slider1:  0<-96,0,0.01>Trim
+slider2:  0<-96,0,0.01>▇▇▇▇  A
+slider3:-12<-96,0,0.01>▇▇▇▇  B
+
+
+slider32:0<-100,100,0.1><> pan A
+slider33:0<-100,100,0.1><> pan B
+
+slider61:0<0,3,1{None,Parallel,Main,Both}>Flip ɸ
+slider62:0<0,2,1{None,Parallel,Main}>Solo
+
+////////PIN DESCRIPTION////////////////////
+////1+2 (current path)
+////3+4 (sidechain)
+////5+6 (parallel)
+
+
+in_pin:L
+in_pin:R
+in_pin:L sc
+in_pin:R sc
+in_pin:L //
+in_pin:R //
+
+
+out_pin:L
+out_pin:R
+out_pin:L sc
+out_pin:R sc
+out_pin:L //
+out_pin:R //
+
+///////////////////////////////////////////////////////////////////////////////
+@init
+
+///////////////////////////////////////////////////////////////////////////////
+@slider
+
+slider1 > -96 ?
+  (
+  bus_1_output  = exp(slider1 * 0.11552453);
+  ):(
+  bus_1_output = 0;
+  );
+  
+slider2 > -96 ?
+  (
+  bus_1_send_1  = exp(slider2 * 0.11552453);
+  pan = (slider32 + 100) / 200;
+  bus_1_send_1_L = bus_1_send_1 * min(1, 1 - (2 * pan - 1));
+  bus_1_send_1_R = bus_1_send_1 * min(1, 2 * pan); 
+  ):(
+  bus_1_send_1 = bus_1_send_1_L = bus_1_send_1_R = 0;
+  );
+
+slider3 > -96 ?
+  (
+  bus_1_send_2  = exp(slider3 * 0.11552453);
+  pan = (slider33 + 100) / 200;
+  bus_1_send_2_L = bus_1_send_2 * min(1, 1 - (2 * pan - 1));
+  bus_1_send_2_R = bus_1_send_2 * min(1, 2 * pan); 
+  ):(
+  bus_1_send_2 = bus_1_send_2_L = bus_1_send_2_R = 0;
+  );
+
+
+phase_send_2 = slider61 & 1 ? -1 : 1;
+phase_send_1 = slider61 & 2 ? -1 : 1;
+
+solo_send_1  = slider62 & 1 ? 0 : 1;
+solo_send_2  = slider62 & 2 ? 0 : 1;
+
+bus_1_send_1_L *= phase_send_1 * solo_send_1;
+bus_1_send_1_R *= phase_send_1 * solo_send_1;
+
+bus_1_send_2_L *= phase_send_2 * solo_send_2;
+bus_1_send_2_R *= phase_send_2 * solo_send_2;
+
+@sample
+
+//mix
+spl0   =  bus_1_output * (
+          (spl4  * bus_1_send_1_L ) + 
+          (spl0  * bus_1_send_2_L ) );
+
+spl1   =  bus_1_output * (
+          (spl5  * bus_1_send_1_R) + 
+          (spl1  * bus_1_send_2_R ) );
+
+/*
+////retrieve path B
+spl6 = spl0;
+spl7 = spl1;
+
+//mix
+spl0   =  bus_1_output * (
+          (spl4  * bus_1_send_2_L) + 
+          (spl6  * bus_1_send_3_L) );
+
+spl1   =  bus_1_output * (
+          (spl5  * bus_1_send_2_R) + 
+          (spl7  * bus_1_send_3_R) );
+*/         
+
+
+    

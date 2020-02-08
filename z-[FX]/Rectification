@@ -1,0 +1,60 @@
+/*******************************************************************************
+*  2015 Greg Z. - borrowing left and right                                     *
+*  This program is free software: you can redistribute it and/or modify        *
+*  it under the terms of the GNU General Public License as published by        *
+*  the Free Software Foundation, either version 3 of the License, or           *
+*  (at your option) any later version.                                         *
+*                                                                              *
+*  This program is distributed in the hope that it will be useful,             *
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of              *
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                *
+*  GNU General Public License (http://www.gnu.org/licenses/)for more details.  *
+*******************************************************************************/
+
+desc:Garbage Out
+
+slider1:0<0,3,1{NO,HALF,FULL}>RECTIFY
+slider2:0<0,2,1{NO,YEP}>REMOVE DC OFFSET
+slider3:0<-96,6,0.1>DRY (dB)
+slider4:0<-96,6,0.1>WET (dB)
+
+@init
+itm1=itm2=otm1=otm2=0;
+
+@slider
+recto = slider1;
+dc_offset_removal = slider2;
+dry = 2 ^ (slider3 / 6);
+wet = 2 ^ (slider4 / 6);
+
+@sample
+spl0dry = spl0; //store dry value
+spl1dry = spl1; //store dry value
+
+//|||||||||||||||||||||||||||||RECTIFY|||||||||||||||||||||||||||||
+recto == 1 ?
+  (
+  spl0 < 0 ? spl0 = 0;
+  spl1 < 0 ? spl1 = 0;
+  spl0 += spl0; // probably should either remove or do that for full wave rectification too
+  spl1 += spl1; //
+  ) : (
+   recto == 2 ? 
+    (
+    spl0 = abs(spl0);
+    spl1 = abs(spl1);
+    );
+  );
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||    
+dc_offset_removal == 1 ?
+  (   
+  otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+  otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;   
+  );
+
+//|||||||||||||||||||||||||||||MIX||||||||||||||||||||||||||||| 
+
+spl0 = spl0dry * dry + spl0 * wet;
+spl1 = spl1dry * dry + spl1 * wet;
+

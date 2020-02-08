@@ -1,0 +1,233 @@
+/*******************************************************************************
+*  2015 Greg Z. - borrowing left and right                                     *
+*  This program is free software: you can redistribute it and/or modify        *
+*  it under the terms of the GNU General Public License as published by        *
+*  the Free Software Foundation, either version 3 of the License, or           *
+*  (at your option) any later version.                                         *
+*                                                                              *
+*  This program is distributed in the hope that it will be useful,             *
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of              *
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                *
+*  GNU General Public License (http://www.gnu.org/licenses/)for more details.  *
+*******************************************************************************/
+
+desc:Garbage Out
+
+slider1:0<0,8,1{NO,HALF,FULL,PARTIAL-A,PARTIAL-B,SHAPEABLE-A,SHAPEABLE-B,SHAPEABLE-C,SHAPEABLE-D}>RECTIFY
+slider2:0<0,100,.1>PARTIAL LEVEL
+slider3:0<0,100,.1>POS SHAPE
+slider4:0<0,100,.1>NEG SHAPE
+slider5:0<0,2,1{NO,YEP}>REMOVE DC OFFSET
+slider6:0<0,2,1{NO,YEP}>INTERMEDIATE DC OFFSET
+slider7:0<-96,6,0.1>DRY (dB)
+slider8:0<-96,6,0.1>WET (dB)
+
+@init
+itm1=itm2=otm1=otm2=0;
+
+@slider
+recto = slider1;
+dc_offset_removal = slider5;
+mojo_dc_off = slider6;
+dry = 2 ^ (slider7 / 6);
+wet = 2 ^ (slider8 / 6);
+
+pos = min(slider3/100,.999); //remap to [0;0.999]
+posfuz = 2*pos/(1-pos); // exp
+
+neg = min(slider4/100,.95); //remap to [0;0.95]
+negfuz = 2*neg/(1-neg); // exp
+
+
+partial = slider2/100;
+
+@sample
+spl0dry = spl0; //store dry value
+spl1dry = spl1; //store dry value
+
+//|||||||||||||||||||||||||||||RECTIFY|||||||||||||||||||||||||||||
+recto == 1 ? // HALF
+  (
+  //spl0 < 0 ? spl0 = 0;
+  //spl1 < 0 ? spl1 = 0;
+  spl0 = max(spl0,0);
+  spl1 = max(spl1,0);
+  spl0 += spl0; // probably should either remove or do that for full wave rectification too
+  spl1 += spl1; //
+  ) : (
+  recto == 2 ? // FULL
+    (
+    spl0 = abs(spl0);
+    spl1 = abs(spl1);
+    ) : (
+    recto == 3 ? // PARTIAL-A
+      (
+      spl0 < 0 ? 
+        (
+        spl0 = abs(spl0) * partial;
+        );
+      spl1 < 0 ? 
+        (
+        spl1 = abs(spl1) * partial;  
+        );
+       
+      ) : (
+      recto == 4 ? // PARTIAL-B
+      (
+        spl0 < 0 ? 
+        (
+        spl0 = abs(spl0) * partial;
+        otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+        );
+        spl1 < 0 ? 
+        (
+        spl1 = abs(spl1) * partial;  
+        otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+        );
+      
+        ) : (
+        recto == 5 ? // SHAPEABLE-A
+          (
+           spl0 < 0 ? 
+            (
+            spl0 = min(max(spl0,-1),1);
+            spl0 = (1+posfuz)*spl0/(1+posfuz*abs(spl0));
+            ) : (
+            spl0 = min(max(spl0,-1),1);
+            spl0 = abs((1+negfuz)*spl0/(1+negfuz*abs(spl0))) * partial; // Style-A
+            mojo_dc_off == 1 ? 
+              (
+              otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+              );
+            );
+        
+          spl1 < 0 ? 
+            (
+            spl1 = min(max(spl1,-1),1);
+            spl1 = (1+posfuz)*spl1/(1+posfuz*abs(spl1));
+            ) : (
+            spl1 = min(max(spl1,-1),1);
+            spl1 = abs((1+negfuz)*spl1/(1+negfuz*abs(spl1))) * partial;  // Style-A 
+           mojo_dc_off == 1 ? 
+             (        
+             otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+             );
+            );  
+          ) : (
+          
+          recto == 6 ? // SHAPEABLE-B
+            (
+            spl0 < 0 ? 
+              (
+              spl0 = min(max(spl0,-1),1);
+              spl0 = (1+posfuz)*spl0/(1+posfuz*abs(spl0));
+              ) : (
+              spl0 = min(max(spl0,-1),1);
+              spl0 = 1 - ((1+negfuz)*spl0/(1+negfuz*abs(spl0)) * partial); // Style-B
+              mojo_dc_off == 1 ? 
+                (
+                otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+                );
+              );
+          
+            spl1 < 0 ? 
+              (
+              spl1 = min(max(spl1,-1),1);
+              spl1 = (1+posfuz)*spl1/(1+posfuz*abs(spl1));
+              ) : (
+              spl1 = min(max(spl1,-1),1);
+              spl1 = 1 - ((1+negfuz)*spl1/(1+negfuz*abs(spl1)) * partial);   // Style-B
+              mojo_dc_off == 1 ? 
+               (        
+               otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+               );              ); 
+            ) : (
+            recto == 7 ? // SHAPEABLE-C
+            (
+            spl0 < 0 ? 
+              (
+              spl0 = min(max(spl0,-1),1);
+              spl0 = (1+posfuz)*spl0/(1+posfuz*abs(spl0));
+              ) : (
+              spl0 = min(max(spl0,-1),1);
+              spl0 = (1-neg) * (1+negfuz)*spl0/(1+negfuz*abs(spl0));  // Style-C
+              mojo_dc_off == 1 ? 
+              (
+              otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+              );;
+              );
+            
+            spl1 < 0 ? 
+              (
+              spl1 = min(max(spl1,-1),1);
+              spl1 = (1+posfuz)*spl1/(1+posfuz*abs(spl1));
+              ) : (
+              spl1 = min(max(spl1,-1),1);
+              spl1 = (1-neg) * (1+negfuz)*spl1/(1+negfuz*abs(spl1));  // Style-C           
+              mojo_dc_off == 1 ? 
+                (        
+                otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+                );;
+              ); 
+            ) : (
+            recto == 8 ? // SHAPEABLE-D
+              (
+              spl0 < 0 ? 
+                (
+                spl0 = min(max(spl0,-1),1);
+                //spl0 = abs((1+negfuz)*spl0/(1+negfuz*abs(spl0))) * partial; // Style-A
+                spl0 = 1* partial - ((1+negfuz)*spl0/(1+negfuz*abs(spl0)) * partial); // Style-B
+                //spl0 = abs(spl0) * partial; spl0 = (1+negfuz)*spl0/(1+negfuz*abs(spl0));
+                mojo_dc_off == 1 ? 
+                  (
+                  otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+                  );
+                 ) : (
+                 spl0 = min(max(spl0,-1),1);
+                 spl0 = (1+posfuz)*spl0/(1+posfuz*abs(spl0));
+                 
+                );
+               
+               
+                            
+            
+              spl1 < 0 ? 
+                (
+                spl1 = min(max(spl1,-1),1);
+                spl1 = abs((1+negfuz)*spl1/(1+negfuz*abs(spl1))) * partial;  // Style-A 
+                //spl1 = 1 - ((1+negfuz)*spl1/(1+negfuz*abs(spl1)) * partial);   // Style-B
+                //spl1 = abs(spl1) * partial; spl1 = (1+negfuz)*spl1/(1+negfuz*abs(spl1));       
+               mojo_dc_off == 1 ? 
+               (        
+               otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+               );;
+                );
+              spl1 = min(max(spl1,-1),1);
+              spl1 = (1+posfuz)*spl1/(1+posfuz*abs(spl1));
+              
+              
+              );
+              
+            
+            );
+            
+            
+            );
+          );
+        );        
+      );
+    );
+  );
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||    
+dc_offset_removal == 1 ?
+  (   
+  otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+  otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;   
+  );
+
+//|||||||||||||||||||||||||||||MIX||||||||||||||||||||||||||||| 
+
+spl0 = spl0dry * dry + spl0 * wet;
+spl1 = spl1dry * dry + spl1 * wet;
+

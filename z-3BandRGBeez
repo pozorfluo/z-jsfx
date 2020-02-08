@@ -1,0 +1,180 @@
+/*******************************************************************************
+*  2018 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:3-Band Joiner
+desc:3-Band-Joiner (Combines Signal From 3-Band Splitter) [LOSER]
+//tags: processing routing
+//author: LOSER 
+
+slider1:0<-24,24,.1>Low (dB)
+slider2:0<-24,24,.1>Mid (dB)
+slider3:0<-24,24,.1>High (dB)
+
+in_pin:low input left
+in_pin:low input right
+in_pin:mid input left
+in_pin:mid input right
+in_pin:high input left
+in_pin:high input right
+in_pin:pink
+in_pin:pink
+in_pin:white
+in_pin:white
+
+
+out_pin:L.rgb_oR+G+B
+out_pin:R.rgb_oR+G+B
+out_pin:L.dry
+out_pin:R.dry
+out_pin:L.chanMixInRYB_oR+G+B
+out_pin:L.chanMixInRYB_oR+G+B
+out_pin:pink
+out_pin:pink
+out_pin:white
+out_pin:white
+
+out_pin:L.ryb_oR
+out_pin:L.ryb_oY
+out_pin:L.ryb_oB
+out_pin:R.ryb_oR
+out_pin:R.ryb_oY
+out_pin:R.ryb_oB
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-Strings.jsfx-inc
+//import z/z-ListManager.jsfx-inc
+//import z/z-Oversampler.jsfx-inc
+//import z/z-Complex.jsfx-inc
+//import z/z-MathFunctions.jsfx-inc
+//import z/z-TaylorApproximations.jsfx-inc
+//import z/z-Integrals.jsfx-inc
+//import z/z-Differentials.jsfx-inc
+//import z/z-Transforms.jsfx-inc
+//import z/z-Matrices.jsfx-inc
+//import z/z-StochasticProcesses.jsfx-inc
+/import z/z-Utilities.jsfx-inc 
+//import z/z-Windows.jsfx-inc
+//import z/z-Analysis.jsfx-inc
+//import z/z-Graph.jsfx-inc
+//import z/z-Hysteresis.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+//import z/z-Electronics.jsfx-inc
+//import z/z-Filters.jsfx-inc
+//import z/z-NoiseGenerators.jsfx-inc
+//import z/z-Oscillators.jsfx-inc
+//import z/z-Resonators.jsfx-inc
+//import z/z-Midi.jsfx-inc
+//import z/z-DynamicProcessors.jsfx-inc
+//import z/z-Mouse.jsfx-inc
+
+@init
+c_ampdB = 8.65617025;
+
+  
+function rgb2ryb(rgb_iR, rgb_iG, rgb_iB)
+  local(rgb_iW, rgb_r, rgb_g, rgb_b, rgb_min_rg, ryb_r, ryb_y, ryb_b, ryb_n, rgb_iBk)
+  (  
+  rgb_iW = min(rgb_iR, min(rgb_iG, rgb_iB));
+  rgb_r  = rgb_iR - rgb_iW;
+  rgb_g  = rgb_iG - rgb_iW;
+  rgb_b  = rgb_iB - rgb_iW;
+  
+  rgb_min_rg = min(rgb_r, rgb_g);
+  
+  ryb_r =  rgb_r   -  rgb_min_rg;
+  ryb_y = (rgb_g   +  rgb_min_rg) / 2;
+  ryb_b = (rgb_b   +  rgb_g -  rgb_min_rg) / 2;
+  
+  ryb_n = max(ryb_r, max(ryb_y, ryb_b)) / max(rgb_r, max(rgb_g, rgb_b));
+  
+  ryb_n > 0 ?
+    (
+    ryb_r = ryb_r / ryb_n; 
+    ryb_y = ryb_y / ryb_n; 
+    ryb_b = ryb_b / ryb_n;
+    );
+    
+  rgb_iBk = min(1 - rgb_iR, min(1 - rgb_iG, 1 - rgb_iB));
+  
+  this.ryb_oR = ryb_r + rgb_iBk;
+  this.ryb_oY = ryb_y + rgb_iBk;
+  this.ryb_oB = ryb_b + rgb_iBk;
+  );  
+
+
+function ryb2rgbCubInt(R, Y, B)
+  ( 
+  R = R*R*(3-R-R);
+  Y = Y*Y*(3-Y-Y);
+  B = B*B*(3-B-B);
+  this.rgb_oR = 1.0 + B * ( R * (0.337 + Y * -0.137) + (-0.837 + Y * -0.163) );
+  this.rgb_oG =1.0 + B * ( -0.627 + Y * 0.287) + R * (-1.0 + Y * (0.5 + B * -0.693) - B * (-0.627) );
+  this.rgb_oB =1.0 + B * (-0.4 + Y * 0.6) - Y + R * ( -1.0 + B * (0.9 + Y * -1.1) + Y ); 
+  );
+
+
+function chanMixInRYBCubInt(rgb_R, rgb_G, rgb_B)
+  (
+  this.chanmixInRYB.R.rgb2ryb(rgb_R,     0,    0);
+  this.chanmixInRYB.G.rgb2ryb(    0, rgb_G,    0);
+  this.chanmixInRYB.B.rgb2ryb(    0,     0,rgb_B); 
+
+  this.chanmixInRYB.ryb2rgbCubInt((this.chanmixInRYB.R.ryb_oR + this.chanmixInRYB.G.ryb_oR + this.chanmixInRYB.B.ryb_oR ) / 3,
+                                  (this.chanmixInRYB.R.ryb_oY + this.chanmixInRYB.G.ryb_oY + this.chanmixInRYB.B.ryb_oY ) / 3,
+                                  (this.chanmixInRYB.R.ryb_oB + this.chanmixInRYB.G.ryb_oB + this.chanmixInRYB.B.ryb_oB ) / 3);
+  );
+  
+@slider
+band_1 = exp(slider1 / c_ampdB);
+band_2 = exp(slider2 / c_ampdB);
+band_3 = exp(slider3 / c_ampdB);
+
+@sample
+L.rgb_iR = spl0 * band_1;
+L.rgb_iG = spl2 * band_2;
+L.rgb_iB = spl4 * band_3;
+L.pink   = spl6;
+L.dry    = spl0 * band_1 + spl2 * band_2 + spl4 * band_3; 
+
+R.rgb_iR = spl1 * band_1;
+R.rgb_iG = spl3 * band_2;
+R.rgb_iB = spl5 * band_3;
+R.pink   = spl7; 
+R.dry    = spl1 * band_1 + spl3 * band_2 + spl5 * band_3;
+
+
+
+L.rgb2ryb(L.rgb_iR, L.rgb_iG, L.rgb_iB);
+R.rgb2ryb(R.rgb_iR, R.rgb_iG, R.rgb_iB);
+
+L.ryb2rgbCubInt(L.ryb_oR, L.ryb_oY, L.ryb_oB);
+R.ryb2rgbCubInt(R.ryb_oR, R.ryb_oY, R.ryb_oB);
+
+L.chanMixInRYBCubInt(L.rgb_iR, L.rgb_iG, L.rgb_iB);
+R.chanMixInRYBCubInt(R.rgb_iR, R.rgb_iG, R.rgb_iB);
+
+spl0 = (L.rgb_oR + L.rgb_oG + L.rgb_oG);
+spl1 = (R.rgb_oR + R.rgb_oG + R.rgb_oG);
+
+spl2 = L.dry;
+spl3 = R.dry;
+
+spl10 = L.ryb_oR;
+spl11 = L.ryb_oY;
+spl12 = L.ryb_oB;
+spl13 = R.ryb_oR;
+spl14 = R.ryb_oY;
+spl15 = R.ryb_oB;
+//spl4 = tanh(L.chanMixInRYB.rgb_oR + L.chanMixInRYB.rgb_oG + L.chanMixInRYB.rgb_oG / 3);
+//spl5 = tanh(R.chanMixInRYB.rgb_oR + R.chanMixInRYB.rgb_oG + R.chanMixInRYB.rgb_oG / 3);

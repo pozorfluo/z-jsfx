@@ -1,0 +1,273 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: Direct Convolution
+
+slider1:100<0.1,1000,1>windows (ms)
+
+//Tanh
+slider21:0<0,1,0.001>>>>>>TANH CLIP---------Bias (V)
+slider22:0<0,99,1>Clip
+slider29:20000<5,20000,1>LP (Hz)
+
+//Square
+slider31:0<0,1,0.00001>>>>>>SQUARIFY---------Bias (V)
+slider32:0<0,100,1>Squarify
+
+
+slider64:0<-24,24,1>Output Gain (db)
+
+
+
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-Strings.jsfx-inc
+import z/z-ListManager.jsfx-inc
+import z/z-Oversampler.jsfx-inc
+import z/z-Complex.jsfx-inc
+import z/z-MathFunctions.jsfx-inc
+import z/z-TaylorApproximations.jsfx-inc
+import z/z-Integrals.jsfx-inc
+import z/z-Differentials.jsfx-inc
+import z/z-Transforms.jsfx-inc
+import z/z-Matrices.jsfx-inc
+import z/z-StochasticProcesses.jsfx-inc
+import z/z-Utilities.jsfx-inc 
+import z/z-Windows.jsfx-inc
+import z/z-Analysis.jsfx-inc
+import z/z-Graph.jsfx-inc
+import z/z-Hysteresis.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Electronics.jsfx-inc
+import z/z-Filters.jsfx-inc
+import z/z-NoiseGenerators.jsfx-inc
+import z/z-Oscillators.jsfx-inc
+import z/z-Resonators.jsfx-inc
+import z/z-Midi.jsfx-inc
+import z/z-DynamicProcessors.jsfx-inc
+import z/z-Mouse.jsfx-inc
+
+@init
+//Init MemoryManager
+memInit(100);
+
+period = slider1 * srate / 1000;
+spl_0.runningSet_init(ceil(period));
+//spl_0.windowTriangular(ceil(period));
+//spl_0.windowBoxcar(ceil(period));
+spl_0.runningDirectConvolution_init();
+
+rc_tanh = 1 / (2 * $pi * slider29); // rc filter Smoothing coefficient
+rc_a_tanh = 1 / (rc * srate + 1);
+
+
+// Low-pass
+
+function rc_lp(s, a)
+  instance(lp)
+(
+  lp += a * (s - lp);
+);
+
+ceiling_fold = 1;
+excursion = 0.1;
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+itm1 = itm2 = otm1 = otm2 = 0;
+@slider
+
+
+period != slider1 * srate / 1000 ?
+  (
+  memWipe(); // wipe ptr_map alloc + reset memory heap region to 0 
+  period = slider1 * srate / 1000;
+  spl_0.runningSet_init(ceil(period));
+  spl_0.convolution = memAlloc(ceil(period), "period");
+  );
+
+
+adj = 2.0 * $pi * slider43 / srate;
+
+bias_tanh = slider21;
+bias_square = slider31;
+
+drive_fold = exp(slider12 * 0.11552453);
+
+ceiling_tanh = (100 - slider22) / 100;
+transfer_square_drive = slider32 / 100;
+
+rc_tanh = 1 / (2 * $pi * slider29); // rc filter Smoothing coefficient
+rc_a_tanh = 1 / (rc_tanh * srate + 1);
+
+gain_output = exp(slider64 * 0.11552453);
+@block
+
+@sample
+
+spl0_dry = spl0;
+spl1_dry = spl1;
+
+//spl0 = sign(spl0);
+
+//|||||||||||||||||||||||||||||Tanh Clip|||||||||||||||||||||||||||||
+
+spl0 += bias_tanh;
+spl1 += bias_tanh;
+
+spl0 = tanh(spl0, 1 / ceiling_tanh);// * ceiling_tanh;
+spl1 = tanh(spl1, 1 / ceiling_tanh);// * ceiling_tanh;
+
+//LP FILTER
+
+spl0 = spl0_tanh.rc_lp(spl0, rc_a_tanh);  
+spl1 = spl1_tanh.rc_lp(spl1, rc_a_tanh);
+
+
+//|||||||||||||||||||||||||||||Square Clip|||||||||||||||||||||||||||||
+
+spl0 += bias_square;
+spl1 += bias_square;
+
+transfer_square_drive ? 
+  (
+  transfer_square_spl0 = sign(spl0); //Boom Square
+  spl0 = transfer_square_spl0 * transfer_square_drive + spl0 * (1 - transfer_square_drive);
+  
+  transfer_square_spl1 = sign(spl1); //Boom Square
+  spl1 = transfer_square_spl1 * transfer_square_drive + spl1 * (1 - transfer_square_drive); 
+  );
+
+//spl_0.runningSet(spl0);
+spl_0.runningDirectConvolution(spl0);
+
+//spl0 = spl_0.runningArithmeticMean();
+
+//|||||||||||||||||||||||||||||SOFT LIMITER||||||||||||||||||||||||||||
+spl0 = tanH(spl0, 1);
+spl1 = tanH(spl1, 1);
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+
+//otm1 = 0.999 * otm1 + spl0 - itm1; itm1 = spl0; spl0 = otm1;
+//otm2 = 0.999 * otm2 + spl1 - itm2; itm2 = spl1; spl1 = otm2;
+
+//|||||||||||||||||||||||||||||PHASOR??||||||||||||||||||||||||||||
+
+//pos = pos + adj;
+//(pos >= 2 * $pi) ? pos -= 2 * $pi;
+
+//|||||||||||||||||||||||||||||OUTPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_output;
+spl1 *= gain_output;
+
+
+/****************************GFX********************************
+****************************************************************/
+
+@gfx 500 500
+
+fillScreen(0.15, 0.15, 0.15);
+
+
+setColor(1, 0, 0);
+memDiagnostic(30, 40);
+
+//Draw Baseline
+setColor(0, 0.5, 0.5);
+gfx_x = 0; gfx_y = gfx_h / 2;
+gfx_lineto(gfx_w , gfx_y, 0);
+
+//Grid
+setColor(0.5, 0.5, 1);
+gfx_x = 0; gfx_y = gfx_h / 2 + 5;
+x_step_size = gfx_w / spl_0.period; //ceil(gfx_w / spl_0_.period);
+k = 0;
+loop(10,
+  gfx_x = x_step_size * k * spl_0.period / 10;
+  gfx_drawnumber(k * spl_0.period / 10,0);
+  k +=1;
+  );
+
+//INPUT
+setColor(0.5, 0, 1);
+gfx_x = 0; gfx_y = gfx_h / 2;
+x_step_size = gfx_w / spl_0.period; //ceil(gfx_w / spl_0_.period);
+k = 0;
+
+loop(spl_0.period,
+
+  //gfx_x = x_step_size * k;
+  gfx_lineto(x_step_size * k , (gfx_h) / 2 + (gfx_h - 20) / 2 * spl_0.samples[k], 0);
+  //gfx_y = gfx_h / 2 + gfx_h / 2 * spl_0.samples[k];
+  //gfx_setpixel(0, 1, 0);
+  k +=1;
+  );
+
+//IMPULSE
+setColor(0.5, 0, 0.5);
+gfx_x = 0; gfx_y = gfx_h / 2;
+x_step_size = gfx_w / spl_0.period; //ceil(gfx_w / spl_0_.period);
+k = 0;
+
+loop(spl_0.period,
+
+  gfx_lineto(x_step_size * k , (gfx_h) / 2 + (gfx_h - 20) / 2 * spl_0.impulse[k], 0);
+  k +=1;
+  );
+
+
+/*
+//CONVOLUTION
+setColor(1, 1, 0);
+gfx_x = 0; gfx_y = gfx_h / 2;
+x_step_size = gfx_w / spl_0.period; //ceil(gfx_w / spl_0_.period);
+k = 0;
+
+loop(spl_0.period,
+
+  gfx_lineto(x_step_size * k , (gfx_h) / 2 + (gfx_h - 20) / 2 * spl_0.convolution[k], 0);
+  k +=1;
+  );
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

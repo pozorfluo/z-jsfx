@@ -1,0 +1,583 @@
+/*******************************************************************************
+*  2017 Greg Z. - Yesss waaaaaayyyy, Dude !                                    *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+/*
+http://www.analog.com/media/en/technical-documentation/dsp-book/dsp_book_Ch16.pdf
+
+/*
+  SAULT : fir_lp.jsfx-inc
+  
+  .fir_lp_init(buffer, corner frequency, number of taps, window method, samplerate)
+
+
+  Samplerate is included to support oversampling/decimation, if you aren't
+  then just use "srate".
+
+
+    .fir_lp(sample in)
+
+  Returns the filtered value.
+
+
+
+    References
+
+  http://www.physik.uni-wuerzburg.de/~praktiku/Anleitung/Fremde/ANO14.pdf
+  http://www.labbookpages.co.uk/audio/firWindowing.html
+  https://www.cis.rit.edu/resources/software/sig_manual/windows.html
+  http://en.wikipedia.org/wiki/Window_function
+  http://www.nicholson.com/rhn/dsp.html
+  https://en.wikipedia.org/wiki/Filter_design
+
+*/
+
+
+
+desc:FIR Windowed-Sinc Filter + Kernel/IR generation
+
+slider11:84<2,1000,2>Kernel Length
+slider21:1<0,8,1{Rectangular, Bartlett/Triangular, Hann, Hamming, Hamming equiripple, Blackman, Blackman-Harris, Raised Cosine Squared, Flat-top}>Window
+slider22:16<8,32,1>Fixed Point Precision (bits)
+
+slider31:12000<100,24000,1>Cutoff Frequency (Hz)
+
+slider64:0<0,1,1{Off, Normalized Fixed Point}>Play IR ?
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+//import z/z-MathFunctions.jsfx-inc
+import z/z-Analysis.jsfx-inc
+import z/z-Windows.jsfx-inc
+import z/z-Graph.jsfx-inc
+
+
+@init
+/*******************************************************************
+  firSincInit  
+  ---- 
+  function windowInit(window_type, window_length)
+    local(n)
+    (
+    this.window.length = window_length | 0; //Truncate. Allow even or odd number. Make sure the kernel size is even inside the halfband/sinc/etc... filters  
+    this.window = memAlloc(window_length, "window");
+    this.window.sum = 0;
+     
+    
+    
+    n = 0;
+    
+    window_type == _RECTANGULAR          ? ( loop(window_length + 1,
+                                             this.window[n] = windowRectangular(n, this.window.length); 
+                                             this.window.sum += this.window[n]; n +=1; );
+*******************************************************************/
+
+function firSincInit(frequency_cutoff, fixed_precision)
+  local(n, k, two_pi_fc)
+  (
+  this.fir.length  = this.window.length;
+  this.sinc.length = this.window.length;
+  
+  this.fir.frequency_cutoff = frequency_cutoff / srate;
+  
+  this.sinc = memAlloc(this.sinc.length + 1, "sinc");
+  this.sinc.sum = 0;
+  this.sinc_fixed = memAlloc(this.sinc.length + 1, "sinc_fixed");
+  this.sinc_fixed.sum = 0;
+  this.sinc_fixed.sum_target = 2 ^ fixed_precision / 2;// - 1; 256 => -128 to 127 ? 128 ?    
+  
+  this.fir = memAlloc(this.fir.length + 1, "fir");
+  this.fir.sum = 0;
+  
+  // Scale output of filter later by dividing by the sum rather than accumulating errors with scaled coeffs
+  /*
+  this.fir_scaled = memAlloc(this.fir.length + 1, "fir_scaled");
+  this.fir_scaled.sum = 0;
+  
+  this.fir_fixed = memAlloc(this.fir.length + 1, "fir_fixed");
+  this.fir_fixed.sum = 0;
+  this.fir_fixed.sum_target = 2 ^ fixed_precision / 2;// - 1; 256 => -128 to 127 ? 128 ?
+  
+  */
+   
+  //Naive is probably better, as you don't round/truncate twice
+  this.fir_fixed = memAlloc(this.fir.length + 1, "fir_fixed");
+  this.fir_fixed.sum = 0;
+  this.fir_fixed.sum_target = 2 ^ fixed_precision / 2;// - 1; 256 => -128 to 127 ? 128 ?
+  
+  
+  two_pi_fc = 2 * $pi * this.fir.frequency_cutoff;
+  
+  n = 0;
+  
+  loop(this.fir.length + 1,
+    n == this.fir.length / 2 ?
+      (
+      this.sinc[n] = two_pi_fc;
+      this.fir[n]  = two_pi_fc;
+      ):(
+      this.sinc[n] = sin(two_pi_fc * (n - this.fir.length / 2)) / (n - this.fir.length / 2);
+      this.fir[n]  = this.sinc[n] * this.window[n];
+      );
+    this.sinc.sum += this.sinc[n];   
+    this.fir.sum  += this.fir[n];
+    n +=1;
+    );
+  
+  /*
+  Check out : 
+  https://fr.mathworks.com/help/fixedpoint/examples/double-to-fixed-point-conversion.html
+  
+  */
+  //fixed_point coeff scaled from fir
+  this.fir_fixed.sum_ratio = this.fir_fixed.sum_target / this.fir.sum;
+  
+  //fixed_point coeff scaled from sinc
+  this.sinc_fixed.sum_ratio = this.sinc_fixed.sum_target / this.sinc.sum;
+  
+  n = 0;  
+  loop(this.fir.length + 1,
+    // Scale output of filter later by dividing by the sum rather than accumulating errors with scaled coeffs
+    /*
+    this.fir_scaled[n] = this.fir[n] / this.fir.sum;
+    this.fir_scaled.sum  += this.fir_scaled[n];
+
+
+    this.sinc_fixed[n]  = ((this.sinc[n] * this.sinc_fixed.sum_ratio));// | 0;
+    this.sinc_fixed[n]  = roundHalfUp(this.sinc_fixed[n]);
+    this.sinc_fixed.sum  += this.sinc_fixed[n];     
+    
+    this.fir_fixed[n]  = ((this.fir[n] * this.fir_fixed.sum_ratio));// | 0;
+    this.fir_fixed[n]  = roundHalfUp(this.fir_fixed[n]);
+    this.fir_fixed.sum  += this.fir_fixed[n];
+    /*
+    this.fir_fixed[n]  = this.sinc_fixed[n] * this.window_fixed[n];
+    this.fir_fixed.sum  += this.fir_fixed[n];
+    */
+    /*
+    this.fir_fixed[n]  = this.fir[n] * 32768;
+    this.fir_fixed[n] /= two_pi_fc;
+    this.fir_fixed[n]  = roundHalfUp(this.fir_fixed[n]);
+    this.fir_fixed.sum  += this.fir_fixed[n];
+    */
+    
+    
+    n +=1;
+    );
+  
+  );
+
+//MemoryManager
+memInit(100);
+
+    
+
+@slider
+memWipe();
+
+
+fir_sinc.windowInit(slider21, slider11, slider22); //intEven(slider11)
+fir_sinc.firSincInit(slider31, slider22);
+
+play_ir = slider64;
+@sample
+
+play_ir == 1 ?
+  (
+  //spl0 = fir_sinc.fir_fixed[s] / fir_sinc.fir_fixed.sum;
+  spl0 = fir_sinc.fir_fixed[s] / fir_sinc.fir_fixed[fir_sinc.fir.length / 2];
+  s >= fir_sinc.fir.length ?
+    (
+    s = 0;
+    ):(
+    s += 1;
+    );
+  ):(
+  s = 0;
+  );
+//||||||||||||||||||||||||||||| STUFF |||||||||||||||||||||||||||||
+
+@gfx 750 850  
+/*******************************************************************
+  dumpFirCoeff     
+  --------
+  
+  Dumps fir coeff
+ 
+*******************************************************************/ 
+function dumpFirCoeff()
+  local(n, gfx_x_offset, gfx_y_offset, tmp_x, font_h, font_w) // gfx_y_start
+  (
+  //gfx_y += 10; 
+  gfx_x_offset = gfx_x;
+  gfx_y_offset = max(1,(gfx_h / (fir_sinc.window.length + 1))) | 0;//min(16, gfx_h / (fir_sinc.window.length + 1));
+  //gfx_measurestr("0000",font_w, font_h);
+  gfx_setfont(1, "Lucida Console", max(1, min(10, gfx_y_offset))); //HyperFont
+  
+  //window
+  colorSet(0.5, 0.3, 0);
+  gfx_drawstr("[");
+  colorSet(1, 0.3, 0);
+  gfx_drawstr("n");
+  colorSet(0.5, 0.3, 0);
+  gfx_drawstr("]");
+  
+  colorSet(0.5, 0.3, 0);
+  gfx_drawstr("Σ");
+  colorSet(1, 0.3, 0);
+  gfx_x = 30 + gfx_x_offset; 
+  gfx_drawstr("window");
+  gfx_drawstr(" ");
+  gfx_drawnumber(this.window.sum, 15);
+  
+  //window_fixed
+  colorSet(1, 0.3, 0);
+  gfx_drawstr("   ");
+  gfx_drawnumber(this.window_fixed.sum, 2); 
+  
+  //sinc
+  colorSet(0, 1, 0);
+  //gfx_x += 20; 
+  gfx_x = 225; gfx_drawstr("           ");
+  gfx_drawstr("sinc ");
+  gfx_drawnumber(this.sinc.sum, 15);
+  
+  //sinc_fixed
+  colorSet(0, 1, 0);
+  gfx_drawstr("   ");
+  gfx_drawnumber(this.sinc_fixed.sum, 2);
+  
+  //fir
+  colorSet(0, 0.3, 1);
+  gfx_x = 500;
+  gfx_drawstr("   ");
+  gfx_drawstr("fir");
+  gfx_drawstr(" ");
+  gfx_drawnumber(this.fir.sum, 15);
+  
+  //fir_scaled
+  /*
+  colorSet(0.5, 0.3, 1);
+  gfx_drawstr("   ");
+  gfx_drawnumber(this.fir_scaled.sum, 15);
+  */
+  
+  //fir_fixed_naive
+  colorSet(0.5, 0.3, 1);
+  gfx_drawstr("   ");
+  gfx_drawnumber(this.fir_fixed.sum, 2);  
+  
+  
+  
+  
+  gfx_y += 20;
+  //gfx_y_start = gfx_y;
+ 
+  
+    n = 0;
+    loop(this.fir.length + 1,    
+      
+      gfx_a = 1; gfx_mode = 0;
+      
+      //draw bed      
+      gfx_x = gfx_x_offset; 
+      intParity(n) ? colorSet(0.15, 0.15, 0.15) : colorSet(0.12, 0.12, 0.12);      
+      
+      gfx_rectto(gfx_w - gfx_x_offset, gfx_y + gfx_y_offset);      
+      
+      
+      gfx_x = gfx_x_offset; gfx_y -= gfx_y_offset;
+      colorSet(0.1, 0.3 ,0.3);
+      gfx_drawstr("[");
+      colorSet(0.1, 0.5 ,0.3);
+      gfx_drawnumber(n,0);
+      colorSet(0.1, 0.3 ,0.3);
+      gfx_drawstr("]");
+      gfx_x = 30 + gfx_x_offset; 
+      
+      //window
+      gfx_drawstr("window");
+      colorSet(1 - this.window[n] * 0.2 - truncate(this.window[n] + 0.0000000001) * 0.7, this.window[n] * 0.8 - truncate(this.window[n] + 0.0000000001) / 2,truncate(this.window[n] + 0.0000000001));
+      this.window[n] >= 0 ? gfx_drawstr(" ");
+      gfx_drawnumber(this.window[n],16);
+      
+      //window_fixed
+      gfx_drawstr("  ");
+      //colorSet(1 - this.window[n] * 0.2 - truncate(this.window[n] + 0.0000000001) * 0.7, this.window[n] * 0.8 - truncate(this.window[n] + 0.0000000001) / 2,truncate(this.window[n] + 0.0000000001));
+      colorSet(1, 0.3, 0);
+      this.window[n] >= 0 ? gfx_drawstr(" ");
+      gfx_drawnumber(this.window_fixed[n], 0);
+      
+      tmp_x = gfx_x = 225;//gfx_x + 50;
+
+      //sinc
+      gfx_drawstr("           ");
+      colorSet(0.1, 0.3 ,0.3);
+      gfx_drawstr("sinc");
+      colorSet(1 - this.sinc[n] * 0.2 - truncate(this.sinc[n] + 0.0000000001) * 0.7, this.sinc[n] * 0.8 - truncate(this.sinc[n] + 0.0000000001) / 2,truncate(this.sinc[n] + 0.0000000001));
+      this.sinc[n] >= 0 ? gfx_drawstr(" ");
+      gfx_drawnumber(this.sinc[n], 16);
+      
+      //sinc_fixed
+      gfx_drawstr(" ");
+      //colorSet(1 - this.sinc[n] * 0.2 - truncate(this.sinc[n] + 0.0000000001) * 0.7, this.sinc[n] * 0.8 - truncate(this.sinc[n] + 0.0000000001) / 2,truncate(this.sinc[n] + 0.0000000001));
+      colorSet(0, 1, 0);
+      this.sinc[n] >= -0.0000000000000001 ? gfx_drawstr(" ");
+      gfx_drawnumber(this.sinc_fixed[n], 0);
+      
+      tmp_x_b = gfx_x = 500;//gfx_x + 50;      
+      
+      //fir      
+      colorSet(0.1, 0.3 ,0.3);
+      gfx_drawstr("   fir");
+      //colorSet(1 - this.fir[n] * 0.2 - truncate(this.fir[n] + 0.0000000001) * 0.7, this.fir[n] * 0.8 - truncate(this.fir[n] + 0.0000000001) / 2,truncate(this.fir[n] + 0.0000000001));
+      colorSet(0, 0.3, 1);
+      this.fir[n] >= 0 ? gfx_drawstr(" ");
+      gfx_drawnumber(this.fir[n],16);
+      
+      //fir_fixed_naive
+      gfx_drawstr(" ");
+      //colorSet(0, 0.5, 1);
+      colorSet(0.5, 0.3, 1);
+      this.fir_scaled[n] >= -0.0000000000000001 ? gfx_drawstr(" ");
+      gfx_drawnumber(this.fir_fixed[n], 0);
+      
+      gfx_x = gfx_w - 30;           
+      colorSet(0.1, 0.3 ,0.3);
+      gfx_drawstr("[");
+      colorSet(0.1, 0.5 ,0.3);
+      gfx_drawnumber(n,0);
+      colorSet(0.1, 0.3 ,0.3);
+      gfx_drawstr("]");
+      gfx_drawstr("  ");
+          
+      
+      
+      //window
+      gfx_x = tmp_x; gfx_a = 0.3;      
+      colorSet(1 - this.window[n] * 0.2 - truncate(this.window[n] + 0.0000000001) * 0.7, this.window[n] * 0.8 - truncate(this.window[n] + 0.0000000001) / 2,truncate(this.window[n] + 0.0000000001));  
+      gfx_rectto(gfx_x + (gfx_w - 5 - gfx_x) * this.window[n], gfx_y + gfx_y_offset);
+      //gfx_rect(gfx_x, gfx_y,100 * this.window[n]  , 10); 
+      gfx_y >= gfx_h ? ( gfx_y = gfx_y_start; gfx_x_offset += 400;);
+      
+      //fir_fixed_naive
+      
+      gfx_x = tmp_x; gfx_y -= gfx_y_offset;
+      gfx_mode = 0;
+      gfx_a = 0.5;      
+      colorSet(0, 0.75, 0);
+      gfx_rectto(gfx_x + (gfx_w - 5 - gfx_x) * this.fir_fixed[n] / this.fir_fixed[this.fir.length / 2], gfx_y + gfx_y_offset);
+      //gfx_rect(gfx_x, gfx_y,100 * this.window[n]  , 10); 
+      gfx_y >= gfx_h ? ( gfx_y = gfx_y_start; gfx_x_offset += 400;); 
+      
+      //fir_fixed
+      
+      gfx_x = tmp_x; gfx_y -= gfx_y_offset;
+      gfx_mode = 0;
+      gfx_a = 0.25;      
+      colorSet(1, 0.75, 0);
+      gfx_rectto(gfx_x + (gfx_w - 5 - gfx_x) * this.fir_fixed[n] / this.fir_fixed[this.fir.length / 2], gfx_y + gfx_y_offset);
+      //gfx_rect(gfx_x, gfx_y,100 * this.window[n]  , 10); 
+      gfx_y >= gfx_h ? ( gfx_y = gfx_y_start; gfx_x_offset += 400;); 
+      
+      //sinc
+      /*
+      gfx_x = tmp_x; gfx_y -= gfx_y_offset;
+      gfx_a = 0.75;      
+      colorSet(0, 1, 0);
+      gfx_rectto(gfx_x + (gfx_w - 5 - gfx_x) * this.sinc[n] / $pi, gfx_y + gfx_y_offset);
+      //gfx_rect(gfx_x, gfx_y,100 * this.window[n]  , 10); 
+      gfx_y >= gfx_h ? ( gfx_y = gfx_y_start; gfx_x_offset += 400;);  
+      */
+      
+      //fir
+      
+      gfx_x = tmp_x; gfx_y -= gfx_y_offset;
+      gfx_a = 0.25;      
+      colorSet(0, 0.3, 1);
+      gfx_rectto(gfx_x + (gfx_w - 5 - gfx_x) * this.fir[n] / $pi, gfx_y + gfx_y_offset);
+      //gfx_rect(gfx_x, gfx_y,100 * this.window[n]  , 10); 
+      gfx_y >= gfx_h ? ( gfx_y = gfx_y_start; gfx_x_offset += 400;);  
+      
+      
+      //fir_scaled
+      /*
+      gfx_x = tmp_x; gfx_y -= gfx_y_offset;
+      gfx_a = 0.75;      
+      colorSet(0.5, 0.3, 1);
+      gfx_rectto(gfx_x + (gfx_w - 5 - gfx_x) / 3 * this.fir_scaled[n], gfx_y + gfx_y_offset);
+      //gfx_rect(gfx_x, gfx_y,100 * this.window[n]  , 10); 
+      gfx_y >= gfx_h ? ( gfx_y = gfx_y_start; gfx_x_offset += 400;);          
+      */
+      n +=1;
+      );
+  );  
+  
+gfx_setfont(0);
+
+screenFill(0.15, 0.15, 0.15);
+
+//colorSet(0, 0.5 ,1);
+//memDiagnostic(30, 40);
+
+gfx_mode = 0;
+colorSet(0, 0.5 ,1);
+//gfx_x = 50; gfx_y = 125;
+
+  
+gfx_a = 0.9; colorSet(0.15, 0.15 ,0.15);
+gfx_rect(0, 0, gfx_w, gfx_h); 
+gfx_a = 1;
+
+gfx_x = 0; gfx_y = 0;
+//fir_sinc.dumpWindowCoeff();
+//gfx_x = gfx_w / 2; gfx_y = 0;
+fir_sinc.dumpFirCoeff();
+
+gfx_x = mouse_x; gfx_y = mouse_y;
+memMap(4);
+//gfx_y += 100;
+
+//Pi
+/*
+pi_2 = 6.2831853071795864; 
+rea_pi_2 = 2 * $pi;
+rea_pi = $pi;
+
+gfx_x = 0;
+gfx_drawnumber(2 * $pi  * slider31,16); gfx_x = 0; gfx_y += 8;
+gfx_drawnumber(rea_pi_2 * slider31,16); gfx_x = 0; gfx_y += 8; 
+gfx_drawnumber(pi_2     * slider31,16); gfx_x = 0; gfx_y += 15; 
+gfx_drawnumber(rea_pi   * slider31,16); gfx_x = 0; gfx_y += 8;
+*/
+
+/*
+gfx_x = 0;
+gfx_y += 20;
+//mem txt dump
+n = 1;
+loop(memAlloc.count_Alloc,
+
+  colorSet(0.25, 0.25, 1);
+  gfx_drawstr(memAlloc.ptr_name_map[n]);
+  colorSet(0.5, 0,1);
+  gfx_drawstr(" index ");
+  gfx_drawnumber(memAlloc.ptr_index_map[n],0);
+  colorSet(0.5,1 , 0.5);
+  gfx_drawstr(" size ");
+  gfx_drawnumber(memAlloc.ptr_size_map[n],0);
+  
+  gfx_x = 20; gfx_y += 10;
+  p = 0;
+  loop(memAlloc.ptr_size_map[n],
+    gfx_x >= gfx_w ? ( gfx_y += 8; gfx_x = 20;);
+    colorSet(0.1, 0.3 ,0.3);
+    gfx_drawstr("[");
+    colorSet(0.1, 0.5 ,0.3);
+    gfx_drawnumber(0[memAlloc.ptr_index_map[n] + p],2);
+    colorSet(0.1, 0.3 ,0.3);
+    gfx_drawstr("]");
+    p += 1;
+    );
+  
+  gfx_x = 0; gfx_y += 10; 
+  n +=1;
+  );
+
+*/  
+
+/*
+//memMap proto
+map_size_unit = 16;
+map_width = roundUp(sqrt(memAlloc.heap_top)) * map_size_unit;
+map_start_x = gfx_x;
+map_start_Y = gfx_Y;
+n = 1;
+loop(memAlloc.count_Alloc,
+
+  //colorSet(1 / memAlloc.count_Alloc * (n + 1),0,0);
+  p = 0;
+  loop(memAlloc.ptr_size_map[n],
+    //gfx_drawnumber(0[memAlloc.ptr_index_map[n] + p],2);
+    colorSet(1 / memAlloc.count_Alloc * (n + 1),0,0[memAlloc.ptr_index_map[n] + p]);
+    gfx_rectto(gfx_x + map_size_unit,gfx_y + map_size_unit);
+    gfx_y -= map_size_unit;
+    gfx_x >= map_width + map_start_x ? ( gfx_y += map_size_unit; gfx_x = map_start_x;);
+    p += 1;
+    );
+  
+  //gfx_x = map_start_x; gfx_y += map_size_unit; 
+  n +=1;
+  );
+*/
+
+/*******************************************************************
+  dumpWindowCoeff     
+  --------
+  
+  Dumps window coeff
+ 
+*******************************************************************/
+/* 
+function dumpWindowCoeff()
+  local(n, gfx_x_offset, gfx_y_offset, gfx_y_start, font_h, font_w)
+  (
+  //gfx_y += 10; 
+  gfx_x_offset = 0;
+  gfx_y_offset = (gfx_h / (fir_sinc.window.length + 1)) | 0;//min(16, gfx_h / (fir_sinc.window.length + 1));
+  //gfx_measurestr("0000",font_w, font_h);
+  gfx_setfont(1, "Lucida Console", max(1, min(18, gfx_y_offset))); //HyperFont
+  
+  
+  
+  colorSet(0.5, 0.3 ,0);
+  gfx_drawstr("[");
+  colorSet(1, 0.3 ,0);
+  gfx_drawstr("n");
+  colorSet(0.5, 0.3 ,0);
+  gfx_drawstr("]");
+  
+  colorSet(0.5, 0.3 ,0);
+  gfx_drawstr("Σ ");
+  colorSet(1, 0.3 ,0);
+  gfx_drawnumber(this.window.sum,15);
+  gfx_y += 20;
+  
+  gfx_y_start = gfx_y;
+ 
+  
+    n = 0;
+    loop(this.window.length + 1,    
+       
+      gfx_x = 0 + gfx_x_offset; 
+      colorSet(0.1, 0.3 ,0.3);
+      gfx_drawstr("[");
+      colorSet(0.1, 0.5 ,0.3);
+      gfx_drawnumber(n,0);
+      colorSet(0.1, 0.3 ,0.3);
+      gfx_drawstr("]");
+      gfx_x = 40 + gfx_x_offset; 
+      colorSet(1 - this.window[n] * 0.2 - truncate(this.window[n] + 0.0000000001) * 0.7, this.window[n] * 0.8 - truncate(this.window[n] + 0.0000000001) / 2,truncate(this.window[n] + 0.0000000001));
+      this.window[n] >= 0 ? gfx_drawstr(" ");
+      gfx_drawnumber(this.window[n],16);
+      
+  
+      gfx_x += 20;  
+      gfx_rectto(gfx_x + 200 * this.window[n],gfx_y + gfx_y_offset);
+      //gfx_rect(gfx_x, gfx_y,100 * this.window[n]  , 10); 
+      gfx_y >= gfx_h ? ( gfx_y = gfx_y_start; gfx_x_offset += 400;);
+      n +=1;
+      );
+  );
+*/

@@ -1,0 +1,166 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:Negative Feedback Lab
+
+/* TODO []
+
+
+
+*/
+slider1:0<-36,36,1>open_loop_gain
+
+slider2:0<0,100,0.1>open_loop_distortion
+
+slider3:0<-96,0,0.1>negative_feedback_gain
+
+slider19:0<0,10,0.001>input_voltage
+slider20:0<0,10,0.001>feedback_loop_output
+slider21:0<0,10,0.001>output_voltage
+slider22:0<-96,96,0.001>closed_loop_gain_before_gain_compensation
+slider23:0<-96,96,0.001>gain_compensation
+slider24:0<-96,96,0.001>closed_loop_gain
+
+
+
+//IMPORT CRITICAL STUFF FIRST - IF THERE IS A CONFLICT IMPORT FROM INSIDE THE LIBRARY ?
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-ListManager.jsfx-inc
+import z/z-Oversampler.jsfx-inc
+import z/z-MathFunctions.jsfx-inc
+import z/z-TaylorApproximations.jsfx-inc
+import z/z-Integrals.jsfx-inc
+import z/z-Differentials.jsfx-inc
+import z/z-Transforms.jsfx-inc
+import z/z-Matrices.jsfx-inc
+import z/z-StochasticProcesses.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-Windows.jsfx-inc
+import z/z-Analysis.jsfx-inc
+import z/z-Graph.jsfx-inc
+import z/z-Hysteresis.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Filters.jsfx-inc
+import z/z-NoiseGenerators.jsfx-inc
+import z/z-Oscillators.jsfx-inc
+import z/z-Resonators.jsfx-inc
+import z/z-Midi.jsfx-inc
+import z/z-DynamicProcessors.jsfx-inc
+
+//OBSERVER, ANALYSER, INTEGRER, RESTITUER
+//import cookdsp_0.2_2015-05-12/cookdsp.jsfx-inc
+//import tale/adsr.jsfx-inc
+//import tale/array.jsfx-inc 
+//import tale/lfo.jsfx-inc 
+//import tale/malloc.jsfx-inc 
+//import tale/midi_queue.jsfx-inc 
+//import tale/noise_generator.jsfx-inc 
+//import tale/oversampler.jsfx-inc 
+//import tale/poly_blep.jsfx-inc
+//import tale/rbj_filter.jsfx-inc
+//import tale/rc_filter.jsfx-inc
+//import tale/sine_oscillator.jsfx-inc
+//import tale/zdf_filter.jsfx-inc
+
+
+
+@init
+
+
+//Init MemoryManager
+//memInit(100);
+
+@slider
+//memWipe(); // wipe ptr_map alloc + reset memory heap region to 0 
+
+open_loop_gain = dBtoAmp(slider1);
+//control = AmpTodB(open_loop_gain);
+open_loop_distortion = slider2 / 100;
+negative_feedback_gain = dBtoAmp(slider3);
+
+
+
+@block
+
+@sample
+input_voltage = spl0;
+
+//https://en.wikipedia.org/wiki/Negative_feedback_amplifier
+
+//OPEN LOOP
+open_loop_output = open_loop_gain * input_voltage;
+
+//NON-LINEARITIES
+transfer_square = sign(open_loop_output); //Boom Square
+//open_loop_output = transfer_square * open_loop_distortion + open_loop_output * (1 - open_loop_distortion);
+//non_linearities = rand(0.1) / 10;
+non_linearities = transfer_square * open_loop_distortion + open_loop_output * (1 - open_loop_distortion);
+open_loop_output = non_linearities;
+
+
+//FEEDBACK LOOP
+//feeback_loop_output = input_voltage - negative_feedback_amount * open_loop_output;
+//feeback_loop_output = input_voltage + negative_feedback_gain * (input_voltage - open_loop_output);
+feeback_loop_output = input_voltage + negative_feedback_gain * non_linearities;
+
+//NEGATIVE FEEDBACK
+//output_voltage = open_loop_gain / (1 + negative_feedback_amount * open_loop_output) * input_voltage;
+//alt_output_voltage = open_loop_output / (1 + negative_feedback_amount * open_loop_gain); Some things I don't understand in the articlee
+/*output_voltage_before_non_linearities = open_loop_gain * feeback_loop_output;
+transfer_square = sign(output_voltage_before_non_linearities); //Boom Square
+output_voltage = transfer_square * open_loop_distortion + output_voltage_before_non_linearities * (1 - open_loop_distortion);*/
+
+output_voltage = open_loop_gain * (feeback_loop_output + non_linearities);
+//output_voltage = open_loop_output;
+
+
+//GAIN COMPENSATION
+//closed_loop_gain_before_gain_compensation = output_voltage / input_voltage;
+
+//gain_compensation = open_loop_gain / closed_loop_gain_before_gain_compensation; //lol this is pretty much doing output_voltage = input_voltage
+//gain_compensation = open_loop_output / closed_loop_gain_before_gain_compensation;
+
+//output_voltage *= gain_compensation;
+//alt_output_voltage *= gain_compensation;
+
+closed_loop_gain = output_voltage / input_voltage;
+
+spl0 = spl1 = output_voltage;
+
+//DISPLAY SOME VALUES
+slider19 = input_voltage;
+slider20 = feeback_loop_output;
+slider21 = output_voltage;
+slider22 = AmpTodB(closed_loop_gain_before_gain_compensation);
+slider23 = AmpTodB(gain_compensation);
+slider24 = AmpTodB(closed_loop_gain);
+sliderchange(slider19); 
+sliderchange(slider20); 
+sliderchange(slider21); 
+sliderchange(slider22);
+sliderchange(slider23); 
+sliderchange(slider24); 
+
+
+
+
+
+/****************************GFX********************************
+****************************************************************/
+
+@gfx 500 500
+
+

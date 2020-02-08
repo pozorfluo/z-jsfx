@@ -1,0 +1,59 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: String Utilities Library
+
+/* TODO []
+  
+  FUNCTION INDEX []
+  
+*/
+
+@init
+/*******************************************************************
+  stringTrim    
+  -----
+  
+  removes spaces, tabs and newline from end of string
+  
+  adapted from ixstring.jsfx-inc  
+  
+*******************************************************************/
+function stringTrim(string)
+  local(character, length)
+  (
+  length = strlen(string);
+  
+  while (length >= 1 && ((character = str_getchar(string, length - 1)) == ' ' || character == '\t' || character == '\n' || character == '\r')) 
+    ( 
+    length -= 1 
+    );
+  str_setlen(string, length);
+  );
+  
+  
+/*******************************************************************
+  stringPad    
+  -----
+  
+  pads string with character to length
+  
+*******************************************************************/
+function stringPad(string, character, length)
+  (
+  while (strlen(string) < length)
+    (
+    strcat(string, character);
+    );
+  );

@@ -1,0 +1,31 @@
+/*******************************************************************************
+*  2016 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+desc:>>Send 6
+
+
+///////////////////////////////////////////////////////////////////////////////
+@init
+
+///////////////////////////////////////////////////////////////////////////////
+@slider
+
+///////////////////////////////////////////////////////////////////////////////
+@sample
+////RETRIEVE [ MAIN ] >> Send 5 
+spl10 = spl0;
+spl11 = spl1;
+
+////FEED Send 6 >> [ MAIN ]
+spl0 = spl12;
+spl1 = spl13;    

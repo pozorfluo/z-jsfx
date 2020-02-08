@@ -1,0 +1,1219 @@
+/*******************************************************************************
+*  2018 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:encode >< decode + vizualisation
+
+//Hide and map to track parameter FX while you prototype, UI later
+slider1:16777216<0,16777216,1>R  ◄==▇▇▇
+slider2:16777216<0,16777216,1>G  ◄==▇▇▇
+slider3:16777216<0,16777216,1>B  ◄==▇▇▇
+
+//slider1:0<0,8,1{...,L,R,M,S,sc L,sc R,sc M,sc S}>-R  ◄==▇▇▇
+//slider2:0<0,8,1{...,L,R,M,S,sc L,sc R,sc M,sc S}>-G  ◄==▇▇▇
+//slider3:0<0,8,1{...,L,R,M,S,sc L,sc R,sc M,sc S}>-B  ◄==▇▇▇
+//pre-encode / post decode Emphasis Network
+//
+//Invert sounds cool, have a dimension plugged to R (encodes to R), inverted it's GB and it encodes to YB. 
+//Toy with it, 
+//decode and invert again.
+//Same things to try with DC offsets, and probably anything you can network around the encode/decode process
+slider5:0<0,6,1{Sugita,CubeInt Linear,CubeInt Sine,CubeInt Exp, CubeInt TanH, CubeInt Stairs4, CubeInt Stairs8}>-CubeInt Method
+
+slider6:        0<0,4,1{dry, RGB, RYB, HSB, LAB}>-█▬█ █ ▀█▀
+slider9:        0<0,4,1{dry, RGB, RYB, HSB, LAB}>-Emphasis  Network  Mode  █▬█ █ ▀█▀
+slider10:       0<0,4,1{normal, invert RRHL, invert GYSA, invert BBBB, invert all}-█ ▀█▀    
+//Compare Linear vs Exp Knobs for this application
+slider11:       1<0,1,0.000001>  █         .ıI!
+slider12:       1<0,1,0.000001> █ █       .ıI!
+slider13:       1<0,1,0.000001>█ █ █     .ıI!
+
+slider31:       0<-1,1,0.000001>  █       ↑↓
+slider32:       0<-1,1,0.000001> █ █     ↑↓
+slider33:       0<-1,1,0.000001>█ █ █   ↑↓
+
+slider41:       1<0,1,0.000001>  █         Δ mix
+slider42:       1<0,1,0.000001> █ █       Δ mix
+slider43:       1<0,1,0.000001>█ █ █     Δ mix
+
+slider51:      3<1,20,0.1>Cube    ← →
+slider52:      5<1,20,0.1>Cabinet     ↑ ↓
+
+slider61:      0<0,10,1>-ID link 
+slider62:      2<0, 6,1>mip 
+slider63:    100<0,100,1>zoom
+slider64:      0<0,100,1>← ─╪─ → 
+
+// ← → ↑ ↓ ↔ ↕  ↘ ↙ ↖ ↗ ΔΘΦΩΞϕ▒♀ ΘΔΦ
+import z/z-MemoryManager.jsfx-inc
+import z/z-Strings.jsfx-inc
+//import z/z-ListManager.jsfx-inc
+//import z/z-Oversampler.jsfx-inc
+//import z/z-Complex.jsfx-inc
+//import z/z-MathFunctions.jsfx-inc
+//import z/z-TaylorApproximations.jsfx-inc
+//import z/z-Integrals.jsfx-inc
+//import z/z-Differentials.jsfx-inc
+//import z/z-Transforms.jsfx-inc
+//import z/z-Matrices.jsfx-inc
+//import z/z-StochasticProcesses.jsfx-inc
+import z/z-Utilities.jsfx-inc 
+//import z/z-Windows.jsfx-inc
+//import z/z-Analysis.jsfx-inc
+import z/z-Graph.jsfx-inc
+//import z/z-Hysteresis.jsfx-inc
+//import z/z-TransferCurves.jsfx-inc
+//import z/z-Electronics.jsfx-inc
+//import z/z-Filters.jsfx-inc
+//import z/z-NoiseGenerators.jsfx-inc
+//import z/z-Oscillators.jsfx-inc
+//import z/z-Resonators.jsfx-inc
+//import z/z-Midi.jsfx-inc
+//import z/z-DynamicProcessors.jsfx-inc
+//import z/z-Mouse.jsfx-inc
+
+
+/*******************************************************************
+
+https://cran.r-project.org/web/packages/colorspace/colorspace.pdf
+https://www.rdocumentation.org/packages/colorspace/versions/1.3-2
+
+http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+
+http://www.brucelindbloom.com/index.html?Eqn_ChromAdapt.html
+Illuminant  X  Y  Z
+A  1.09850  1.00000  0.35585
+B  0.99072  1.00000  0.85223
+C  0.98074  1.00000  1.18232
+D50  0.96422  1.00000  0.82521
+D55  0.95682  1.00000  0.92149
+D65  0.95047  1.00000  1.08883
+D75  0.94972  1.00000  1.22638
+E  1.00000  1.00000  1.00000
+F2  0.99186  1.00000  0.67393
+F7  0.95041  1.00000  1.08747
+F11  1.00962  1.00000  0.64350
+
+http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+
+/*******************************************************************
+
+@init
+
+/*******************************************************************
+  lin2gamma - AUDIO + UI
+  -----------
+  
+ linearized (s)RGB to SRGB
+ value > 0.00304 ?
+ 
+*******************************************************************/  
+function lin2gamma(value ,gamma)
+  (
+  value > 0.0031308 ?
+    (
+    value = 1.055 * pow(value, (1 / gamma)) - 0.055; 
+    ):(      
+    value = 12.92 * value;                           
+    );
+  value;  //return 
+  );
+
+/*******************************************************************
+  gamma2lin - AUDIO + UI
+  ----------
+  
+  sRGB to linearized sRGB 
+  
+  value > 0.03928 ?
+*******************************************************************/  
+function gamma2lin(value ,gamma)
+  (
+  value > 0.04045 ?
+    (
+    value = pow((value + 0.055) / 1.055, gamma); 
+    ):(      
+    value = value / 12.92;                           
+    );
+  value;  
+  );
+
+/*******************************************************************
+  srgb2linrgb AUDIO + UI
+  --------
+  
+  
+*******************************************************************/  
+function srgb2linrgb(r, g, b ,gamma)
+  (
+  this.linrgb_R = gamma2lin(r ,gamma);
+  this.linrgb_G = gamma2lin(g ,gamma);
+  this.linrgb_B = gamma2lin(b ,gamma);
+  ); 
+
+
+/*******************************************************************
+  linrgb2srgb2 AUDIO + UI
+  --------
+  
+  
+*******************************************************************/  
+function linrgb2srgb(lin_r, lin_g, lin_b ,gamma)
+  (
+  this.rgb_R = lin2gamma(lin_r ,gamma);
+  this.rgb_G = lin2gamma(lin_g ,gamma);
+  this.rgb_B = lin2gamma(lin_b ,gamma);
+  ); 
+
+
+
+/*******************************************************************
+  ryb2rgb  - AUDIO + UI
+  --------
+  -- http://nishitalab.org/user/UEI/publication/Sugita_IWAIT2015.pdf
+  -- R G B    R Y B
+  -- 0 0 0    1 1 1 
+  -- 1 0 0    1 0 0
+  -- 0 1 0    0 1 1
+  -- 0 0 1    0 0 1
+  -- 1 1 0    0 1 0
+  -- 1 0 1    1 0 0.5
+  -- 0 1 1    0 0.5 1
+  -- 1 1 1    0 0 0
+  
+*******************************************************************/
+function rgb2ryb(r, g, b)
+  //local(rgb_iW, rgb_r, rgb_g, rgb_b, rgb_min_rg, ryb_r, ryb_y, ryb_b, ryb_n, rgb_iBk)
+  (  
+  this.rgb_iW = min(r, min(g, b));
+  this.rgb_wR  = r - this.rgb_iW;
+  this.rgb_wG  = g - this.rgb_iW;
+  this.rgb_wB  = b - this.rgb_iW;
+  
+  this.rgb_minRG = min(this.rgb_wR, this.rgb_wG);
+  
+  this.ryb_R =  this.rgb_wR   -  this.rgb_minRG;
+  this.ryb_Y = (this.rgb_wG   +  this.rgb_minRG) / 2;
+  this.ryb_B = (this.rgb_wB   +  this.rgb_wG -  this.rgb_minRG) / 2;
+  
+  this.ryb_n = max(this.ryb_R, max(this.ryb_Y, this.ryb_B)) / max(this.rgb_wR, max(this.rgb_wG, this.rgb_wB));
+  
+  this.ryb_n > 0 && this.ryb_n != 1 ?
+    (
+    this.ryb_R /= this.ryb_n; 
+    this.ryb_Y /= this.ryb_n; 
+    this.ryb_B /= this.ryb_n;
+    );
+    
+  this.rgb_iBk = min(1 - r, min(1 - g, 1 - b));
+  
+  this.ryb_R += this.rgb_iBk;
+  this.ryb_Y += this.rgb_iBk;
+  this.ryb_B += this.rgb_iBk;
+  );  
+  
+  
+/*******************************************************************
+  ryb2rgb  - AUDIO + UI
+  --------
+  
+*******************************************************************/
+function ryb2rgb(r, y, b)
+  (
+  this.ryb_iW = min(r, min(y, b));
+  this.ryb_wR  = r - this.ryb_iW;
+  this.ryb_wY  = y - this.ryb_iW;
+  this.ryb_wB  = b - this.ryb_iW;
+  this.ryb_minYB = min(this.ryb_wY, this.ryb_wB);
+    
+  this.rgb_R =      this.ryb_wR   +      this.ryb_wY -  this.ryb_minYB;
+  this.rgb_G =      this.ryb_wY   +  2 * this.ryb_minYB;
+  this.rgb_B = 2 * (this.ryb_wB   -      this.ryb_minYB);  
+  
+  this.rgb_n = max(this.rgb_R, max(this.rgb_G, this.rgb_B)) / max(this.ryb_wR, max(this.ryb_wY, this.ryb_wB));
+  
+  this.rgb_n > 0 && this.rgb_n != 1 ?
+    (
+    this.rgb_R /= this.rgb_n; 
+    this.rgb_G /= this.rgb_n; 
+    this.rgb_B /= this.rgb_n;
+    );
+    
+  this.ryb_iBk = min(1 - r, min(1 - y, 1 - b));
+  
+  this.rgb_R += this.ryb_iBk;
+  this.rgb_G += this.ryb_iBk;
+  this.rgb_B += this.ryb_iBk;
+  );
+  
+
+/*******************************************************************
+  ryb2rgbCubInt  - AUDIO + UI     
+  --------
+*******************************************************************/
+function ryb2rgbCubInt(R, Y, B)
+  ( 
+  R = R*R*(3-R-R);
+  Y = Y*Y*(3-Y-Y);
+  B = B*B*(3-B-B);
+  this.rgb_oR = 1.0 + B * ( R * (0.337 + Y * -0.137) + (-0.837 + Y * -0.163) );
+  this.rgb_oG = 1.0 + B * ( -0.627 + Y * 0.287) + R * (-1.0 + Y * (0.5 + B * -0.693) - B * (-0.627) );
+  this.rgb_oB = 1.0 + B * (-0.4 + Y * 0.6) - Y + R * ( -1.0 + B * (0.9 + Y * -1.1) + Y );   
+  );
+  
+/*******************************************************************
+  rgb2hcl  - AUDIO + UI      
+  --------
+  THIS IS WHAT I M DOING RIGHT NOW  THIS IS WHAT I M DOING RIGHT NOW  THIS IS WHAT I M DOING RIGHT NOW  THIS IS WHAT I M DOING RIGHT NOW  THIS IS WHAT I M DOING RIGHT NOW  
+*******************************************************************/
+function rgb2hcl(R, G, B)
+  ( 
+  this.hcl_H = atan2(G-B, R-G);
+  
+  C; 
+  );
+
+/*******************************************************************
+  linrgb2xyz  - AUDIO + UI     
+  --------
+  
+  CIE-XYZ
+  
+  wX, wY, wZ  gives the chromaticity of the white point
+*******************************************************************/
+function linrgb2xyz(lin_r, lin_g, lin_b, wX, wY, wZ)
+    (
+    this.xyz_X = wX * (0.412453 * lin_r + 0.357580 * lin_g + 0.180423 * lin_b);
+    this.xyz_Y = wY * (0.212671 * lin_r + 0.715160 * lin_g + 0.072169 * lin_b);
+    this.xyz_Z = wZ * (0.019334 * lin_r + 0.119193 * lin_g + 0.950227 * lin_b);
+    );
+    
+/*******************************************************************
+  xyz2linrgb  - AUDIO + UI     
+  --------
+  
+  CIE-XYZ
+  
+  wX, wY, wZ  gives the chromaticity of the white point
+*******************************************************************/
+function xyz2linrgb(x, y, z, wX, wY, wZ)
+    (
+    this.linrgb_R  = ( 3.240479 * x - 1.537150 * y - 0.498535 * z) / wX;
+    this.linrgb_G  = (-0.969256 * x + 1.875992 * y + 0.041556 * z) / wY;
+    this.linrgb_B  = ( 0.055648 * x - 0.204043 * y + 1.057311 * Z) / wZ;
+    );
+
+/*******************************************************************
+  rgb2xyz  - AUDIO + UI     
+  --------
+  
+  CIE-XYZ
+  
+  wX, wY, wZ  gives the chromaticity of the white point
+  
+   0.4124564  0.3575761  0.1804375
+   0.2126729  0.7151522  0.0721750
+   0.0193339  0.1191920  0.9503041
+   this.xyz_X = wX * (0.412453 * this.linrgb_R + 0.357580 * this.linrgb_G + 0.180423 * this.linrgb_B);
+   this.xyz_Y = wY * (0.212671 * this.linrgb_R + 0.715160 * this.linrgb_G + 0.072169 * this.linrgb_B);
+   this.xyz_Z = wZ * (0.019334 * this.linrgb_R + 0.119193 * this.linrgb_G + 0.950227 * this.linrgb_B);
+*******************************************************************/
+function rgb2xyz(r, g, b, wX, wY, wZ)
+    (
+    this.linrgb_R = gamma2lin(r ,2.4);
+    this.linrgb_G = gamma2lin(g ,2.4);
+    this.linrgb_B = gamma2lin(b ,2.4);
+    
+    this.xyz_X = wX * (0.4124564 * this.linrgb_R + 0.3575761 * this.linrgb_G + 0.1804375 * this.linrgb_B);
+    this.xyz_Y = wY * (0.2126729 * this.linrgb_R + 0.7151522 * this.linrgb_G + 0.0721750 * this.linrgb_B);
+    this.xyz_Z = wZ * (0.0193339 * this.linrgb_R + 0.1191920 * this.linrgb_G + 0.9503041 * this.linrgb_B);
+    );
+    
+/*******************************************************************
+  xyz2rgb  - AUDIO + UI     
+  --------
+  
+Use D65 by default.
+  *Xn =  95.047;
+  *Yn = 100.000;
+  *Zn = 108.883;                      CIE-XYZ
+  
+  wX, wY, wZ  gives the chromaticity of the white point
+  
+   3.2404542 -1.5371385 -0.4985314
+  -0.9692660  1.8760108  0.0415560
+   0.0556434 -0.2040259  1.0572252
+    this.rgb_R = lin2gamma(( 3.240479 * x - 1.537150 * y - 0.498535 * z) / wX, 2.4);
+    this.rgb_G = lin2gamma((-0.969256 * x + 1.875992 * y + 0.041556 * z) / wY, 2.4);
+    this.rgb_B = lin2gamma(( 0.055648 * x - 0.204043 * y + 1.057311 * z) / wZ, 2.4);
+*******************************************************************/    
+function xyz2rgb(x, y, z, wX, wY, wZ)
+    (
+    this.rgb_R = lin2gamma(( 3.2404542 * x - 1.5371385 * y - 0.4985314 * z) / wX, 2.4);
+    this.rgb_G = lin2gamma((-0.9692660 * x + 1.8760108 * y + 0.0415560 * z) / wY, 2.4);
+    this.rgb_B = lin2gamma(( 0.0556434 * x - 0.2040259 * y + 1.0572252 * z) / wZ, 2.4);
+    );
+ 
+
+/*******************************************************************
+  xyz2lab  - AUDIO + UI     
+  --------
+  
+  CIE-Lab
+  
+  wX, wY, wZ  gives the chromaticity of the white point
+  
+  ϵ
+  0.008856  Actual CIE standard
+  216 / 24389  Intent of the CIE standard
+  0,0088564516790356308171716757554635
+  κ
+  903.3  Actual CIE standard
+  24389 / 27 Intent of the CIE standard
+  903,2962962962962962962962962963
+  
+  
+*******************************************************************/
+function fLab(v)
+  //local(f_v)
+  (
+  //v > 0.008856 (216 / 24389) ?
+  (v * 24389) > 216 ?
+    ( 
+    v = pow(v, 1 / 3); 
+    ):(
+    //v = 7.787 * v + 16 / 116; //I think the R lib got this wrong, and it's not just about the funky junction point from CIE standard
+    v = (24389 * v / 27 + 16 ) / 116;
+    );
+  v; //return
+  );
+
+function xyz2lab(x, y, z, wX, wY, wZ)
+    local(xr, yr, zr, xt, yt, zt)
+    (
+    xr = x / wX; yr = y / wY; zr = z / wZ;  
+    xt = fLab(xr); yt = fLab(yr); zt = fLab(zr);
+    
+    this.lab_L = (116 * yt - 16) / 100;         //normalized to [0,1]
+    this.lab_a = (500 * (xt - yt) + 128) / 255; //normalized to [0,1]
+    this.lab_b = (200 * (yt - zt) + 128) / 255; //normalized to [0,1]
+    );
+/*******************************************************************
+  lab2xyz  - AUDIO + UI     
+  --------
+  
+  CIE-Lab
+  κ * ϵ = 216 / 24389 * 24389 / 27 = 8
+*******************************************************************/
+function lab2xyz(l, a, b, wX, wY, wZ)
+    local(xr, yr, zr, xt, yt, zt, xt_3, zt_3) // , yt_3
+    (
+    l *= 100; a = a * 255 - 128; b = b * 255 - 128; //because it was normalized to [0,1]
+    
+    yt = (l + 16) / 116; xt = a / 500 + yt; zt = yt - b / 200; 
+    
+    xt_3 = xt ^ 3; zt_3 = zt ^ 3; //yt_3 = yt ^ 3;
+    
+    
+    (xt_3 * 24389) > 216 ?
+      (
+      xr = xt_3;
+      ):(
+      xr = (116 * xt - 16 ) * 27 / 24389;
+      );
+    
+    l > 8 ?
+      (
+      yr = yt ^ 3;
+      ):(
+      yr = l * 27 / 24389;
+      );
+    
+    (zt_3 * 24389) > 216 ?
+      (
+      zr = zt_3;
+      ):(
+      zr = (116 * zt - 16 ) * 27 / 24389;
+      );
+    this.xyz_X = wX * xr; this.xyz_Y = wY * yr; this.xyz_Z = wZ * zr;
+    );
+
+/*******************************************************************
+  cubeInit  - UI    
+  --------
+*******************************************************************/
+function cubeInit()
+  local(shad_x, shad_y)
+  (
+  //lolworthy Cabinet !!!  
+  this.cube.side   = (0.25 * this.height + this.zoom * 0.25 * this.height) | 0; 
+  this.cube.x      = (this.width - 1.5 * this.cube.side - this.x * (this.width - 1.6 * this.cube.side) ) | 0;
+  this.cube.angle  = this.angle;
+  this.cube.depth  = this.depth; 
+
+
+  this.cube.W.x = this.cube.x;                                            this.cube.W.y = this.height   - (0.15 * this.cube.side) | 0;  
+  this.cube.Y.x = this.cube.W.x;                                          this.cube.Y.y = this.cube.W.y -  this.cube.side;
+  this.cube.R.x = this.cube.W.x +  this.cube.side;                        this.cube.R.y = this.cube.W.y;
+  this.cube.O.x = this.cube.R.x;                                          this.cube.O.y = this.cube.R.y -  this.cube.side;
+  this.cube.B.x = this.cube.W.x + (this.cube.side * this.cube.angle) | 0; this.cube.B.y = this.cube.W.y - (this.cube.side * this.cube.depth) | 0;
+  this.cube.G.x = this.cube.B.x;                                          this.cube.G.y = this.cube.B.y -  this.cube.side;
+  this.cube.P.x = this.cube.B.x +  this.cube.side;                        this.cube.P.y = this.cube.B.y;
+  this.cube.K.x = this.cube.P.x;                                          this.cube.K.y = this.cube.P.y -  this.cube.side;
+    
+  //Weights and Curve Types
+  //this.cube.R.rgb_B = 0;
+  );
+
+/*******************************************************************
+  cubeDraw  - UI    
+  --------
+*******************************************************************/
+function cubeDraw()
+  local(shad_x, shad_y, radius)
+  (
+    //Cube Wire frame
+  gfx_mode = 6; gfx_x = this.cube.W.x; gfx_y = this.cube.W.y; colorSet(0, 0, 1); 
+  
+  gfx_lineto(this.cube.R.x, this.cube.R.y, 0); gfx_lineto(this.cube.P.x, this.cube.P.y, 0);
+  gfx_lineto(this.cube.B.x, this.cube.B.y, 0); gfx_lineto(this.cube.G.x, this.cube.G.y, 0);
+  gfx_lineto(this.cube.Y.x, this.cube.Y.y, 0); gfx_lineto(this.cube.O.x, this.cube.O.y, 0);
+  gfx_lineto(this.cube.K.x, this.cube.K.y, 0); gfx_lineto(this.cube.P.x, this.cube.P.y, 0); 
+  gfx_line(  this.cube.O.x, this.cube.O.y,                this.cube.R.x, this.cube.R.y, 0);
+  gfx_line(  this.cube.Y.x, this.cube.Y.y,                this.cube.W.x, this.cube.W.y, 0);
+  gfx_line(  this.cube.K.x, this.cube.K.y,                this.cube.G.x, this.cube.G.y, 0);
+  gfx_line(  this.cube.W.x, this.cube.W.y,                this.cube.B.x, this.cube.B.y, 0);
+  
+ 
+  //Color Nodes
+  radius = (this.cube.side / 16) | 0; shad_x = 1; shad_y = -1;
+  colorSet(   0,     0,     0); gfx_circle(this.cube.R.x + shad_x,   this.cube.R.y + shad_y, radius, 1, 0);
+  colorSet(   1,     0,     0); gfx_circle(this.cube.R.x,            this.cube.R.y,          radius, 1, 0);
+  colorSet(   0,     0,     0); gfx_circle(this.cube.B.x + shad_x,   this.cube.B.y + shad_y, radius, 1, 0);
+  colorSet(   0,     0,     1); gfx_circle(this.cube.B.x,            this.cube.B.y,          radius, 1, 0);
+  colorSet(   0,     0,     0); gfx_circle(this.cube.Y.x + shad_x,   this.cube.Y.y + shad_y, radius, 1, 0);
+  colorSet(   1,     1,     0); gfx_circle(this.cube.Y.x,            this.cube.Y.y,          radius, 1, 0);
+  colorSet(   0,     0,     0); gfx_circle(this.cube.W.x + shad_x,   this.cube.W.y + shad_y, radius, 1, 0);
+  colorSet(   1,     1,     1); gfx_circle(this.cube.W.x,            this.cube.W.y,          radius, 1, 0);
+  colorSet(   0,     0,     0); gfx_circle(this.cube.P.x + shad_x,   this.cube.P.y + shad_y, radius, 1, 0);
+  colorSet( 0.5,     0,   0.5); gfx_circle(this.cube.P.x,            this.cube.P.y,          radius, 1, 0); 
+  colorSet(   0,     0,     0); gfx_circle(this.cube.O.x + shad_x,   this.cube.O.y + shad_y, radius, 1, 0);
+  colorSet(   1,   0.5,     0); gfx_circle(this.cube.O.x,            this.cube.O.y,          radius, 1, 0);
+  colorSet(   0,     0,     0); gfx_circle(this.cube.K.x + shad_x,   this.cube.K.y + shad_y, radius, 1, 0);
+  colorSet( 0.2, 0.094,     0); gfx_circle(this.cube.K.x,            this.cube.K.y,          radius, 1, 0);
+  colorSet(   0,     0,     0); gfx_circle(this.cube.G.x + shad_x,   this.cube.G.y + shad_y, radius, 1, 0);
+  colorSet(   0,  0.66,   0.2); gfx_circle(this.cube.G.x,            this.cube.G.y,          radius, 1, 0); 
+    
+  );
+  
+/*******************************************************************
+  wheelDraw  - UI    
+  --------
+
+*******************************************************************/
+function wheelDraw(primary_1, primary_2, primary_3)
+  local(radius, x, xi, yi, start_x, start_y, shad_x, shad_y, margin, decode)
+  (
+  //can probably move this to displayInit and save some time
+  margin = 1.1;
+  radius = (0.15 * this.height * this.zoom + 0.15 * this.height)| 0;
+  x      = (margin * radius + this.x * (this.width - 3.2 * radius))| 0;
+    
+  //this.wheel_1.rgb2ryb(1, 0, 0); this.wheel_2.rgb2ryb(1, 1, 0); this.wheel_3.rgb2ryb(0, 0, 1);
+  
+  //Canvas
+   
+  //gfx_circle(x + 0.6 * radius, this.height -  1.8 * radius, 1.75 * radius, 1, 0);
+  colorSet(0, 0, 0);
+  shad_x = 1; shad_y = 1;
+  gfx_circle(x              + shad_x, this.height - margin * radius     + shad_y, radius, 1, 0);
+  gfx_circle(x + radius / 2 + shad_x, this.height - margin * radius * 2 + shad_y, radius, 1, 0);
+  gfx_circle(x + radius     + shad_x, this.height - margin * radius     + shad_y, radius, 1, 0);
+   
+  gfx_mode = 7; 
+  colorSet(primary_1, 0, 0); gfx_circle(x              , this.height - margin * radius     , radius, 1, 0);
+  colorSet(0, primary_2, 0); gfx_circle(x + radius / 2 , this.height - margin * radius * 2 , radius, 1, 0);
+  colorSet(0, 0, primary_3); gfx_circle(x + radius     , this.height - margin * radius     , radius, 1, 0);
+     
+ 
+  
+  //-------------------------------------------------------------------------------------------------------
+  this.debug.wheelDraw += 1;
+  );
+  
+/*******************************************************************
+  gradientDraw   - UI      
+  --------
+  
+  
+    gfx_gradrect(     0,        0, 512 / this.mip,   512 / this.mip, //  x, y, w, h, 
+    
+                      1,          1,         1,         1,    //       R, G, B, A
+                      0,          0,         0,         0,    //    dx R, G, B, A
+                      0,          0,         0,  -1 / 512);   //    dy R, G, B, A
+  
+*******************************************************************/
+function gradientDraw(primary_1, primary_2, primary_3) 
+  (
+    //gfx_mode = 7; colorSet(0, 0, 0);
+    //gfx_rect(0, 0, 512 / this.mip, 512 / this.mip);  
+    
+    gfx_mode = 7;
+  
+    gfx_gradrect(     0,        0,  this.width,   this.height, //  x, y, w, h, 
+    
+                      0, primary_2, 0,  1,    //       R, G, B, A
+                      0,          0,         0,     -1 / this.height,    //    dx R, G, B, A
+                      0,          0,         0,      -1 / this.height);    //    dy R, G, B, A 
+    gfx_gradrect(      0,  0,  this.width,  this.height, //  x, y, w, h, 
+     
+                       0, 0, primary_3,  0,    //       R, G, B, A
+                       0,          0,         0,    0,    //    dx R, G, B, A
+                       0,          0,         0,    1 / this.height);    //   dy R, G, B, A                                  
+     
+                        
+     
+    gfx_gradrect(      0,        0,  this.width,   this.height, //  x, y, w, h, 
+     
+                       primary_1, 0, 0,  0,    //       R, G, B, A
+                       0,          0,         0,      1 /  this.width,          //    dx R, G, B, A
+                       0,          0,         0,     -1 /  this.height);           //    dy R, G, B, A              
+                     
+     
+    gfx_gradrect(this.width,        0,  this.width,   this.height, //  x, y, w, h, 
+     
+                       0, primary_2, 0,  1,    //       R, G, B, A
+                       0,          0,         0,     -1 / this.height,    //    dx R, G, B, A
+                       0,          0,         0,      -1 / this.height);    //    dy R, G, B, A 
+    gfx_gradrect(this.width,  0,  this.width,  this.height, //  x, y, w, h, 
+      
+                        primary_1, 0, 0, 0,    //       R, G, B, A
+                        0,          0,         0,    0,    //    dx R, G, B, A
+                        0,          0,         0,    1 / this.height);    //   dy R, G, B, A                                  
+      
+                         
+      
+    gfx_gradrect(this.width,        0,  this.width,   this.height, //  x, y, w, h, 
+      
+                        0, 0, primary_3,  0,    //       R, G, B, A
+                        0,          0,         0,      1 /  this.width,          //    dx R, G, B, A
+                        0,          0,         0,     -1 /  this.height);           //    dy R, G, B, A     
+    
+  );  
+
+/*******************************************************************
+  preNetDraw   - UI    
+  --------
+  gfx_muladdrect(x,y,w,h, mul_r, mul_g, mul_b[, mul_a, add_r, add_g, add_b, add_a])
+  
+*******************************************************************/
+function preNetDraw()
+  (
+  gfx_muladdrect(0, 0, this.width, this.height, network.gain_1, network.gain_2, network.gain_3, 1, network.dc_1, network.dc_2, network.dc_3, 0);
+  this.debug.display_netRGB += 1;
+  
+  // YOU WILL PROBABLY HAVE TO ENCODE/DECODEFOR OTHER THAN RGB MODE
+  
+  );
+
+/*******************************************************************
+  deNetDraw    - UI     
+  --------
+  gfx_muladdrect(x,y,w,h, mul_r, mul_g, mul_b[, mul_a, add_r, add_g, add_b, add_a])
+  
+*******************************************************************/
+function deNetDraw()
+  (
+  gfx_muladdrect(0, 0, this.width, this.height, 1 / network.gain_1,  1 / network.gain_2, 1 / network.gain_3, 1, - network.dc_1, - network.dc_2, - network.dc_3, 0);
+  this.debug.display_netRGB += 1;
+  
+  // YOU WILL PROBABLY HAVE TO ENCODE/DECODE FOR OTHER THAN RGB MODE
+  
+  );
+
+/*******************************************************************
+  deltaMixDraw    - UI      
+  --------
+  gfx_muladdrect(x,y,w,h, mul_r, mul_g, mul_b[, mul_a, add_r, add_g, add_b, add_a])
+  
+*******************************************************************/
+function deltaMixDraw() 
+  (
+  //gfx_muladdrect(0, 0, this.width, this.height, network.gain.rgb.R, network.gain.rgb.G, network.gain.rgb.B, 1, network.dc.rgb.R, network.dc.rgb.G, network.dc.rgb.B, 0);
+  this.debug.display_netRGB += 1;
+  
+  // YOU WILL PROBABLY HAVE TO ENCODE/DECODEFOR OTHER THAN RGB MODE
+  
+  );
+/*******************************************************************
+   encodeDraw    
+   --------
+
+*******************************************************************/ 
+function encodeDraw()  
+  (            
+  gfx_mode = 6;
+  
+  //COPY TO ANOTHER BUFFER AND BLIT WHEN DONE
+  gfx_x = start_x =  0; gfx_y = start_y = 0;
+  
+  //yi = 0;  this.wheel_decode.ryb_R
+  loop(this.height,
+      gfx_x = start_x;
+      loop(this.width,
+          gfx_getpixel(decode.r, decode.g, decode.b);
+          
+          decode.rgb2ryb(decode.r, decode.g, decode.b);
+          gfx_setpixel(decode.ryb_R, decode.ryb_Y, decode.ryb_B); 
+          
+          
+          //decode.srgb2linrgb(decode.r, decode.g, decode.b, 2.4);
+          
+          //gfx_setpixel(decode.linrgb_R, decode.linrgb_G, decode.linrgb_B);
+          
+          
+          //decode.linrgb2xyz(decode.r, decode.g, decode.b, 1, 1, 1); //this.wX, this.wY, this.wZ);
+          //decode.rgb2xyz(decode.r, decode.g, decode.b, 1, 1, 1); //this.wX, this.wY, this.wZ);      
+          //decode.xyz2lab(decode.xyz_X, decode.xyz_Y, decode.xyz_Z, 1, 1, 1); //this.wX, this.wY, this.wZ);
+          
+          //decode.rgb2xyz(decode.r, decode.g, decode.b, this.wX, this.wY, this.wZ);
+          
+          
+          // last used : LAB
+          decode.linrgb2xyz(decode.r, decode.g, decode.b, this.wX, this.wY, this.wZ);
+          decode.xyz2lab(decode.xyz_X, decode.xyz_Y, decode.xyz_Z, this.wX, this.wY, this.wZ);         
+          gfx_setpixel(decode.lab_L, decode.lab_a, decode.lab_b);
+          
+          gfx_x += 1;
+          ); 
+      gfx_y +=1;    
+      );
+  );
+
+
+
+
+/*******************************************************************
+   decodeDraw  - UI  
+   --------
+------ QnD DECODE ryb2rgbd
+*******************************************************************/ 
+function decodeDraw()  
+  (            
+  gfx_mode = 6;
+  
+  //COPY TO ANOTHER BUFFER AND BLIT WHEN DONE
+  gfx_x = start_x =  0; gfx_y = start_y = 0;
+  
+  //yi = 0;  this.wheel_decode.ryb_R
+  loop(this.height,
+      gfx_x = start_x;
+      loop(this.width,
+          
+          gfx_getpixel(decode.r, decode.g, decode.b);          
+          //decode.ryb2rgb(decode.r, decode.g, decode.b);
+          decode.ryb2rgbCubInt(decode.r, decode.g, decode.b);
+         
+          
+          
+          // last used : LAB
+          gfx_getpixel(decode.lab_L, decode.lab_a, decode.lab_b);
+          //decode.lab2xyz(decode.lab_L, decode.lab_a, decode.lab_b, 1, 1, 1); //this.wX, this.wY, this.wZ);
+          decode.lab2xyz(decode.lab_L, decode.lab_a, decode.lab_b, this.wX, this.wY, this.wZ);
+          
+          //decode.xyz2linrgb(decode.xyz_X, decode.xyz_Y, decode.xyz_Z, this.wX, this.wY, this.wZ);//this.wX, this.wY, this.wZ);
+          //gfx_setpixel(decode.linrgb_R, decode.linrgb_G, decode.linrgb_B);
+          
+          //decode.xyz2rgb(decode.xyz_X, decode.xyz_Y, decode.xyz_Z, 1, 1, 1); //this.wX, this.wY, this.wZ);
+          decode.xyz2rgb(decode.xyz_X, decode.xyz_Y, decode.xyz_Z, this.wX, this.wY, this.wZ);
+          //gfx_setpixel(decode.rgb_R, decode.rgb_G, decode.rgb_B);
+          
+          
+          gfx_setpixel(decode.rgb_oR * delta.gain_1 + decode.rgb_R * ( 1 - delta.gain_1 ),
+                       decode.rgb_oG * delta.gain_1 + decode.rgb_G * ( 1 - delta.gain_2 ),
+                       decode.rgb_oB * delta.gain_1 + decode.rgb_B * ( 1 - delta.gain_3 ));
+          gfx_x += 1;
+          ); 
+      gfx_y +=1;    
+      );
+  );
+  
+/*******************************************************************
+   invertRGBDraw  - UI   
+   --------
+
+*******************************************************************/ 
+function invertRGBDraw()  
+  (            
+  gfx_mode = 6;
+  
+  //COPY TO ANOTHER BUFFER AND BLIT WHEN DONE
+  gfx_x = start_x =  0; gfx_y = start_y = 0;
+  
+  //yi = 0;  this.wheel_decode.ryb_R
+  loop(this.height,
+      gfx_x = start_x;
+      loop(this.width,
+          gfx_getpixel(decode.r, decode.g, decode.b);
+          //decode.ryb2rgb(decode.r, decode.g, decode.b);
+          gfx_setpixel(1 - decode.r, 1 -  decode.g, 1 - decode.b);
+          gfx_x += 1;
+          ); 
+      gfx_y +=1;    
+      );
+  );
+
+/*******************************************************************
+   invertRDraw  - UI   
+   --------
+
+*******************************************************************/ 
+function invertRDraw()  
+  (            
+  gfx_mode = 6;
+  
+  //COPY TO ANOTHER BUFFER AND BLIT WHEN DONE
+  gfx_x = start_x =  0; gfx_y = start_y = 0;
+  
+  //yi = 0;  this.wheel_decode.ryb_R
+  loop(this.height,
+      gfx_x = start_x;
+      loop(this.width,
+          gfx_getpixel(decode.r, decode.g, decode.b);
+          //decode.ryb2rgb(decode.r, decode.g, decode.b);
+          gfx_setpixel(1 - decode.r, decode.g,decode.b);
+          gfx_x += 1;
+          ); 
+      gfx_y +=1;    
+      );
+  ); 
+  
+/*******************************************************************
+   invertGDraw  - UI   
+   --------
+
+*******************************************************************/ 
+function invertGDraw()  
+  (            
+  gfx_mode = 6;
+  
+  //COPY TO ANOTHER BUFFER AND BLIT WHEN DONE
+  gfx_x = start_x =  0; gfx_y = start_y = 0;
+  
+  //yi = 0;  this.wheel_decode.ryb_R
+  loop(this.height,
+      gfx_x = start_x;
+      loop(this.width,
+          gfx_getpixel(decode.r, decode.g, decode.b);
+          //decode.ryb2rgb(decode.r, decode.g, decode.b);
+          gfx_setpixel(decode.r, 1 - decode.g, decode.b);
+          gfx_x += 1;
+          ); 
+      gfx_y +=1;    
+      );
+  );  
+  
+/*******************************************************************
+   invertBGDraw  - UI   
+   --------
+
+*******************************************************************/ 
+function invertBDraw()  
+  (            
+  gfx_mode = 6;
+  
+  //COPY TO ANOTHER BUFFER AND BLIT WHEN DONE
+  gfx_x = start_x =  0; gfx_y = start_y = 0;
+  
+  //yi = 0;  this.wheel_decode.ryb_R
+  loop(this.height,
+      gfx_x = start_x;
+      loop(this.width,
+          gfx_getpixel(decode.r, decode.g, decode.b);
+          //decode.ryb2rgb(decode.r, decode.g, decode.b);
+          gfx_setpixel(decode.r,decode.g, 1 - decode.b);
+          gfx_x += 1;
+          ); 
+      gfx_y +=1;    
+      );
+  );         
+/*******************************************************************
+  displayDraw    
+  --------
+*******************************************************************/
+function displayDraw()
+  (    
+  gfx_dest = this.dest; gfx_mode = 6; gfx_a = 1;
+  colorSet(0, 0, 0);
+  gfx_rect(0, 0, this.width, this.height);   
+  
+ 
+  //display.stateQuery(display._WHEEL)    ? ( this.wheelDraw(input_1, input_2, input_3); );
+  display.stateQuery(display._CUBE)     ? ( this.cubeDraw(););
+  
+  //display.stateQuery(display._NET_RGB) ? ( this.preNetDraw(););
+    //this.encodeDraw();  
+      //this.deltaMixDraw();    
+  
+  //display.stateQuery(display._NET_RGB) ? ( this.deNetDraw(););
+  
+   
+  this.gradientDraw(input_1, input_2, input_3);
+  gfx_mode = 6;
+  this.wheelDraw(input_1, input_2, input_3);
+  display.stateQuery(display._GRADIENT) ? ( this.gradientDraw(input_1, input_2, input_3););
+  
+  ////Of course It doesn't work if you use prenet to silence a channel  
+  //this.invertRGBDraw();
+  //this.invertBDraw(); 
+  //this.preNetDraw();
+  
+  //this.deNetDraw();
+  //this.decodeDraw();
+  //this.decodeDraw();
+  //this.invertRGBDraw(); 
+  //this.invertBDraw(); 
+  
+  
+ //Encode to XYZ, then LAB
+  this.encodeDraw();
+ 
+  //Enforce a L value 
+  //gfx_muladdrect(0, 0, this.width, this.height, 0, 1, 1, 1, 1, 0, 0, 0);
+  //gfx_muladdrect(0, 0, this.width, this.height, 0, 1, 1, 1, 1, 0, 0, 0);
+ 
+  this.preNetDraw();
+  //this.preNetDraw();
+  //Decode to RGB
+  this.decodeDraw(); 
+  
+  
+  this.debug.displayDraw += 1;
+  );
+
+
+/*******************************************************************
+  menuPopup     
+  --------
+  
+  # : grayed out
+  ! : checked
+  > : this menu item shows a submenu
+  < : last item in the current submenu
+  
+  An empty field will appear as a separator in the menu. 
+  
+  gfx_showmenu returns 0 if the user selected 
+  nothing from the menu, 1 if the first field is selected, etc...
+  
+*******************************************************************/
+function menuPopup(x, y)
+  (
+  gfx_x = x; gfx_y = y;
+  //gfx_showmenu("first item, followed by separator||!second item, checked|>third item which spawns a submenu|#first item in submenu, grayed out|<second and last item in submenu|fourth item in top menu");
+  gfx_showmenu("toggle show buffer");
+  // map|||||toggle memory map|||||toggle populate map|||||toggle param map|||||toggle value extras|||||re-init
+  );
+
+
+/*******************************************************************
+  displayInit    
+  --------
+*******************************************************************/
+function displayInit(dest)
+  (
+  this.width_gfx = gfx_w; this.height_gfx = gfx_h;
+  this.width = ceil(gfx_w / this.mip); this.height = ceil(gfx_h / display.mip);
+     
+  this.channel_count = num_ch;  
+  
+  this.dest = dest;
+  
+  gfx_setfont(1, this.font.name, this.font.size); 
+  
+  //White point. Use D65 by default / Mod it Later
+  
+  this.wX =  0.95047; // D65
+  this.wY =  1.00000; // D65
+  this.wZ =  1.08883; // D65
+  
+  /*
+  this.wX =  0.966797; // D50 
+  this.wY =  1.000000; // D50
+  this.wZ =  0.825188; // D50
+  */
+  
+  //init offscreen buffer
+  gfx_dest = this.dest; gfx_mode = 6; gfx_a = 1; 
+  gfx_setimgdim(this.dest, this.width, this.height);
+  colorSet(0, 0, 0);
+  gfx_rect(0, 0, this.width, this.height);   
+  this.cubeInit();
+        
+  this.stateOn(this._REFRESH_GFX); //flag for GUI refresh
+  
+  this.debug.displayInit += 1; 
+  );  
+  
+ext_noinit = 1;
+
+_RGB        = 1; //actually sRGB
+_LINRGB     = 2;
+_RYB        = 3;
+_RYB_CUBINT = 4;
+_HCL        = 5;
+_CIEXYZ     = 6;
+
+
+
+display.stateInit();
+display.font.name = "HaxrCorp S8";
+display.font.size = 8; //HaxrCorp is 8 only 
+
+//display.font.name = "CG Mono";
+//display.font.size = 16; 
+display._REFRESH_GFX = display.stateAlloc();
+display._BUFFER      = display.stateAlloc();
+display._GRADIENT    = display.stateAlloc();
+display._WHEEL       = display.stateAlloc();
+display._CUBE        = display.stateAlloc();
+display._NET_RGB     = display.stateAlloc();
+
+display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+
+
+@slider
+
+input_1 = slider1 / 16777216; //24 bits
+input_2 = slider2 / 16777216;
+input_3 = slider3 / 16777216;
+
+network.gain_1 = slider11;
+network.gain_2 = slider12;
+network.gain_3 = slider13;
+/*
+slider12 > -96 ?
+  (
+   network.gain_  = exp(slider12 * 0.11552453);
+   ):(
+   network.gain.rgb_G = 0;
+   );
+*/
+network.dc_1 = slider31;
+network.dc_2 = slider32;
+network.dc_3 = slider33;
+
+delta.gain_1 = slider41;
+delta.gain_2 = slider42;
+delta.gain_3 = slider43;
+
+display.mip != 2 ^ slider62 ?
+  (
+  display.mip = 2 ^ slider62;
+  display.displayInit(2);
+  display.debug.EventMipChange += 1
+  );
+  
+display.angle = slider51 / 10;
+display.depth = slider52 / 10;
+  
+display.zoom  = slider63 / 100;
+display.x     = slider64 / 100;
+
+//display.cubeInit();
+display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+
+@sample
+/*
+audiomux.rgb_R = (spl0 + 1 ) / 2 * network.gain_1 + network.dc_1;
+audiomux.rgb_G = (spl1 + 1 ) / 2 * network.gain_2 + network.dc_2;
+audiomux.rgb_B = (spl2 + 1 ) / 2 * network.gain_3 + network.dc_3;
+
+audiomux.linrgb2xyz( audiomux.rgb_R, audiomux.rgb_G, audiomux.rgb_B, 1, 1, 1);// this.wX, this.wY, this.wZ);
+ 
+audiomux.xyz2lab(audiomux.xyz_X, audiomux.xyz_Y, audiomux.xyz_Z, 1, 1, 1);
+audiomux.lab2xyz(audiomux.lab_L * delta.gain_1, audiomux.lab_a * delta.gain_2, audiomux.lab_b * delta.gain_3, 1, 1, 1);
+audiomux.xyz2linrgb(audiomux.xyz_X, audiomux.xyz_Y, audiomux.xyz_Z, 1, 1, 1);
+//audiomux.xyz2linrgb(audiomux.xyz_X * delta.gain_1, audiomux.xyz_Y * delta.gain_2, audiomux.xyz_Z * delta.gain_3, 1, 1, 1);
+
+spl0 = (audiomux.linrgb_R * 2 - 1) / network.gain_1 - network.dc_1;
+spl1 = (audiomux.linrgb_G * 2 - 1) / network.gain_2 - network.dc_2;
+spl2 = (audiomux.linrgb_B * 2 - 1) / network.gain_3 - network.dc_3;
+*/
+
+@gfx 650 530
+
+/*******************************************************************
+// MOUSE EVENTS  -------- MOUSE EVENTS  -------- MOUSE EVENTS  ----
+*******************************************************************/
+  //RIGHT CLICK ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  
+  mouse_state == 0 && mouse_cap == 2 ? (
+    mouse_state = 1;
+    
+    display.debug.MouseRightClick += 1;   
+  
+    display.stateToggle(display._CUBE);  
+  );
+  
+ 
+ // LEFT CLICK---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ mouse_state == 0 && mouse_cap == 1 ? ( //&& mouse_x > 5 && mouse_x < gfx_w - 5 && mouse_y > 5 && mouse_y < gfx_h - 5 ? (
+   mouse_state = 1;
+   
+
+   //display.stateToggle(display._BUFFER);  
+   //gfx_dest = -1;
+   display.debug.MouseLeftClick += 1; 
+   //display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+   display.stateToggle(display._WHEEL);    
+   );
+
+
+  // MIDDLE CLICK---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_state == 0 && mouse_cap == 64 ? ( //&& mouse_x > 5 && mouse_x < gfx_w - 5 && mouse_y > 5 && mouse_y < gfx_h - 5
+    mouse_state = 1;
+    
+    //display.width = -1; //FORCE RE-INIT
+    //gfx_clear = rand(256);
+    display.stateToggle(display._GRADIENT);    
+  );
+
+  /*
+  //SHIFT + RIGHT CLICK---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //mouse_state == 0 && mouse_cap == 2 && mouse_x > 5 && mouse_x < gfx_w - 5 && mouse_y > 5 && mouse_y < gfx_h - 5 ? (
+    mouse_state == 0 && mouse_cap == 10 ? (
+      mouse_state = 1;
+      
+     // display.stateToggle(display._BUFFER_MAP);
+      //display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+      //display.stateOff(display._REFRESH_GFX); //GUI refresh all done  
+      //display.stateToggle(display._REFRESH_GFX);  
+    );
+    
+   */ 
+    
+    //CTRL + RIGHT CLICK---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //mouse_state == 0 && mouse_cap == 2 && mouse_x > 5 && mouse_x < gfx_w - 5 && mouse_y > 5 && mouse_y < gfx_h - 5 ? (
+    mouse_state == 0 && mouse_cap == 6 ? (
+      mouse_state = 1;
+
+      display.stateToggle(display._NET_RGB);
+      );
+    
+  
+  // RELEASE ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_cap == 0 ? 
+    (
+    mouse_state = 0;
+    //mouse.param_focus = 0;
+    //mouse.knob_speed = _SPEED_DEFAULT;
+    );
+
+// EVENT : RESIZE or TRACK CHANNEL COUNT CHANGE ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+(display.width_gfx != gfx_w) || (display.height_gfx != gfx_h) || (display.channel_count != num_ch) ?
+  (  
+  display.displayInit(2);
+  display.debug.EventResize += 1;
+  );
+
+  
+// EVENT : REFRESH ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+display.stateQuery(display._REFRESH_GFX) ? //due for GUI refresh ?
+  (
+  
+  display.displayDraw();
+  //Blit when Done
+  //gfx_dest = -1; gfx_mode = 0; gfx_a = 1; gfx_x = 0; gfx_y = 0;      
+  //gfx_blit(display.dest, 1, 0);
+  //display.debug.BlitRefresh += 1; 
+  
+  );
+ 
+// BLIT IT ------------------------------------------------------------------------------------------------------------  
+//Should we blit every frame even when display aint updated??? cuz all I get is black if I don't
+gfx_dest = -1; gfx_mode = 6; gfx_a = 1; gfx_x = 0; gfx_y = 0;      
+gfx_blit(display.dest, display.mip, 0);
+display.debug.BlitRefresh += 1;  
+ 
+ 
+   
+ //DEBUG INFO DISPLAY
+ gfx_dest = -1; gfx_mode = 6; gfx_a = 1; gfx_x = 0 + rand(3); gfx_y = 0; 
+ colorSet(0, 1, 0);
+ gfx_drawstr(" | display.state ");gfx_drawnumber(display.state, 5);   
+
+  gfx_mode = 6; gfx_a = 1;   
+  gfx_x = mouse_x; gfx_y = mouse_y;
+  
+  gfx_getpixel(rr, gg, bb);
+  colorSet(1 - rr, 1 - gg, 1 - bb);
+  gfx_x = mouse_x + 3; gfx_y = mouse_y - 7;
+  gfx_drawstr("──═▇▇▇╡ ");
+  gfx_rect(gfx_x - 9, gfx_y - 1, 330, 16);
+  
+  //gfx_x = mouse_x + 40; gfx_y = mouse_y;  
+  colorSet(rr, gg, bb); 
+  
+  
+  gfx_drawnumber(rr * 255, 0); gfx_drawstr(" | ");
+  gfx_drawnumber(gg * 255, 0); gfx_drawstr(" | ");
+  gfx_drawnumber(bb * 255, 0);
+  gfx_drawstr("   █▬█ █ ▀█▀  █ ▀█▀ ┣▇▇▇═── ");  
+  
+ 
+
+  //NOTES / TODO 
+  
+  gfx_mode = 6; gfx_a = 1; gfx_x = 5; gfx_y = 10; colorSet(0.5, 0, 1); 
+  gfx_drawstr("R  ◄==▇▇▇ plug L, R, M, S, scL, scR, scM, scS, splitband"); gfx_x = 5; gfx_y += 10;
+  gfx_drawstr("G  ◄==▇▇▇ plug L, R, M, S, scL, scR, scM, scS, splitband"); gfx_x = 5; gfx_y += 10;
+  gfx_drawstr("B  ◄==▇▇▇ plug L, R, M, S, scL, scR, scM, scS, splitband"); gfx_x = 300; gfx_y = 10;
+  
+  /*
+  gfx_drawstr("And Later if promising multi latch gate, step f°, sequence, lfo, transient, sustain,
+    enveloppe follower gate, enveloppe split(eg : atk -> R, sus -> G, rel->B | atk -> L on R, sus -> R on G, rel->sc on B, inverted, difference(signal,pre/post fx etc..), 
+    eqmatch target, eqmatch white noise, eqmatch pink noise, complementary ducked target, complementary ducked pink, wet parralel, 
+    split by phase diff/correlation, pos/neg split, note track split, color complementary, color triad,
+    color analogue, polar coord split, opponent process afterimage
+    Mux ◄==▇▇▇ is perfect to quickly prototype plug modes  
+    RGB ◄==▇▇▇ splitband, multi latch gate, step f°, sequence
+    (Look at Ambisonic ATK package later)"); gfx_x = 5; gfx_y += 10;
+  */
+  
+  
+  
+  gfx_x = 5; gfx_y = 40; colorSet(1, 0, 0.5);  
+  gfx_drawstr("Choose a mode : RGB, RYB, HSB, LAB         "); gfx_x = 5; gfx_y += 10;
+  gfx_drawstr("color RGB, RYB, HSB, LAB"); gfx_x = 5; gfx_y += 10;
+  gfx_drawstr("Use 'as is' in mode    (similar to PS 'Assign'"); gfx_x = 5; gfx_y += 10;
+  gfx_drawstr("Encode and use in mode (similar to PS 'Convert')"); gfx_x = 5; gfx_y += 10;
+  gfx_drawstr("Encode each channel separetely 'in place' then sum"); gfx_x = 5; gfx_y += 10;
+  gfx_drawstr("Encode each channel separetely mono-ed then sum"); gfx_x = 5; gfx_y += 10;
+  
+  colorSet(0, 0, 0.5);
+  gfx_drawnumber(display.primary_1.lab_L, 10); gfx_drawstr(" | ");
+  gfx_drawnumber(display.primary_1.lab_a, 10); gfx_drawstr(" | ");
+  gfx_drawnumber(display.primary_1.lab_b, 10); gfx_drawstr(" | ");
+  
+  //DEBUG BUFFER 
+  /*
+  display.stateQuery(display._BUFFER) ? 
+    (
+
+    );
+  
+  */
+

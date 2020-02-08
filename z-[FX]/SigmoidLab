@@ -1,0 +1,30 @@
+desc:new effect
+
+slider1:1<1,10,1>drive
+slider2:0<0,100,1>parameter2
+slider3:0<0,100,1>parameter3
+slider4:0<0,100,1>parameter4
+slider5:0<0,100,1>parameter5
+
+@init
+
+@slider
+drive = slider1;
+
+
+@sample
+//spl0 = cos(spl0) / (sin(spl0 * drive) - 1); //Interesting
+
+//Nice control of harmonics distribution
+spl0 = sign(spl0) * abs(pow(spl0, drive)/ sqrt(1 + spl0 ^ drive));
+//spl0 = pow(spl0, drive)/ sqrt(1 + spl0 ^ drive);
+spl0 *= drive;
+
+
+//equivalent to Stillwell's louderizer, but he anticipates for drive = 0
+spl0 *= drive*100;
+spl0 = spl0 /(1 + abs(spl0));
+
+
+spl1=spl0; 
+

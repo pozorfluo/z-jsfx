@@ -1,0 +1,270 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+desc: Memory Manager
+
+/* TODO []
+
+  FUNCTION INDEX []
+  memAlloc(size, ptr_name)
+  memInit(size)
+  memWipe()
+  memDiagnostic(columns_size, row_size)  
+*/
+
+
+@init
+
+/*******************************************************************
+  memAlloc     
+  --------
+  
+  https://en.wikipedia.org/wiki/Pointer_(computer_programming)
+  
+  TODO []
+    + Streamline once you actually understand how it's supposed to work lol
+    + See if that check is worth it :
+        ptr ? //check if ptr is already referecing something
+        (
+        gfx_x = gfx_w / 2 - 50; gfx_y = gfx_h / 2; 
+        gfx_drawstr("memAlloc error");
+        gfx_x = gfx_w / 6 - 50;gfx_y += 20;
+        gfx_drawstr(ptr_name);
+        gfx_drawstr(" already points to ");
+        gfx_drawnumber(ptr,2)
+        ) : (
+        );
+
+*******************************************************************/
+function memAlloc(size, ptr_name)
+  instance(heap_top, ptr_name_map, ptr_index_map, ptr_size_map, ptr_diagnostic_map, count_alloc)
+  local(next_free_index)
+  (
+  next_free_index = heap_top; //get an index and update heap_top
+  heap_top += ceil(size);// +1 to be safe ???!!
+    
+  //update ptr_map on new allocation
+    
+  count_alloc += 1; //keep track of memAlloc(), memFree(), memWipe(), memDefrag() calls for memDiagnostic()
+  ptr_name_map[count_alloc] = ptr_name;
+  ptr_index_map[count_alloc] = next_free_index;
+  ptr_size_map[count_alloc] = size;
+  next_free_index; //return next free mem index      
+  );
+  
+/*******************************************************************
+  memInit     
+  --------
+ 
+ 
+*******************************************************************/ 
+function memInit(size)
+  instance(ptr_map_size)
+  (
+  ptr_map_size = size;
+  memAlloc.heap_top = 0; // Seems Obvious now ? no ?
+    
+  memAlloc.ptr_name_map = memAlloc.heap_top;
+  memAlloc.heap_top += ceil(ptr_map_size);
+  
+  memAlloc.ptr_index_map = memAlloc.heap_top;
+  memAlloc.heap_top += ceil(ptr_map_size);
+  
+  memAlloc.ptr_size_map = memAlloc.heap_top;
+  memAlloc.heap_top += ceil(ptr_map_size);
+  
+  memAlloc.ptr_diagnostic_map = memAlloc.heap_top;
+  memAlloc.heap_top += ceil(ptr_map_size);
+  
+  memAlloc.ptr_name_map[1] = "ptr_name_map";
+  memAlloc.ptr_name_map[2] = "ptr_index_map";
+  memAlloc.ptr_name_map[3] = "ptr_size_map";
+  memAlloc.ptr_name_map[4] = "ptr_diagnostic_map";
+  
+  memAlloc.ptr_index_map[1] = memAlloc.ptr_name_map;
+  memAlloc.ptr_index_map[2] = memAlloc.ptr_index_map;
+  memAlloc.ptr_index_map[3] = memAlloc.ptr_size_map;
+  memAlloc.ptr_index_map[4] = memAlloc.ptr_diagnostic_map;
+  
+  memAlloc.ptr_size_map[1] = ptr_map_size;
+  memAlloc.ptr_size_map[2] = ptr_map_size;
+  memAlloc.ptr_size_map[3] = ptr_map_size;
+  memAlloc.ptr_size_map[4] = ptr_map_size;
+  
+  memAlloc.count_Alloc = 4;
+  );
+  
+/*******************************************************************
+  memWipe     
+  --------
+ 
+ 
+*******************************************************************/ 
+  
+function memWipe()
+  local(previous_init_size)
+  (
+  previous_init_size = memInit.ptr_map_size;
+  memset(0, 0, memAlloc.heap_top);
+  memInit(previous_init_size);  
+  );
+  
+  
+/*******************************************************************
+  memDiagnostic     
+  --------
+   
+   + probably should rename to memDiagnose, consistency
+ 
+*******************************************************************/
+
+function memDiagnostic(columns_size, row_size, index_offset)
+  instance(col_str_pattern, row_str_pattern)
+  local(n, p, q, alloc, free, wipe, defrag)
+  //Add all the stuff needed to read mem and compare w ptr_map
+  (
+  alloc = memAlloc.count_Alloc; 
+  
+  //OBSERVE
+  //  => compare ptr_map triplets and actual ptr name/index/size 
+  //keep track of memAlloc(), memFree(), memWipe(), memDefrag() calls for memDiagnostic()
+  //                          read values, till you find next index value, compare with expected
+  //adress, count zeroes in memory, count ptr_name 'released'
+  //count ptr_name 'moved', check heap_top value accuracy
+  
+  
+  //DIAGNOSE 
+  //record discrepancies
+  
+  //DUMP
+  //Display Diagnostic Module, offer to dump everything to a file
+  //dump_y = 20; //start columns @ dump_y
+  columns_x = gfx_w / 6;
+  
+  //gfx_x = 2; gfx_y = 5; //set current gfx_position to top left
+  
+  
+  // Dump Head_Top
+  gfx_drawstr("Heap_Top = ");
+  gfx_drawnumber(memAlloc.heap_top,0); 
+  
+  /* 
+  // Table Setup
+  gfx_y = dump_y; 
+  gfx_x = 0;gfx_drawstr("    NAME    "); gfx_x = columns_x ;gfx_drawstr(" | ");gfx_drawstr(" INDEX ");gfx_x = columns_x * 2 ;gfx_drawstr(" | ");gfx_drawstr("  SIZE  ");//gfx_x = columns_x * 3 ;gfx_drawstr(" | ");gfx_drawstr(" DIAGNOSTIC ");
+  gfx_y += 7;
+  gfx_x = 0;gfx_drawstr("-----------------------------------------------------------------------------------------");
+  gfx_y += 5;
+  
+  n = 1;
+  while (n <= alloc)
+    (
+  
+    gfx_x = 0;
+    gfx_drawstr(memAlloc.ptr_name_map[n]);
+    gfx_x = columns_x ;gfx_drawstr(" | ");
+    gfx_drawnumber(memAlloc.ptr_index_map[n],0);
+    gfx_x = columns_x * 2 ;gfx_drawstr(" | ");
+    gfx_drawnumber(memAlloc.ptr_size_map[n],0);
+    //gfx_x = columns_x * 3 ;gfx_drawstr(" | ");
+    gfx_y += 7;
+    gfx_x = 0;gfx_drawstr("-----------------------------------------------------------------------------------------");
+    gfx_y += 5; 
+  
+    n += 1;
+    );
+  
+  //OFFER TREATMENT
+  //memDiagDump to memAlloc.ptr_map if broken, heap_top Sync if wrong
+  */
+  
+  gfx_x = 0; gfx_y += 10;  
+  //mem txt dump
+  n = 1 + index_offset;
+  loop(memAlloc.count_Alloc - index_offset,
+  
+    gfx_r = 0.25; gfx_g = 0.25; gfx_b = 1; 
+    gfx_drawstr(memAlloc.ptr_name_map[n]);
+    gfx_r = 0.5; gfx_g = 0; gfx_b = 1; 
+    gfx_drawstr(" address ");//gfx_drawstr(" index ");
+    gfx_drawnumber(memAlloc.ptr_index_map[n],0);
+    gfx_r = 0.5; gfx_g = 1; gfx_b = 0.5; 
+    gfx_drawstr(" size ");
+    gfx_drawnumber(memAlloc.ptr_size_map[n],0);
+    
+    gfx_x = 20; gfx_y += 10;
+    p = 0;
+    loop(memAlloc.ptr_size_map[n],
+      gfx_x >= gfx_w - 50? ( gfx_y += 8; gfx_x = 20;);
+      gfx_r = 0.1; gfx_g = 0.3; gfx_b = 0.3; 
+      gfx_drawstr(" ");
+      gfx_r = 0.1; gfx_g = 0.5; gfx_b = 0.3;
+      
+      (q = 0[memAlloc.ptr_index_map[n] + p]) >= 0 ?
+        (
+        gfx_r = 0.75; gfx_g = 0.3; gfx_b = 0;
+        gfx_drawstr("+");
+        ):(
+        gfx_r = 0; gfx_g = 0.4; gfx_b = .6;
+        );
+       
+      gfx_drawnumber(q ,2);
+      //gfx_r = 0.1; gfx_g = 0.3; gfx_b = 0.3; 
+      gfx_drawstr(" ");
+      p += 1;
+      );
+    
+    gfx_x = 0; gfx_y += 10; 
+    n += 1;
+    );
+  );
+
+
+/*******************************************************************
+  memMap     
+  --------
+ 
+ 
+*******************************************************************/ 
+  
+function memMap(map_size_unit)
+  local(map_width, map_start_x, map_start_Y, n, p)
+  (
+  map_width = sqrt(memAlloc.heap_top); //roundUp(sqrt(memAlloc.heap_top)) * map_size_unit;
+  map_width += 0.9999999999999999 * sign(map_width);
+  map_width |= 0;
+  map_width *= map_size_unit;
+  
+  map_start_x = gfx_x;
+  map_start_Y = gfx_Y;
+  
+  n = 1;
+  
+  loop(memAlloc.count_Alloc,  
+    //colorSet(1 / memAlloc.count_Alloc * (n + 1),0,0);
+    p = 0;
+    loop(memAlloc.ptr_size_map[n],
+      //gfx_drawnumber(0[memAlloc.ptr_index_map[n] + p],2);
+      //colorSet(1 / memAlloc.count_Alloc * (n + 1),0,0[memAlloc.ptr_index_map[n] + p]);
+      gfx_r = 1 / memAlloc.count_Alloc * (n + 1); gfx_g = 0[memAlloc.ptr_index_map[n] + p]; gfx_b = 0;
+      gfx_rectto(gfx_x + map_size_unit,gfx_y + map_size_unit);
+      gfx_y -= map_size_unit;
+      gfx_x >= map_width + map_start_x ? ( gfx_y += map_size_unit; gfx_x = map_start_x;);
+      p += 1;
+      );
+    
+    //gfx_x = map_start_x; gfx_y += map_size_unit; 
+    n += 1;
+    );
+  );
+

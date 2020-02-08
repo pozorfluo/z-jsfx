@@ -1,0 +1,68 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+desc: NCO
+slider1:0<-120,6,1>Volume (dB)
+slider3:110<0.1,24000,1>Frequency (Hz)
+slider7:0<0,3,1{sine,triangle,saw,square}>Shape
+
+slider9:0<0,1000,1>Shape LFO Coarse (Hz)
+slider10:0.1<0.001,10,0.001>Shape LFO Fine (Hz)
+slider11:4<0,4,1{sine,triangle,saw,square,OFF}>Shape LFO Shape
+
+import z/z-Oscillators.jsfx-inc
+
+@slider
+  osc.volume = exp(slider1 * 0.11552453);
+  
+  osc.shape = slider7;
+  
+  osc.frequency_cw = 2 * $pi * slider3 / srate;
+  
+  shape_lfo.frequency_cw = 2 * $pi * (slider9 + slider10) / srate;
+  
+  shape_lfo.shape = slider11;
+  
+@sample
+
+shape_lfo.shape == 0 ? ( shape_lfo.Sine();
+):(
+shape_lfo.shape == 1 ? ( shape_lfo.Triangle();
+):(
+shape_lfo.shape == 2 ? ( shape_lfo.Sawtooth();
+):(
+shape_lfo.shape == 3 ? ( shape_lfo.Square();
+););););
+
+shape_lfo.shape != 4 ?
+  (
+  osc.shape = (shape_lfo.amplitude + 1) / 2 * 4;
+  ):(
+  osc.shape = slider7;
+  );
+
+osc.shape < 1 ? ( osc.Sine();
+):(
+osc.shape < 2 ? ( osc.Triangle();
+):(
+osc.shape < 3 ? ( osc.Sawtooth();
+):(
+                  osc.Square();
+);););
+
+
+spl0 = osc.amplitude * osc.volume;
+spl1 = osc.amplitude * osc.volume;
+
+osc.clockPhaseAcc();
+shape_lfo.clockPhaseAcc();

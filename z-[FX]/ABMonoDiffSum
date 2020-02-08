@@ -1,0 +1,79 @@
+/*******************************************************************************
+*  2017 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+// Copyright (C) 2011-2013 Theo Niessink
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+// In "normal" mode this effect lets you switch between two mono input
+// channels. In "difference" mode it will output the difference between the
+// two channels. In both modes it will send the output signal to both the
+// left and right channels (i.e. its output is "dual mono").                   *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:AB MonoDiffSum
+
+//slider1:0<0,1,1{A,B}>Channel
+slider2:0<0,1,9{A, B, A-B, B-A, A+B, A+Diff, B+Diff, Sum+Diff, Sum-Diff, Bypassed}>Mode
+
+in_pin:A
+in_pin:B
+out_pin:Mono
+out_pin:Mono
+
+//import rc_filter.jsfx-inc
+ 
+@init
+
+//ch.a = mode.rc_sets(0.0075);
+
+@slider
+
+//ch = slider1 >= 0.5;
+//mode = slider2 >= 0.5;
+mode = slider2;
+
+@sample
+
+//ch.inv = 1 - ch.rc_lp(ch);
+//mode.inv = 1 - mode.rc_lp(mode);
+
+//spl0 = spl1 = mode.inv * (ch.inv * spl0 + ch.lp * spl1) + mode.lp * (ch.inv * (spl0 - spl1) + ch.lp * (spl1 - spl0));
+mode == 0 ? ( //A
+          spl1 = spl0; 
+  ):(
+mode == 1 ? ( //B
+          spl0 = spl1; 
+  ):(
+mode == 2 ? ( //A-B
+          transfer_a_minus_b       = spl0 - spl1;
+          spl0 = spl1 = transfer_a_minus_b; 
+  ):(
+mode == 3 ? ( //B-A
+          transfer_b_minus_a       = spl1 - spl0;
+          spl0 = spl1 = transfer_b_minus_a; 
+  ):(
+mode == 4 ? ( //A+B
+          transfer_a_plus_b        = (spl0 + spl1) / 2; //Yeah, no surprises.
+          spl0 = spl1 = transfer_a_plus_b; 
+  ):(
+mode == 5 ? ( //A+Diff
+          transfer_a_plus_diff     = spl0 + spl0 - spl1;
+          spl0 = spl1 = transfer_a_plus_diff;
+  ):(
+mode == 6 ? ( //B+Diff
+          transfer_b_plus_diff     = spl1 + spl1 - spl0;
+          spl0 = spl1 = transfer_b_plus_diff;
+  ):(
+mode == 7 ? ( //Sum+Diff
+          transfer_sum_plus_diff   = ((spl0 + spl1) / 2) - spl0 + spl1;
+          spl0 = spl1 = transfer_sum_plus_diff;
+  ):(
+mode == 8 ? ( //Sum-Diff
+          transfer_sum_minus_diff  = ((spl0 + spl1) / 2) + spl0 - spl1;
+          spl0 = spl1 = transfer_sum_minus_diff;
+);););););););););
+
+
+  

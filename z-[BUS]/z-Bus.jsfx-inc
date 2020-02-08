@@ -1,0 +1,926 @@
+/*******************************************************************************
+*  2016 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: Bus Library
+
+/* TODO []
+
+ 
+  FUNCTION INDEX []
+  
+*/
+
+@init
+
+/*******************************************************************
+  packRGB     
+  -------  
+*******************************************************************/
+function packRGB(red, green, blue)
+  local(sum)
+  (  
+  sum = blue + green << 8 + red << 16; //bitshift yelds integers
+  );
+  
+/*******************************************************************
+  updateSliders     
+  -------  
+*******************************************************************/
+function updateSliders()
+  (
+  slider4 > -96 ?
+    (
+    bus_4_output  = exp(slider4 * 0.11552453);
+    ):(
+    bus_4_output = 0;
+    );
+  
+  slider26 > -96 ?
+    (
+    bus_4_send_1  = exp(slider26 * 0.11552453);
+    pan = (slider56 + 100) / 200;
+    bus_4_send_1_L = bus_4_send_1 * min(1, 1 - (2 * pan - 1));
+    bus_4_send_1_R = bus_4_send_1 * min(1, 2 * pan); 
+    ):(
+    bus_4_send_1 = bus_4_send_1_L = bus_4_send_1_R = 0;
+    );
+    
+  slider27 > -96 ?
+    (
+    bus_4_send_2  = exp(slider27 * 0.11552453);
+    pan = (slider57 + 100) / 200;
+    bus_4_send_2_L = bus_4_send_2 * min(1, 1 - (2 * pan - 1));
+    bus_4_send_2_R = bus_4_send_2 * min(1, 2 * pan);
+    ):(
+    bus_4_send_2 = bus_4_send_2_L = bus_4_send_2_R = 0;
+    );
+  slider28 > -96 ?
+    (
+    bus_4_send_3  = exp(slider28 * 0.11552453);
+    pan = (slider58 + 100) / 200;
+    bus_4_send_3_L = bus_4_send_3 * min(1, 1 - (2 * pan - 1));
+    bus_4_send_3_R = bus_4_send_3 * min(1, 2 * pan);
+    ):(
+    bus_4_send_3 = bus_4_send_3_L = bus_4_send_3_R = 0;
+    );
+  slider29 > -96 ?
+    (
+    bus_4_send_4  = exp(slider29 * 0.11552453);
+    pan = (slider59 + 100) / 200;
+    bus_4_send_4_L = bus_4_send_4 * min(1, 1 - (2 * pan - 1));
+    bus_4_send_4_R = bus_4_send_4 * min(1, 2 * pan);
+    ):(
+    bus_4_send_4 = bus_4_send_4_L = bus_4_send_4_R = 0;
+    );
+  slider30 > -96 ?
+    (
+    bus_4_send_5  = exp(slider30 * 0.11552453);
+    pan = (slider60 + 100) / 200;
+    bus_4_send_5_L = bus_4_send_5 * min(1, 1 - (2 * pan - 1));
+    bus_4_send_5_R = bus_4_send_5 * min(1, 2 * pan);
+    ):(
+    bus_4_send_5 = bus_4_send_5_L = bus_4_send_5_R = 0;
+    );
+  slider31 > -96 ?
+    (
+    bus_4_send_6  = exp(slider31 * 0.11552453);
+    pan = (slider61 + 100) / 200;
+    bus_4_send_6_L = bus_4_send_6 * min(1, 1 - (2 * pan - 1));
+    bus_4_send_6_R = bus_4_send_6 * min(1, 2 * pan);
+    ):(
+    bus_4_send_6 = bus_4_send_6_L = bus_4_send_6_R = 0;
+    );
+  slider32 > -96 ?
+    (
+    bus_4_send_7  = exp(slider32 * 0.11552453);
+    pan = (slider62 + 100) / 200;
+    bus_4_send_7_L = bus_4_send_7 * min(1, 1 - (2 * pan - 1));
+    bus_4_send_7_R = bus_4_send_7 * min(1, 2 * pan);
+    ):(
+    bus_4_send_7 = bus_4_send_7_L = bus_4_send_7_R = 0;
+    );
+    
+  slider33 > -96 ?
+    (
+    bus_4_send_8  = exp(slider33 * 0.11552453);
+    pan = (slider63 + 100) / 200;
+    bus_4_send_8_L = bus_4_send_8 * min(1, 1 - (2 * pan - 1));
+    bus_4_send_8_R = bus_4_send_8 * min(1, 2 * pan);
+    ):(
+    bus_4_send_8 = bus_4_send_8_L = bus_4_send_8_R = 0;
+    );
+    
+  slider34 > -96 ?
+    (
+    bus_4_send_9  = exp(slider34 * 0.11552453);
+    pan = (slider64 + 100) / 200;
+    bus_4_send_9_L = bus_4_send_9 * min(1, 1 - (2 * pan - 1));
+    bus_4_send_9_R = bus_4_send_9 * min(1, 2 * pan);
+    ):(
+    bus_4_send_9 = bus_4_send_9_L = bus_4_send_9_R = 0;
+    );
+    
+  //Debug.CallFnCount += 1;
+  );
+
+
+
+/*******************************************************************
+  setPackedColor   
+  -----
+  PACKED version
+  
+  Sets current color, alpha left as is.
+*******************************************************************/
+function setPackedColor(color)
+  (          
+  gfx_b = (color & $x0000FF) / 256; 
+  gfx_g = ((color & $x00FF00) >> 8) / 256; 
+  gfx_r = ((color & $xFF0000) >> 16)/ 256; 
+  );
+  
+/*******************************************************************
+  setColor     
+  -----
+  Sets current color, alpha left as is.
+*******************************************************************/
+function setColor(red, green, blue)
+  (
+  gfx_r = red / 255; 
+  gfx_g = green / 255; 
+  gfx_b = blue / 255; 
+  );
+
+/*******************************************************************
+  invertColor     
+  --------
+*******************************************************************/
+function invertColor()
+  (
+  /*
+  gfx_r = 1 - gfx_r;
+  gfx_g = 1 - gfx_g;
+  gfx_b = 0.5 - gfx_b; //pretty mod 0.5 - 
+  */
+  window.track_color ?
+    (
+    window.track_color = 0;
+    ):(
+    window.track_color = 1;
+    );
+  setPackedcolor(_COLOR[window.track_color]);
+  );
+  
+/*******************************************************************
+  camaieuColor     
+  --------
+*******************************************************************/
+function camaieuColor(delta)
+  (
+  gfx_r > gfx_g ?
+    (
+    gfx_r -= delta;
+    gfx_g += delta;
+    ):(
+    gfx_r += delta;
+    gfx_g -= delta;
+    );
+  gfx_b > gfx_r ? gfx_b -= delta;
+  );
+  
+/*******************************************************************
+  colorAdjust     
+  --------
+*******************************************************************/
+function colorAdjust(mouse_wheel_val)
+  (
+  mouse_wheel_val > 0 ? 
+    (
+    gfx_r = min(1, gfx_r + 0.1);
+    ):(
+    gfx_r = max(0, gfx_r - 0.1);
+    );
+  mouse_wheel = 0;
+  );
+  
+/*******************************************************************
+  drawKnob     
+  --------
+*******************************************************************/
+function drawKnob(param_value, x)
+  (
+  //Actual Knob
+  //gfx_mode = 0;
+  gfx_a = knob.opacity / 2;
+  //invertColor();
+  gfx_rect(x, gfx_y, knob.width, knob.height);
+  //invertColor();
+  gfx_a = knob.opacity;
+  gfx_rect(x, gfx_y, knob.width * param_value, knob.height); // * 0.99);
+  
+  gfx_a = knob.txt_opacity;
+  
+  //Buttons
+  /*
+  gfx_a = 1;
+  invertColor();
+  gfx_roundrect(355, gfx_y + 17, 50, 50 , 5 , 0); 
+  gfx_roundrect(695, gfx_y + 17, 50, 50 , 5 , 0); 
+  invertColor();  
+  */
+  );
+
+/*******************************************************************
+  drawBigKnob     
+  --------
+*******************************************************************/
+function drawBigKnob(param_value, x)
+  (
+  //Actual Knob
+  //gfx_mode = 0;
+  gfx_a = knob.opacity; //  / 2* 1.15;
+  //invertColor();
+  gfx_rect(x, gfx_y, knob.width, knob.height * knob.big_multiplier);
+  //invertColor();
+  gfx_a = knob.opacity * 1.5; // * 1.15;
+  gfx_rect(x, gfx_y, knob.width * param_value, knob.height * (knob.big_multiplier - 0.005));
+  
+    
+  gfx_a = knob.txt_opacity;
+  
+  //Buttons
+  /*
+  gfx_a = 1;
+  invertColor();
+  gfx_roundrect(355, gfx_y + 17, 50, 50 , 5 , 0); 
+  gfx_roundrect(695, gfx_y + 17, 50, 50 , 5 , 0); 
+  invertColor();  
+  */
+  );
+
+/*******************************************************************
+  drawPan     
+  --------
+*******************************************************************/
+function drawPan(param_value, x)
+  (
+  //Actual Knob
+  //gfx_mode = 0;
+  gfx_a = knob.opacity / 3;
+  invertColor();
+  gfx_rect(x, gfx_y, knob.width, knob.height / 2);
+  invertColor();
+  gfx_a = knob.opacity / 2;
+  gfx_rect(x, gfx_y, knob.width * param_value, knob.height / 2.02);
+  
+ 
+  gfx_a = knob.txt_opacity; // / 1.50;
+  );
+
+
+/*******************************************************************
+  initWindow     
+  --------
+*******************************************************************/
+function initWindow()
+  (
+  window.width = gfx_w;
+  window.height = gfx_h ;
+    
+  window.channel_count = num_ch;
+  
+  
+  window.scale = min(window.width / 900, window.height / 500);
+  
+  display.stateQuery(display._REFRESH_METERS) ? 
+    (
+    margin.top     = 15 + window.channel_count * 13 + ceil(_MARGIN_TOP * window.scale);
+    ):(
+    margin.top     = 5 + ceil(_MARGIN_TOP * window.scale);  
+    );
+  margin.left    = ceil(_MARGIN_LEFT * window.scale);
+  
+  knob.h_spacing = ceil(_H_SPACING   * window.scale);
+  knob.v_spacing = ceil(_V_SPACING   * window.scale);
+    
+  knob.width = ceil((window.width - 2 * margin.left - (window.bus_count - 1) * knob.h_spacing)  / window.bus_count); 
+    
+  font.size = 8; //HaxrCorp is 8 only 
+  
+  //gfx_setfont(1, font.name, font.size + 5);
+  gfx_setfont(1, font.name, font.size);
+  
+  knob.height = font.size * knob.height_multiplier;
+  
+  //save on some calculations in gfx refresh
+  knob.h_spacing_half   = ceil(knob.h_spacing / 2);
+  knob.v_spacing_half   = ceil(knob.v_spacing / 2);
+  knob.height_half      = ceil(knob.height    / 2);
+  knob.width_half       = ceil(knob.width     / 2);
+  font.size_half        = ceil(font.size      / 2);
+  
+  knob.h_spacing_third  = ceil(knob.h_spacing / 3);
+  knob.v_spacing_third  = ceil(knob.v_spacing / 3);
+  knob.height_third     = ceil(knob.height    / 3);
+  knob.width_third      = ceil(knob.width     / 3);
+  font.size_third       = ceil(font.size      / 3);
+  
+    
+    
+  display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+  
+  );
+
+/*******************************************************************
+  drawWindow     
+  --------
+*******************************************************************/
+function drawWindow()
+  local(bus_index, send_index, slider_index, param_value, param_normalized_value, text_width, text_height, x)
+  (
+  #tmp = "";
+  
+  //Draw Background
+  gfx_r = gfx_g = gfx_b = _COLOR_BG;
+  gfx_rect(0, 0, this.width, this.height);
+  
+  
+  //DRAW SHIT HERE
+  bus_index = 1; setPackedcolor(_COLOR[this.track_color]);
+    
+  //invertColor();
+  ////////////////////////////////// BUSSES //////////////////////////////////
+  ////
+  loop(this.bus_count,
+    
+    gfx_y = margin.top; send_index = 1;
+    
+    //KNOB
+    gfx_mode = 0;    
+    param_value = slider(bus_index);   
+    param_normalized_value = 1 + param_value / 96;
+    //x = margin.left * bus_index + knob.width * (bus_index - 1);     
+    x = margin.left + knob.h_spacing * (bus_index - 1 ) + knob.width * (bus_index - 1);
+    drawBigKnob(param_normalized_value, x);
+    
+    
+    //NAME
+    gfx_mode = 1; //gfx_a = -gfx_a;
+    
+    gfx_measurestr(this.bus_name[bus_index - 1], text_width, text_height);    
+    gfx_x = x + knob.width_half - text_width;
+    gfx_y += (knob.height  * knob.big_multiplier ) / 2 - font.size_half - 2;
+        
+    gfx_drawstr(this.bus_name[bus_index - 1]);
+    //gfx_a = -gfx_a;
+    
+    //VALUE
+    //gfx_mode = 0; 
+    invertColor();    
+    
+    
+    gfx_drawstr(" | "); gfx_drawnumber(slider(bus_index), 1); //gfx_drawstr(" dB");
+    //gfx_mode = 0;
+    invertColor();
+    //Debug
+    //gfx_drawstr(" | "); gfx_drawnumber(bus_index, 0);   
+    
+    gfx_y += knob.height + knob.height_third * 2;
+    
+     
+    ////////////////////////////////// SENDS //////////////////////////////////
+    ////     
+    loop(this.send_count + (bus_index - 1),
+      
+      //KNOB      
+      //slider_index = 4 + min(6, send_index) * (bus_index - 1) + min(1, bus_index - 1) + min(1, bus_index - 2) * 2 + send_index;
+      bus_index == 1             ? (slider_index = 4  + send_index;
+        ):(
+      bus_index == 2             ? (slider_index = 10 + send_index;
+        ):(
+      bus_index == 3             ? (slider_index = 17 + send_index;
+        ):(
+      bus_index == 4             ? (slider_index = 25 + send_index;
+        ););););
+      
+      gfx_mode = 1;        
+      //debug_slider = max(debug_slider, slider_index);
+      //invertColor();
+      param_value = slider(slider_index);
+      param_normalized_value = 1 + param_value / 96;         
+      drawKnob(param_normalized_value, x);
+      //gfx_mode = 1;
+      //invertColor();     
+      //NAME
+      send_index <= this.send_count ? 
+        (
+        gfx_measurestr(this.send_name[send_index - 1], text_width, text_height);     
+        //gfx_x = x + knob.width_half - text_width;
+        gfx_x = x + 4;
+        gfx_y += knob.height_half - font.size_half - 2; 
+        invertColor();       
+        gfx_drawstr(this.send_name[send_index - 1]);
+      ):(
+        gfx_measurestr(this.bus_name[send_index - this.send_count - 1], text_width, text_height);     
+        //gfx_x = x + knob.width_half - text_width;
+        gfx_x = x + 4;
+        gfx_y += knob.height_half - font.size_half - 2;
+        invertColor();        
+        gfx_drawstr(this.bus_name[send_index - this.send_count - 1]);      
+      );
+      
+      //VALUE
+      //gfx_mode = 1;
+      invertColor();
+      gfx_measurestr(sprintf(#tmp,"%+.1f", slider(slider_index)), text_width, text_height);
+      gfx_x = x + knob.width - text_width;
+      gfx_drawstr(#tmp);
+      //gfx_drawstr(" | "); gfx_drawnumber(slider(slider_index), 1); //gfx_drawstr(" dB");
+      
+      
+      //Debug
+      //gfx_drawstr(" | slider");gfx_drawnumber(slider_index, 0); gfx_drawstr(" | send");gfx_drawnumber(send_index, 0);
+      
+      gfx_y += knob.height_half + font.size_half + knob.v_spacing_half;
+      //gfx_mode = 0;
+      
+      
+      
+      //PAN
+      slider_index += 30;
+      //debug_slider = slider_index;
+      
+      param_value = slider(slider_index);
+      param_normalized_value = (param_value + 100) / 200;
+      
+      //x = margin.left * bus_index + knob.width * (bus_index - 1);      
+      drawPan(param_normalized_value, x);
+      
+      //VALUE
+      //x = margin.left + knob.h_spacing * (bus_index - 1 ) + knob.width * (bus_index - 1);
+      gfx_x = margin.left + knob.h_spacing * (bus_index - 1 ) + knob.width * max(0, (bus_index - 1)) + knob.width * param_normalized_value; 
+      gfx_mode = 0; 
+      gfx_a = 1; #tmp = "▲";gfx_measurestr(#tmp, text_width, text_height); gfx_x -= text_width / 2; gfx_drawstr(#tmp); //etColor(105, 105, 105);      
+      /*
+      param_value == 0             ? ( gfx_a = param_normalized_value; #tmp = "▲";gfx_measurestr(#tmp, text_width, text_height); gfx_x -= text_width / 2; gfx_drawstr(#tmp); //setColor(105, 105, 105);
+                                       //setPackedcolor(_COLOR[this.track_color]); invertColor();
+        ):(
+      param_value  < 0             ? ( gfx_a = 1 - param_normalized_value;//knob.txt_opacity / 2;
+                                       gfx_x += 2;gfx_drawstr("L"); //gfx_drawstr("L "); gfx_drawnumber(abs(param_value), 0);
+        ):(                            
+                                       gfx_a = param_normalized_value;
+                                       //gfx_a = knob.txt_opacity / 2;
+                                       invertColor();   
+                                       #tmp = "R";//sprintf(#tmp,"%d R", param_value);
+                                       gfx_measurestr(#tmp, text_width, text_height);
+                                       gfx_x -= text_width + 2; gfx_drawstr(#tmp);
+                                       invertColor();
+                                       //gfx_drawnumber(param_value, 0); gfx_drawstr(" R");
+        ););
+      */
+      gfx_mode = 1;
+      //Debug
+      //gfx_drawstr(" pan slider");gfx_drawnumber(slider_index, 0); gfx_drawstr(" | send");gfx_drawnumber(send_index, 0);
+      
+      gfx_y += knob.height_half + knob.v_spacing;
+      //camaieuColor(0.1);      
+      send_index += 1;
+    );
+    
+    
+    
+    //camaieuColor(0.05);
+    bus_index += 1;
+  );
+   
+   
+     
+   /*
+   display.stateQuery(display._TOUCH) ? 
+     (
+     mouse.Hover();
+     );      
+   */
+  //gfx_mode = 0;
+  window.drawn_mixer_height = gfx_y + knob.v_spacing;    
+  display.stateOff(display._REFRESH_GFX); //GUI refresh all done
+  Debug.drawWindow_debug_count += 1;
+  );
+
+/*******************************************************************
+  mapItem     
+  --------
+  
+  draw item in offscreen buffer map
+  encode knob id in its color
+  query map by getting pixel and checking color
+  
+  gfx_g = 1;    => Fader
+  gfx_g = 0.1;  => Pan
+  gfx_g = 0.2;  => Bus
+  
+  gfx_b => slider number
+  
+*******************************************************************/
+function mapItem(x, y, width, height, bus, index, type)
+  local(r, g, b)
+  (
+  gfx_dest = 1;
+  r = gfx_r; g = gfx_g; b = gfx_b; //store current color, just in case
+  
+  //gfx_r = (bus + 1) / 255; 
+  gfx_r = 0;  gfx_g = type / 255; gfx_b = index / 255; //gfx_g = (type + 1) / 255; gfx_b = (index + 1) / 255; <<---- to use with Reaperx86
+  
+  //debug_type = gfx_g;
+  
+  gfx_a = 1;  
+  //gfx_rect(x, y, width, height);
+  gfx_gradrect(x, y, width, height, 0, gfx_g, gfx_b, 1, 1 / knob.width, 0, 0, 0, 0, 0, 0, 0); 
+  //gfx_rect(x, y, width, height);
+  gfx_r = r; gfx_g = g; gfx_b = b;
+  gfx_dest = -1;
+  //this.knob_count += 1;
+  
+  //debug_knob_map_count = index;
+  );
+  
+/*******************************************************************
+  drawMap     
+  --------
+  
+  draw/refresh offscreen buffer map
+  
+*******************************************************************/ 
+function drawMap()
+  local(bus_index, send_index, slider_index, x)
+  (
+  //init offscreen buffer for knob map
+  gfx_dest = 1; 
+  gfx_mode = 0;
+  gfx_setimgdim(1, window.width, window.height);
+  setColor(255, 0, 0);
+  gfx_rect(0, 0, window.width, window.height); 
+  
+  
+  bus_index = 1;
+  ////////////////////////////////// BUSSES //////////////////////////////////
+  ////
+  loop(window.bus_count,
+    
+    gfx_y = margin.top; send_index = 1;
+    x = margin.left + knob.h_spacing * (bus_index - 1 ) + knob.width * (bus_index - 1);    
+    mapItem(x, gfx_y, knob.width, knob.height * knob.big_multiplier, bus_index, bus_index, _TYPE_BUS);
+    
+    //gfx_y += (knob.height * knob.big_multiplier) - font.size_half - 2 +  knob.height_third * 2;
+    
+    gfx_y += knob.height + knob.height_third * 2 + (knob.height  * knob.big_multiplier ) / 2 - font.size_half - 2;
+    
+     
+    ////////////////////////////////// SENDS //////////////////////////////////
+    ////     
+    loop(window.send_count + (bus_index - 1),
+      
+      //KNOB     
+      bus_index == 1             ? (slider_index = 4  + send_index;//;
+        ):(
+      bus_index == 2             ? (slider_index = 10 + send_index;//;
+        ):(
+      bus_index == 3             ? (slider_index = 17 + send_index;//;
+        ):(
+      bus_index == 4             ? (slider_index = 25 + send_index;//;
+        ););););
+        
+      mapItem(x, gfx_y, knob.width, knob.height, bus_index, slider_index, _TYPE_KNOB);
+      
+      gfx_y += knob.height_half - font.size_half - 2 + knob.height_half + font.size_half + knob.v_spacing_half;
+      
+      slider_index += 30;
+      //x = margin.left * bus_index + knob.width * (bus_index - 1);
+      mapItem(x, gfx_y, knob.width, knob.height_half, bus_index, slider_index, _TYPE_PAN);
+      
+      gfx_y += knob.height_half + knob.v_spacing;
+      
+      send_index += 1;  
+      );
+      
+       
+    bus_index += 1;
+    );  
+  
+  
+    
+  Debug.drawMap_debug_count += 1;
+  gfx_dest = -1;   
+  );
+
+
+/*******************************************************************
+  drawMeters     
+  --------
+  
+*******************************************************************/ 
+function drawMeters()
+(
+//display.stateQuery(display._REFRESH_METERS) ?
+//  (
+
+//uiTop = vuHeight = (gfx_h / (num_ch+1)) | 0; // +1 for the lines
+/*JFB uiLeft = */
+gfx_mode = 0;
+vuWidth = (gfx_w/(num_ch+1));
+//dBstep = floor(((6*gfx_w)/dbMin) + 0.5);//JFB ??
+
+uiTop = window.drawn_mixer_height + gfx_texth + 4;
+  
+//vuHeight = (gfx_h - uiTop)/(num_ch);
+uiTop = vuHeight = gfx_texth+1;
+ 
+    // default master peak
+      gfx_r=1;gfx_g=1;gfx_b=1;gfx_a=0.8;
+      gfx_x=gfx_w;
+      gfx_y=1; //JFB!!!
+      gfx_rectto(gfx_w - floor(gfx_w/uiWidthRatio + 0.5) , uiTop - 1);
+      gfx_r=0;gfx_g=0;gfx_b=0;
+      gfx_x=gfx_w-1;
+      gfx_y=2; //JFB!!!
+      gfx_rectto(gfx_w - floor(gfx_w/uiWidthRatio + 0.5) +1, uiTop - 2);
+
+  i=0;
+  loop
+  (
+    num_ch,
+    color_offset = (i - 1) / 100;
+    
+    //Full green rectangle //(i == (slider64 - 1)
+    //gfx_r = 0.58 - i / 50; gfx_g = (i == 0) | (i == 1) ? 1 : 0.23; gfx_b = 0.1 + (i - 1) / 20; gfx_a = 0.8;
+    gfx_r = 0.25 - (i - 1) / 50; gfx_g = (i == 0) | (i == 1) ? 1 : 0.1; gfx_b = 0.2 + (i - 1) / 20; gfx_a = 0.75;
+    gfx_x=0; gfx_y = uiTop + vuHeight*i;
+    gfx_rectto(gfx_w,gfx_y + vuHeight-1);
+
+    // Black rectangle according to peak
+    gfx_r = 0.05 ; gfx_g = 0.05 ; gfx_b = 0.05 + color_offset; gfx_a = 1;
+    gfx_x = gfx_w + 1;
+    gfx_y = uiTop + vuHeight * i;
+    gfx_rectto(gfx_w - floor((abs(bufValue[i])*gfx_w)/dbMin + 0.5) , gfx_y + vuHeight);
+  
+    // Channel number
+    vuHeight >= gfx_texth ?
+    (
+      gfx_x=5; //JFB!!!
+      gfx_y=uiTop + vuHeight* i + floor(abs(gfx_texth-vuHeight)/2 + 0.5) - 1;
+      
+      bufPeak[i] > (dbMin*-1) ? gfx_a = 0.8 : gfx_a = 0.3;
+      ((i == 0) | (i == 1)) ?
+      (
+          gfx_a = 0.8; gfx_r = 1; gfx_g = 1;gfx_b = 0;
+          //invertColor();
+      )
+      :
+      (
+//          bufPeak[i] == (dbMin*-1) || bufPeak[i] > (dbMin*-1) ? (gfx_r=0.1;gfx_g=0.8;gfx_b=0.2;) : (gfx_r=0.5;gfx_g=0.5;gfx_b=0.5;);
+//ok            bufValue[i] > (dbMin*-1) ? (gfx_r=0.1;gfx_g=0.8;gfx_b=0.2;) : (gfx_r=0.5;gfx_g=0.5;gfx_b=0.5;);
+          gfx_r=0.1;gfx_g=0.8;gfx_b=0.2;
+          
+      );
+      gfx_drawnumber(i+1,0);
+      gfx_x= 20;
+      gfx_drawstr(pin_name[i]);
+    );
+  
+    // max dB
+    vuHeight >= gfx_texth ?
+    (
+      gfx_x = gfx_w - uiRightMargin;
+      gfx_y=uiTop + vuHeight*i + floor(abs(gfx_texth-vuHeight)/2 + 0.5);
+      gfx_r=1;gfx_g=1;gfx_b=1;
+      bufPeak[i] > (dbMin*-1) ? gfx_a = 0.8 : gfx_a = 0.3;
+      //gfx_drawnumber(bufPeak[i],1);
+      sprintf(#tmp,"%+9.1f", bufPeak[i]);
+      gfx_drawstr(#tmp);
+    );
+  
+    // peaks
+    bufPeak[i] == 0 || bufPeak[i] > 0 ? //JFB ">=" KO when "-0.0" !!
+    (
+      gfx_x=gfx_w;gfx_y=uiTop + vuHeight*i;
+      gfx_r=1;gfx_g=0.0;gfx_b=0.0;gfx_a=1;
+      gfx_rectto(gfx_w - floor(gfx_w/uiWidthRatio + 0.5) , gfx_y + vuHeight - 1);
+
+      // master peak
+      gfx_x=gfx_w-1;
+      gfx_y=uiTop - 20; //JFB!!!
+//JFB      gfx_y = floor(abs(gfx_texth-uiTop)/2 + 0.5);
+      gfx_rectto(gfx_w - floor(gfx_w/uiWidthRatio + 0.5) +1, /*JFB gfx_y + */uiTop - 2);
+    );
+
+    // "dB"
+    vuHeight > gfx_texth && dBstep > (uiCharWidth*4 + uiRightMargin) ? // e.g. 4 'cause "-6" & "dB"
+    (
+      gfx_x = gfx_w - uiRightMargin;
+//JFB      gfx_y = floor(abs(gfx_texth-vuHeight)/2 + 0.5);
+      gfx_y = floor(abs(gfx_texth-uiTop)/2 + 0.5);
+      gfx_r=.5;gfx_g=.5;gfx_b=.5;gfx_a=0.8;
+      gfx_drawchar($'d');
+      gfx_drawchar($'B');
+    );
+
+    i+=1;
+  );
+
+  // dB lines
+  gfx_r=.5;gfx_g=.5;gfx_b=.5;
+  i=dbRulerStep;
+  while
+  (
+    tmp = gfx_w - floor(((i*gfx_w)/dbMin) + 0.5);
+
+    gfx_a=0.1;
+    gfx_x = tmp; gfx_y=uiTop;
+    gfx_lineto(gfx_x, margin.top, 0.4);
+
+    gfx_a=0.8;
+/*JFB
+    vuHeight > gfx_texth && dBstep > 10 * 3 ? // e.g. 3 'cause "-60" JFB!!! charWidth !
+    (
+*/
+      gfx_x = tmp + 1;
+      gfx_y = floor(abs(gfx_texth-uiTop)/2 + 0.5);
+      gfx_drawnumber(i*-1,0);
+//    );
+    i+=dbRulerStep;
+    i <= dbMin;
+  );
+
+  // top H line
+/*JFB
+  gfx_x = 0; gfx_y=vuHeight;
+  gfx_lineto(gfx_w,vuHeight, 0.4);
+*/
+
+
+  mouse_cap > 0 && ((cpt - last_clic) > CLIC_TRES) ?
+  (
+     last_clic = cpt;
+     mouse_x >= (gfx_w - uiRightMargin) && mouse_x <= gfx_w ?
+     (
+        tmp = (mouse_y / vuHeight) | 0;
+        AA=tmp;
+  
+        // Clear all peaks
+        tmp == 0 ?
+        (
+          i=0;
+          loop
+          (
+            MAX_CH,
+            bufPeak[i] = dbMin * -1;
+            i+=1;
+          );
+        )
+        : bufPeak[tmp - 1] = dbMin * -1;
+     )
+     //: slider62 < 4 ? slider62 += 1 : slider62 = 0;
+  );
+  
+  //display.stateOn(display._REFRESH_GFX); //flag for GUI refresh <<-- NOT BOTHERING TO REFRESH METERS AND MIXER AT DIFFERENT RATE ATM
+// );
+);
+
+  
+/*******************************************************************
+  clickKnob     
+  --------
+  
+  Uses the gradients in buffer map at the moment
+  
+*******************************************************************/  
+function clickKnob(param_normalized_value, type, slider_index)
+  local(param_value)//, slider_mask)
+  (
+  type == _TYPE_PAN ?
+    (
+    param_value = param_normalized_value / 255 * 201 - 100;
+    ):(
+    param_value = param_normalized_value / 255 * 96 - 96;
+    );
+  
+  
+  //slider_mask = $xFFFFFFFFFFFFFFFF;
+  ;
+  
+  //debug_slidindex = slider_index;
+  //bitToggle(slider_mask, slider_index);
+  //sliderchange($xFFFFFFFFFFFFFFFF);
+  //debug_slider_mask = slider_mask;
+  
+  //$~7
+  slider(slider_index) = param_value;
+  updateSliders();  
+  );
+ 
+/*******************************************************************
+  dragKnob     
+  --------
+  
+  Works for dragging beyond the fader/knob boundaries
+  
+  Registers up and down motions
+  
+*******************************************************************/  
+function dragKnob(type) // param_normalized_value,slider_index) <== Use mouse.param_focus
+  local(delta, slider_value)//, slider_mask)
+  (
+  
+  slider_value = slider(mouse.param_focus);
+  
+  type == _TYPE_PAN ?
+    (
+    delta = ((mouse_x - mouse.x_focus) - (mouse_y - mouse.y_focus)) / knob.width * 200 * mouse.knob_speed;
+    slider_value = max(-100, min(100, slider_value + delta));
+    ):(
+    delta = ((mouse_x - mouse.x_focus) - (mouse_y - mouse.y_focus)) / knob.width * 96 * mouse.knob_speed;
+    slider_value = max(-96, min(0, slider_value + delta));
+    );
+ 
+  /* 
+  mouse.knob_speed == _SPEED_PRECISE ?
+  (
+  delta = floor(((mouse_x - mouse.x_focus) - (mouse_y - mouse.y_focus)) / 5) * _SPEED_PRECISE; //Doesn't Work as expected
+  debug.delta = delta;
+  slider_value = roundDownTo(slider_value, 0.1);
+  
+  type == _TYPE_PAN ?
+      (
+      slider_value = max(-100, min(100, slider_value + delta));
+      ):(
+      slider_value = max(-96, min(0, slider_value + delta));
+      );
+  
+  ):(
+  type == _TYPE_PAN ?
+    (
+    delta = ((mouse_x - mouse.x_focus) - (mouse_y - mouse.y_focus)) / knob.width * 200 * mouse.knob_speed;
+    slider_value = max(-100, min(100, slider_value + delta));
+    ):(
+    delta = ((mouse_x - mouse.x_focus) - (mouse_y - mouse.y_focus)) / knob.width * 96 * mouse.knob_speed;
+    slider_value = max(-96, min(0, slider_value + delta));
+    );
+  );
+ */
+  
+  //slider_mask = 0; 
+  
+  //sliderchange(bitToggle(slider_mask, mouse.param_focus));
+  
+  //slider_value = roundToNearestMultiple(slider_value, 0.1);
+  
+  //slider_value = floor(slider_value * 10) / 10;
+  //slider_value = roundDownTo(slider_value, 0.1);
+  
+  slider(mouse.param_focus) = slider_value;
+  updateSliders();
+  
+  //Debug.dragKnobCount += 1;
+  );
+
+/*******************************************************************
+  resetKnob     
+  --------
+  
+  restore default knob value
+  
+*******************************************************************/  
+function resetKnob(param_normalized_value, type, slider_index)
+  local(param_value)//, slider_mask)
+  (
+  type == _TYPE_PAN ?
+    (
+    slider(slider_index) = 0;
+    ):(
+    slider(slider_index) = -96;
+    );
+  
+  type == _TYPE_PAN           ? ( slider(slider_index) =   0;
+    ):(
+  type == _TYPE_BUS           ? ( slider(slider_index) =   0;
+    ):(
+                                  slider(slider_index) = -96; 
+    ););
+  
+  //slider_mask = 0;  
+  //sliderchange(bitToggle(slider_mask, slider_index));
+  updateSliders();  
+  );
+
+

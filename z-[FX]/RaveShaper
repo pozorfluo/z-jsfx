@@ -1,0 +1,644 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*******************************************************************************/
+
+/* DOC
+https://en.wikipedia.org/wiki/Low-pass_filter
+https://en.wikipedia.org/wiki/Rectifier
+https://en.wikipedia.org/wiki/Smoothness
+http://educypedia.karadimov.info/library/tut331_04am_dem.pdf
+file:///C:/Users/pozorfluo/Dropbox/Private/DAW/TUTORIALS/DAFx04_P_285.pdf  compander
+http://www.katjaas.nl/compander/compander.html 
+https://fr.wikipedia.org/wiki/Convergence_simple
+https://en.wikipedia.org/wiki/Sinc_function
+http://www.reaper.fm/sdk/js/userfunc.php#js_userfunc
+https://en.wikipedia.org/wiki/Electronic_filter#Passive_filters
+
+http://stephan.win31.de/capdist.htm   capacitance
+https://hal.inria.fr/hal-00537203/document  inductance
+https://en.wikipedia.org/wiki/Hysteresis
+
+http://recherche.ircam.fr/pub/dafx11/Papers/55_e.pdf Vector dist
+https://en.wikipedia.org/wiki/LTI_system_theory Linear Time Invariance
+
+https://en.wikipedia.org/wiki/Full_scale
+https://en.wikipedia.org/wiki/DBFS
+
+
+/* ARCHITECTURE SKETCH
+
+--------
+|  UI  |
+--------
+Use Dropdown Menus to select channel/module
+
+Have Generic Sliders to edit selected channel/module parameters
+
+Display explicit Names and Values in GFX
+
+Add ping functions that return explicit function names in GFX when manipulating generic sliders
+
+--------
+|FORMAT|
+--------
+4 CHANNELS ?? 
+3 CHANNELS W X-OVER + 1 SYNTH ??
+1 CHANNEL fully configurable  + many fx instances ??
+SPLIT IT OVER SPECIALIZED POP-UP MODULES W MASTER FX + SHARED VARIABLES
+
+Anatma - 
+Astika - 
+Nastika -
+Gata - 
+
+
+===> POPULATE FUNCTIONS LIBRARIES FIRST; DO QnD Testbench UI
+
+
+----------
+|CHANNELS|
+----------
+
+Input 
+ -> Main Audio Input
+ -> SC Audio Input
+ -> Midi Input
+ -> Other Raveshaper Channels Output
+ 
+Input Filter
+------------
+https://en.wikipedia.org/wiki/Digital_filter
+https://en.wikipedia.org/wiki/Filter_design
+
+
+
+Raised-cosine filter
+
+Comb Filter
+https://en.wikipedia.org/wiki/Comb_filter
+
+
+
+MODES selection
+
+OSCILLATOR
+
+https://en.wikipedia.org/wiki/Oscillation
+https://en.wikipedia.org/wiki/
+Periodic_function
+
+https://en.wikipedia.org/wiki/Sine_wave#Traveling_and_standing_waves
+
+https://en.wikipedia.org/wiki/Instantaneous_phase
+
+Pick any periodic transfer function,
+https://en.wikipedia.org/wiki/List_of_periodic_functions
+
+
+or periodic map an aperiodic transfer function or ADSR, etc...
+https://en.wikipedia.org/wiki/Iterated_function
+https://en.wikipedia.org/wiki/Periodic_point
+http://greenteapress.com/thinkdsp/html/thinkdsp004.html
+https://en.wikibooks.org/wiki/Signals_and_Systems/Aperiodic_Signals
+
+or shape a Sine
+
+Model Complex Harmonic Oscillators
+https://en.wikipedia.org/wiki/Simple_harmonic_motion
+
+Model Relaxation Oscillators
+http://www.learnabout-electronics.org/Oscillators/osc40.php
+Astable oscillators
+Astable multivibrators
+Aperiodic Oscillators
+Clock Oscillators
+sawtooth oscillators or sweep generators.
+
+Model Crystal Oscillators
+https://www.youtube.com/watch?v=yYGwfVnGAdg
+https://en.wikipedia.org/wiki/Pierce_oscillator
+
+Variable-frequency oscillator
+
+
+
+ADSR
+Track Input audio frequency / Midi note / set arbitrary frequency
+Tweak Tuning
+Octave Shift
+
+Pick a Wave + Phase Shift + Level
+
+NOISE GENERATOR
+
+
+DISTORTION Algorithms -> Transfer Function(Input, Target, Drive)
+
+Clipping[Hard, Soft, any Transfer Function...]
+
+DC Offset | Correction | Bias
+https://en.wikipedia.org/wiki/DC_bias
+
+
+Rectification, IMD, crossover, Phase Distortion, Vector Phase Distortion,AM/P/FM Modulation, Demodulation (Modulate then non-linearities then Demodulate :
+eg : Amplitude Modulation driven into Overmodulation then Demodulation, etc... ) (--->https://en.wikipedia.org/wiki/Modulation)
+, Compander, Capacitance, Inductance, Pulse shaping https://en.wikipedia.org/wiki/Pulse_(signal_processing), Intersymbol Interference
+
+Heterodyne
+https://en.wikipedia.org/wiki/Heterodyne
+https://en.wikipedia.org/wiki/Local_oscillator
+
+Approximation Distortion
+->Select a period, sample input every period, interpolate between sample using any Transfer Function
+
+Quantization + Rate Distortion, Decimation, Bit-Depth, DownSampling, Truncation, Aliasing, Discretization -> Check if worth the trouble
+https://en.wikipedia.org/wiki/Quantization_(signal_processing)
+https://en.wikipedia.org/wiki/Decimation_(signal_processing)
+
+
+DISTORTION TARGET MODE -> GainDriven | ShapeBound
+
+GainDriven -> pick a transfer function Input to converge toward, limit at, clip above, etc... MAX GAIN
+
+ShapeBound -> pick a transfer function Input to converge toward, limit at, clip above, etc... an Anatma enabled channel, with whatever Wave you built, reacting
+with Input audio frequency / Midi note value Target
+
+           -> pick a transfer function Input to converge toward, limit at, clip above, etc... SC Audio Input
+
+
+
+
+PERIODIC | AMPLITUDE ASYMMETRY
+Track Input audio frequency / Midi note or Ride an Anatma channel and define a period or a threshold value,
+
+to Shape the positive or negative half cycle only
+to move Filters cutoff
+to toggle Distortion or switch between Transfer functions every period or above a threshold value
+Every X ZeroCrossings | ThresholdCrossing Do whatever
+
+Pick a Transfer Function with Drive values controlled by ADSR to fade between settings,
+
+---------------
+|ADSR envelope|
+---------------
+3 time + 1 value parameter
+
+Switch between 4 Transfer Function to modulate
+
+Attack time is the time taken for initial run-up of level from nil to peak, beginning when the key is first pressed.
+Decay time is the time taken for the subsequent run down from the attack level to the designated sustain level.
+Sustain level is the level during the main sequence of the sound's duration, until the key is released.
+Release time is the time taken for the level to decay from the sustain level to zero after the key is released.
+
+AUTOMATIC GAIN CONTROL
+http://www.ti.com/lit/an/spra081/spra081.pdf
+https://en.wikipedia.org/wiki/Automatic_gain_control
+http://fr.mathworks.com/matlabcentral/fileexchange/28472-time-frequency-automatic-gain-control--agc-
+http://labrosa.ee.columbia.edu/matlab/tf_agc/
+https://code.google.com/p/gismotools/source/browse/trunk/GISMO/@correlation/agc.m?r=348
+
+  private static final double LAMBDA = 0.002;    // .02 ??
+    private static double agc_hold;
+    
+    /*
+     * Automatic Gain control
+     */
+    private Complex agc(Complex in) {
+        double magnitude = in.mag();          // magnitude = sqrt(real * real + imag * imag)
+        double h = (LAMBDA * magnitude) + (1.0 - LAMBDA) * agc_hold;
+        agc_hold = h;
+
+        return in.times(0.001 / Math.sqrt(h));
+    }
+    
+https://groups.google.com/forum/#!topic/digitalvoice/RakFvpVWR2w
+http://gnuradio.org/doc/doxygen/agc_8h_source.html
+http://liquidsdr.org/doc/agc.html
+http://read.pudn.com/downloads102/doc/419898/spru631.pdf
+http://morse2txt.sourceforge.net/src_docs/agc_8c.html
+
+---------
+|BREAKUP| is it kinda like DRIVEN ?
+---------
+Select BreakUp SC Path
+Select a BreakUp Prg/Transfer Function : see saturn paramods, threshold, targets, timing, ADSR + SC Enveloppe
+Select a Transfer Functions to blend (Add, Mult, or Any other Transfer Function for funky results ) with another Parameter or WAVE (Anatma or Audio Input)
+
+BreakUp Non-
+
+
+------
+|CHAOS|
+------
+Let a noise generator add life to BreakUp, Transfer Function Drive, Input Gain, Filter cutoff / Resonance
+or randomly switch between close distortion algorithm 
+
+-------------------
+|DAMPING / DRIVING|
+-------------------
+https://en.wikipedia.org/wiki/Damping
+https://en.wikipedia.org/wiki/Damping_ratio
+
+Apply Damping and/or Driving effect to another Parameter or WAVE (Anatma or Audio Input)
+
+Overdamped
+Critically damped
+Underdamped
+Undamped
+Driven
+
+Any other Transfer Function for funky results
+
+------------
+|HYSTERESIS|
+------------
+time-based dependence of a system's output on current and past inputs
+
+rate-dependent hysteresis
+
+Apply a certain Lag Amount to another Parameter or WAVE (Anatma or Audio Input).
+If the input is reduced to zero, the output continues to respond for a finite time. 
+This constitutes a memory of the past, but a limited one because it disappears as the output decays to zero.
+Exact Lag Amount is itself modulated by the frequency/change rate of the target parameter, and goes to zero as the frequency decreases.
+
+  rate-dependent hysteresis-> X(t) and output Y(t) that are separated by a phase lag phi
+  dynamic lag between input and output. This effect disappears as the input changes more slowly
+  
+
+rate-independent hysteresis
+
+Time-variable circuit RC Filter like
+
+Any other Transfer Function for funky results
+
+
+----------------------
+|NON-LINEAR FUNCTIONS|
+----------------------
+https://en.wikipedia.org/wiki/Nonlinear_system
+
+Deadband
+https://en.wikipedia.org/wiki/Deadband
+
+Squelch | Gate
+https://www.tititudorancea.net/z/squelch.htm
+https://en.wikipedia.org/wiki/Noise_gate
+
+Differential Threshold
+http://apps.usd.edu/coglab/WebersLaw.html
+previousInput < Input * 1/JnD threshold, 
+----------------------
+|DESCRIBING FUNCTIONS|
+----------------------
+https://en.wikipedia.org/wiki/Describing_function
+
+
+
+----------------------------
+|STATE SPACE REPRESENTATION|
+----------------------------
+https://en.wikipedia.org/wiki/State-space_representation
+https://en.wikipedia.org/wiki/Control_theory#Classical_control_theory
+
+-------------------
+|TRANSFER FUNCTIONS|
+-------------------
+TRANSFORMEE DE LAPLACE
+https://fr.wikipedia.org/wiki/Transformation_de_Laplace
+
+Proper transfer function
+https://courses.engr.illinois.edu/ece486/documents/set5.pdf
+
+https://fr.wikipedia.org/wiki/Syst%C3%A8me_lin%C3%A9aire
+
+https://fr.wikipedia.org/wiki/R%C3%A9ponse_impulsionnelle
+
+https://fr.wikipedia.org/wiki/%C3%89quation#Probl.C3.A8mes_soulev.C3.A9s_par_une_.C3.A9quation
+http://music.columbia.edu/cmc/musicandcomputers/chapter4/04_06.php waveshaping transfer function
+http://msp.ucsd.edu/techniques/v0.11/book-html/node78.html
+
+https://en.wikipedia.org/wiki/Automatic_control
+https://fr.wikipedia.org/wiki/Automatique#Les_syst.C3.A8mes
+https://fr.wikipedia.org/wiki/Repr%C3%A9sentation_d%27%C3%A9tat
+https://en.wikipedia.org/wiki/Transfer_function
+
+
+
+  ======>Populate with TALE libraries
+  ======>Populate with CookDSP libraries
+  ======>Populate with all other relevant available JSFX functions
+  
+  remap
+  public static float Remap (this float value, float from1, float to1, float from2, float to2) {
+  return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
+  }
+  
+  
+  https://en.wikipedia.org/wiki/Intermediate_value_theorem
+  https://en.wikipedia.org/wiki/Image_(mathematics)
+  https://en.wikipedia.org/wiki/Maxima_and_minima
+  http://www.wikihow.com/Find-the-Maximum-or-Minimum-Value-of-a-Quadratic-Function-Easily
+  https://en.wikipedia.org/wiki/Limit_superior_and_limit_inferior
+  http://tutorial.math.lamar.edu/Classes/CalcI/MinMaxValues.aspx
+  http://classes.yale.edu/fractals/CalcTutorials/maxmin/maxmin.pdf
+  
+  linear weighted average   
+  Output = Target * Drive + Input * (1 - Drive);  Drive [0;1]
+  
+  Means ======>Populate
+  https://en.wikipedia.org/wiki/Weighted_arithmetic_mean
+  https://en.wikipedia.org/wiki/Average
+  
+  
+  
+  pseudo-log, pseudo-inverse log
+  http://www.maximintegrated.com/en/app-notes/index.mvp/id/838
+  https://en.wikipedia.org/wiki/Logarithm
+  
+  identity Target = Target ; (eg : for ideal digital half/full wave rectification. So you don't have to list that many algorithm, just call another transfer function)
+  
+  hardlim 
+  
+  
+  Compander
+  https://en.wikipedia.org/wiki/A-law_algorithm
+  
+  tanh   -> a1    = tanh(a1*kDrive)
+  sinc ->
+  
+   Rectify -> Populate
+   https://en.wikipedia.org/wiki/Rectifier
+  
+  Convolution
+  
+  Cross-Correlation
+  
+  
+  Limit sets : fixed point, periodic orbits, limit cycles, attractors
+  
+  Periodic Point
+  
+  convergence simple -> fDrive(x)=sin^Drive(x)
+  
+  Chebyshev_polynomials
+  https://en.wikipedia.org/wiki/Chebyshev_polynomials  
+  
+  Taylor polynomials
+  https://en.wikipedia.org/wiki/Taylor_series
+  https://en.wikipedia.org/wiki/Taylor%27s_theorem
+  
+  
+  
+  
+  
+  
+    
+    
+  Add, Mult, Dodge, Overlay (======>Populate with Photoshop Blending mode for a start)
+  
+  
+  modulation[TYPE_LIST]
+  demodulation[TYPE_LIST]
+  https://en.wikipedia.org/wiki/Demodulation
+  
+  
+  BoxCar, Rectangle, Tri, Step
+  
+  Sample-and-Hold
+  https://en.wikipedia.org/wiki/Sample_and_hold
+  https://en.wikipedia.org/wiki/Discrete-time_signal
+  https://en.wikipedia.org/wiki/Analog-to-digital_converter
+  
+  -> Continuous to Discrete, every given period, sample input and hold that value until next period.
+  Feed any function needing samples from input
+  Add non-linearities before reconstructing the Signal
+  Shape that wave, Model Capacitator Leakage or 
+  Probably useful for Hysteresis related functions as 'volatile memory'
+  Actually try applying some (rate-dependent) Hysteresis to see the kind of 'motion blur' you can output
+  And feedback that output to Hysteresis 'memory' (as of writing : not sure it even makes sense or if that's you were supposed to do anyway for the Hysteresis functions)
+  
+  
+  
+  
+  Enveloppe Detector -> Rectify, Peak Hold Input, Input > Peak  MAX ? store in Peak MAX else slow Smooth Release -Check Stillwell/AutoExpand (use transfer function and relevant target) to Set Peak MAX; Output = Peak MAX;
+  
+  Enveloppe Function, Beat Wave, Phase Velocity, Group Velocity
+  https://en.wikipedia.org/wiki/Envelope_(waves)  
+  the envelope function of an oscillating signal is a smooth curve outlining its extremes  
+  
+  Analytic Signal
+  https://en.wikipedia.org/wiki/Analytic_signal  
+ 
+  
+    
+  Root Mean Square
+  https://en.wikipedia.org/wiki/Root_mean_square
+  
+  Parametric Series with Parametric Interpolation -> Select a Period (time interval between terms) Input a 
+  made-up numbers sequence or sampled sequence from Audio(Amplitude, Freq, Phase, etc...) or Parameter Input,
+  Interpolate between terms using a specific Transfer Function for each period
+  -> If you figure a usable UI for 'made up sequence mode', write the function for 2 terms, 1 period,
+  1 Transfer Function and try Iteration, Recursion and Period Map
+  
+  Interpolation -> populate with what you can find listed and add a interpolation function using any selected Transfer Function
+  https://en.wikipedia.org/wiki/Interpolation
+  https://en.wikipedia.org/wiki/Linear_interpolation
+  
+  
+  Curve Fitting, Smoothing, Approximation
+  https://en.wikipedia.org/wiki/Curve_fitting
+  smooth functions -> 'C' as Drive
+  
+  Divergent series, Infi
+  
+  Series
+  https://en.wikipedia.org/w/index.php?title=Series_(mathematics)&redirect=no
+  
+  Feedback Pos/Neg/?
+  https://en.wikipedia.org/wiki/Positive_feedback#In_electronics
+  
+  Iteration pick a Transfer Function and Iterate
+  
+  Recursion (of any Transfer Function ?) 
+  https://en.wikipedia.org/wiki/Recursive_definition
+  https://en.wikipedia.org/wiki/Recursive_data_type
+  
+  
+  Fractal
+  https://en.wikipedia.org/wiki/Fractal
+  
+  Integrable Systems
+  https://en.wikipedia.org/wiki/Integrable_system#Exactly_solvable_models
+  
+  Non-Linear Systems
+  https://en.wikipedia.org/wiki/Nonlinear_system
+  https://en.wikipedia.org/wiki/Nonlinearity_(disambiguation)
+  
+  Soliton Pulse
+  
+  Resonance
+  https://en.wikipedia.org/wiki/Resonance
+  
+  https://en.wikipedia.org/wiki/Scotch_yoke
+  
+  -------> To check out later
+  Deformation  euler
+  Evanescent Wave
+  Moments  https://en.wikipedia.org/wiki/Moment_(mathematics)
+  
+  
+  
+OUTPUT
+Output Filter
+Same Filter Library to choose from as Input Filter 
+Limiter with Ceiling control and choice of Transfer Function
+
+GFX
+1 WaveShape previz per channel
+1 WaveShape previz per mix steps
+
+Boxes with explicit name and value for all channel and modules parameters
+
+X bigger slots with currently selected channel/module parameters
+*/
+
+
+desc: RaveShaper
+// graphFunction(x1, xN, sample_interval, function_ID, function_Param)
+slider1:-1<-1,1,0.01>x1
+slider2:1<-1,1,0.01>xN
+slider3:50<0,200,1>samples
+slider4:0<0,0,1{logTest}>transfer curve
+slider5:1<1,200,1>param
+
+
+
+slider63:0<0,4,1{hold, compute, draw, wipe}>ACTION
+slider64:2<0,6,1{Off, Waves&Meters, Graph, UI, Circuit Map, Memory Diagnostic }>Display Module
+
+//IMPORT CRITICAL STUFF FIRST - OUTDATED FILENAMES
+import z/z-helloMemoryManager.jsfx-inc
+import z/z-helloLog.jsfx-inc
+import z/z-transfer_F.jsfx-inc
+import z/z-helloGraph.jsfx-inc
+
+//import cookdsp.jsfx-inc
+//import adsr.jsfx-inc
+//import rc_filter.jsfx-inc
+//import zdf_filter.jsfx-inc
+//import sine_oscillator.jsfx-inc
+//import z-noise.jsfx-inc
+//import z-oscillator.jsfx-inc
+
+
+@init
+//MemoryManager
+memInit(100);
+@slider
+
+x1 = slider1;
+xN = slider2;
+sample_interval = (xN - x1) / slider3;
+function_ID = slider4;
+function_param = slider5;
+
+display_module = slider64;
+action = slider63;
+
+action == 1 ? //compute
+(
+graphFunction(x1, xN, sample_interval, function_ID, function_param);
+slider63 = 0;
+);
+
+action == 3 ? //wipe
+(
+memWipe();
+slider63 = 0;
+);
+
+@block
+
+/* helloLog
+log2db = 8.6858896380650365530225783783321; // 20 / ln(10)
+db2log = 0.11512925464970228420089957273422; // ln(10) / 20 
+
+gain_10expDBdiv20 = 10 ^ (slider1 / 20);
+gain_precalc = exp(slider1 * db2log);
+gain_precalc = 2.08136898 * log( slider1 ) * log2db;
+gain_2exp6 = 2 ^ (slider1 / 6);
+gain_6log2 = 6 / log(2);
+*/
+
+
+
+@sample
+gfx_clear = 130;
+
+@gfx 500 500
+display_module == 0 ? /* gfx_Off */ /////////////////////////////////////////////////////////////////
+  (
+  
+  gfx_x = 0; gfx_y = 0; 
+  gfx_drawstr("I have no idea what I'm doing");gfx_drawstr(" ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+  
+  
+  
+  ) : (
+  display_module == 1 ? /* gfx_Waves */ ///////////////////////////////////////////////////////////////// 
+    (
+    
+    gfx_x = 0; gfx_y = 490; 
+    gfx_drawstr("Waves&Meters");gfx_drawstr(" ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+    
+    
+      
+    ) : (
+      display_module == 2 ? /* gfx_Graph */ ///////////////////////////////////////////////////////////////// 
+      (
+      drawAxes(0,0.5,1);
+      
+      action == 2 ? //draw
+      (
+      drawFunction(drawAxes.bg_square);
+      drawDerivative(drawAxes.bg_square);
+      //slider63 = 0;
+      );
+      
+      gfx_x = 0; gfx_y = 490; 
+      Color(1,1,1);
+      gfx_drawstr("Graph");gfx_drawstr(" ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+      
+      ) : (
+        display_module == 3 ? /* gfx_UI */ ///////////////////////////////////////////////////////////////// 
+        (
+     
+        gfx_x = 0; gfx_y = 490; 
+        gfx_drawstr("UI");gfx_drawstr(" ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+        
+        ) : (
+          display_module == 4 ? /* gfx_Circuit */ ///////////////////////////////////////////////////////////////// 
+          (
+       
+          gfx_x = 0; gfx_y = 490; 
+          gfx_drawstr("Circuit Map");gfx_drawstr(" ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+        
+          ) : ( /* gfx_Memory Diagnostic */ ///////////////////////////////////////////////////////////////// 
+          
+          gfx_x = gfx_w / 2 - 50; gfx_y = gfx_h / 2; 
+          gfx_drawstr("WARNING");
+          gfx_x = gfx_w / 6 - 50;gfx_y += 20;
+          gfx_drawstr("some distortions are based on Analog Stateback Modelling of AIDS");
+          
+          memDiagnostic(30,40);
+        
+          );
+        );
+      
+      );
+    );
+
+
+);
+
+

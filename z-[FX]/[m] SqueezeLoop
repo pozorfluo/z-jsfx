@@ -1,0 +1,122 @@
+/*******************************************************************************
+*  2017 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                         *
+*******************************************************************************/
+
+desc:SqueezeLoop -- ADD FILTERS BETWEEN STAGES ?
+
+slider1:0<0,36,1>Input Gain (db)
+
+slider11:-96<-96,-6,1>Bias (db) 
+slider12:0<0,0.5,0.001>Bias (V)
+//slider21:0<0,9999,1>Squeeze
+slider21:-48<-48,-6,1>Squeeze Threshold (db)
+slider22:0<0,0.5,0.001>Squeeze Threshold (V)
+
+slider32:-96<-96,0,1>Squarify (db)
+slider33:0<0,0.5,0.001>Squarify (V)
+
+slider40:1<1,30,1>Stages
+
+slider41:0.999<0.1,1,0.001>DC Offset Removal f
+
+slider54:0<-24,24,1>Pre-Limiter Output Gain (db)
+
+slider64:1<0,1,1{Passthrough Stereo,Force Mono}>x
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+
+@init
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+itm1 = otm1 = 0;
+
+@slider
+
+gain_input = exp(slider1 * 0.11552453);
+gain_output = exp(slider54 * 0.11552453);
+
+stages = slider40;
+
+dcoffset_factor = slider41; //whatever
+
+//transfer_squeeze = slider21 / 10000;
+slider21 == -48 ?
+  (
+  transfer_squeeze = 0;
+  ):(
+  transfer_squeeze = exp(slider21 * 0.11552453);
+  );
+transfer_squeeze += slider22;
+
+//transfer_square_drive = slider32 / 100;
+
+slider32 == -96 ?
+  (
+  transfer_square_drive = 0;
+  ):(
+  transfer_square_drive = exp(slider32 * 0.11552453);
+  );
+transfer_square_drive += slider33;
+
+
+force_mono = slider64;
+
+//bias = slider11;
+
+slider11 == -96 ?
+  (
+  bias = 0;
+  ):(
+  bias = exp(slider11 * 0.11552453);
+  );
+bias += slider12 ;
+
+@sample  
+
+loop(stages,
+//|||||||||||||||||||||||||||||INPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_input;
+
+spl0_dry = spl0;
+
+
+//|||||||||||||||||||||||||||||BIAS|||||||||||||||||||||||||||||
+spl0 += bias;
+
+//|||||||||||||||||||||||||||||SQUEEZE N SQUARE|||||||||||||||||||||||||||||
+
+transfer_square_spl0 = sign(spl0); //Boom Square
+
+//spl0 * transfer_square_spl0 > transfer_squeeze ?
+abs(spl0) > transfer_squeeze ?
+  (
+  spl0 = transfer_square_spl0 * transfer_square_drive + spl0 * (1 - transfer_square_drive); //SQUARED !!
+  ) : (
+  spl0 = 0; //SQUEEZED !!
+  );
+//|||||||||||||||||||||||||||||OUTPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_output;
+
+//|||||||||||||||||||||||||||||SOFT LIMITER||||||||||||||||||||||||||||
+//is_softlimiter_on ?
+//  (
+  spl0 = tanH(spl0, 1);
+//  );
+
+
+); // END LOOP
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL||||||||||||||||||||||||||||| 
+otm1 = dcoffset_factor * otm1 + spl0 - itm1; itm1 = spl0; spl0 = otm1;
+//|||||||||||||||||||||||||||||PASSTHROUGH STEREO|||||||||||||||||||||||||||||
+force_mono ? spl1 = spl0;

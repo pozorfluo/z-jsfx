@@ -1,0 +1,481 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: MilleFuzz
+
+slider1:0<0,36,1>Input Gain (db)
+
+slider5:0<0,3,1{OFF,Dry-Wet,Fuzz-Dry-Mod,Dry-Fuzz-Mod,Dry-Mod-Fuzz}>Tremolo mode
+slider6:0<0,3,1{sine,triangle,saw,square}>Tremolo shape
+slider7:0<0,7,1{Free,Whole,Half,Quarter,Eighth,Sixteenth, Thirty-Second, Sixty-Fourth}>Tremolo Timing
+slider8:440<0.1,24000,1>Tremolo Free Speed Coarse (Hz) 
+//0<0,1000,1>
+slider9:0.1<0.001,10,0.001>Tremolo Free Speed Fine (Hz)
+slider10:100<0,100,1>Tremolo Depth
+
+//Fold 
+slider15:0<0,1,0.001>RECTIFY --------------------------------
+slider19:20000<5,20000,1>LP (Hz)
+//Tanh
+slider21:0<0,0.1,0.001>Bias (V)
+slider22:0<0,99,1>CLIPPING ME SOFTLY ----------
+slider29:20000<5,20000,1>LP (Hz)
+
+//Square
+slider31:0<0,1,0.00001>Bias (V)
+slider32:0<0,100,1>SQUARED FOR LIFE -------------
+slider39:20000<5,20000,1>LP (Hz)
+
+//Pulse
+slider41:0<0,1,0.001>Bias (V)
+slider42:0<0,2,1{OFF,ON}>Internal Osc ?
+slider43:440<0.1,24000,1>Internal Osc Frequency (Hz)
+slider44:100<-100,100,1>Fuzz Mix
+slider45:0<-100,100,1>Square Mix
+slider46:0<-100,100,1>Saw Mix
+slider47:0<-100,100,1>Triangle Mix
+slider48:0<-100,100,1>Sine Mix
+
+slider49:20000<5,20000,1>LP (Hz)
+
+//slider50:0<0,1,1>DEBUG
+
+slider54:0<-100,100,1>Dry Mod
+slider55:0<-100,100,1>Square Mod
+slider56:0<-100,100,1>Saw Mod
+slider57:0<-100,100,1>Triangle Mod
+slider58:0<-100,100,1>Sine Mod
+
+slider59:20000<5,20000,1>LP (Hz)
+
+slider60:0<0,3,1{Passthrough Stereo, Force Mono}>x
+slider61:0<-100,100,1>Feedback Coarse
+slider62:0<-1,1,0.00001>Feedback Fine
+slider63:10<1,100,1>Feedback Depth
+slider64:0<-24,24,1>Pre-Limiter Output Gain (db)
+
+
+
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-Strings.jsfx-inc
+import z/z-ListManager.jsfx-inc
+import z/z-Oversampler.jsfx-inc
+import z/z-Complex.jsfx-inc
+import z/z-MathFunctions.jsfx-inc
+import z/z-TaylorApproximations.jsfx-inc
+import z/z-Integrals.jsfx-inc
+import z/z-Differentials.jsfx-inc
+import z/z-Transforms.jsfx-inc
+import z/z-Matrices.jsfx-inc
+import z/z-StochasticProcesses.jsfx-inc
+import z/z-Utilities.jsfx-inc 
+import z/z-Windows.jsfx-inc
+import z/z-Analysis.jsfx-inc
+import z/z-Graph.jsfx-inc
+import z/z-Hysteresis.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Electronics.jsfx-inc
+import z/z-Filters.jsfx-inc
+import z/z-NoiseGenerators.jsfx-inc
+import z/z-Oscillators.jsfx-inc
+import z/z-Resonators.jsfx-inc
+import z/z-Midi.jsfx-inc
+import z/z-DynamicProcessors.jsfx-inc
+import z/z-Mouse.jsfx-inc
+
+@init
+ext_noinit = 1;
+//Init MemoryManager
+memInit(100);
+
+
+memWipe();
+feedback_depth = slider63;
+spl_0.feedback = memAlloc(100, "feedback spl0");
+  
+rc_fold = 1 / (2 * $pi * slider19); // rc filter Smoothing coefficient
+rc_a_fold = 1 / (rc_fold * srate + 1);
+
+rc_tanh = 1 / (2 * $pi * slider29); // rc filter Smoothing coefficient
+rc_a_tanh = 1 / (rc_tanh * srate + 1);
+
+rc_square = 1 / (2 * $pi * slider39); // rc filter Smoothing coefficient
+rc_a_square = 1 / (rc_square * srate + 1);
+
+rc_pulse = 1 / (2 * $pi * slider49); // rc filter Smoothing coefficient
+rc_a_pulse = 1 / (rc_pulse * srate + 1);
+
+rc_mod = 1 / (2 * $pi * slider59); // rc filter Smoothing coefficient
+rc_a_mod = 1 / (rc_mod * srate + 1);
+
+
+//|||||||||||||||||||||||||||||TREMOLO|||||||||||||||||||||||||||||
+tremolo.mode = slider5;
+tremolo.shape = slider6;
+slider7 == 0 ?
+  (
+  tremolo.frequency_cw = 2 * $pi * (slider8 + slider9) / srate;
+  ):(
+  /*
+  whole           1 /4
+  half            2 /2
+  quarter         3 x1
+  eighth          4 x2
+  sixteenth       5 x4
+  thirty-second   6 x8
+  Sixty-fourth    7 x16
+  
+  ==>> 2^(slider7 - 3)
+  */
+  locked_frequency = 1 / (tempo / (2 ^ (slider7 - 3))) * 60;
+  tremolo.frequency_cw = 2 * $pi * locked_frequency / srate;
+  );
+tremolo.depth = slider10 / 100;
+tremolo.phase = 0;  //TODO [] SYNC W BEAT / RESET PHASE
+
+// Low-pass
+
+function rc_lp(s, a)
+  instance(lp)
+(
+  lp += a * (s - lp);
+);
+
+ceiling_fold = 1;
+excursion = 0.1;
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+itm1 = otm1 = 0;
+
+@slider
+feedback_depth = slider63;
+//feedback_depth != slider63;
+//(
+//spl_0.feedback_index = 0;
+//);
+
+internal_osc = slider42;
+adj = 2 * $pi * slider43 / srate;
+//internal.frequency_cw = 2 * $pi * slider43 / srate;
+
+//|||||||||||||||||||||||||||||TREMOLO|||||||||||||||||||||||||||||
+tremolo.mode = slider5;
+tremolo.shape = slider6;
+slider7 == 0 ?
+  (
+  tremolo.frequency_cw = 2 * $pi * (slider8 + slider9) / srate;
+  ):(
+  /*
+  whole           1 /4
+  half            2 /2
+  quarter         3 x1
+  eighth          4 x2
+  sixteenth       5 x4
+  thirty-second   6 x8
+  Sixty-fourth    7 x16
+  
+  ==>> 2^(slider7 - 3)
+  */
+  locked_frequency = 1 / (tempo / (2 ^ (slider7 - 3))) * 60;
+  tremolo.frequency_cw = 2 * $pi * locked_frequency / srate;
+  );
+tremolo.depth = slider10 / 100;
+//tremolo.phase = 0;
+
+bias_fold = slider15;
+bias_tanh = slider21;
+bias_square = slider31;
+pos = bias_pulse = slider41;
+drive_fold = exp(slider12 * 0.11552453);
+
+ceiling_tanh = 1 / ((100 - slider22) / 100); //Leave it like this -> non-linear, 50 yelds 2, max yelds 100
+transfer_square_drive = slider32 / 100;
+
+rc_fold = 1 / (2 * $pi * slider19); // rc filter Smoothing coefficient
+rc_a_fold = 1 / (rc_fold * srate + 1);
+
+rc_tanh = 1 / (2 * $pi * slider29); // rc filter Smoothing coefficient
+rc_a_tanh = 1 / (rc_tanh * srate + 1);
+
+rc_square = 1 / (2 * $pi * slider39); // rc filter Smoothing coefficient
+rc_a_square = 1 / (rc_square * srate + 1);
+
+rc_pulse = 1 / (2 * $pi * slider49); // rc filter Smoothing coefficient
+rc_a_pulse = 1 / (rc_pulse * srate + 1);
+
+rc_mod = 1 / (2 * $pi * slider59); // rc filter Smoothing coefficient
+rc_a_mod = 1 / (rc_mod * srate + 1);
+
+mix_input = slider44 / 100;
+mix_square = slider45 / 100;
+mix_saw = slider46 / 100;
+mix_triangle = slider47 / 100;
+mix_sine = slider48 / 100;
+
+mix_ratio = abs(mix_input) + abs(mix_square) + abs(mix_saw) + abs(mix_triangle) + abs(mix_sine);
+
+
+mod_input = slider54 / 100;
+mod_square = slider55 / 100;
+mod_saw = slider56 / 100;
+mod_triangle = slider57 / 100;
+mod_sine = slider58 / 100;
+
+mix_feedback = (slider61 + slider62) / 100;
+
+gain_input = exp(slider1 * 0.11552453);
+gain_output = exp(slider64 * 0.11552453);
+
+is_feedback_on = abs(mix_feedback);
+is_rectify_on = bias_fold;
+is_tanh_on = bias_tanh + slider22;
+is_square_on = bias_square + transfer_square_drive;
+is_pdsynth_on = internal_osc + abs(mix_square) + abs(mix_saw) + abs(mix_triangle) + abs(mix_sine) + abs(mod_input) + abs(mod_square) + abs(mod_saw) + abs(mod_triangle) + abs(mod_sine); 
+is_softlimiter_on = is_feedback_on + is_rectify_on + is_tanh_on + is_square_on + is_pdsynth_on;
+
+force_mono = slider60;
+@block
+
+@sample
+//DEBUG
+/*
+(is_feedback_on + is_rectify_on + is_tanh_on + is_square_on + is_pdsynth_on + is_softlimiter_on) ?
+  (
+  slider50 = 1;
+  ):(
+  slider50 = 0;
+  );
+*/
+//|||||||||||||||||||||||||||||OUTPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_input;
+spl1 *= gain_input;
+
+spl0_dry = spl0;
+spl1_dry = spl1;
+
+//|||||||||||||||||||||||||||||Feedback|||||||||||||||||||||||||||||
+is_feedback_on ?
+  (
+  f = 0;
+  moop = ceil(spl0 * feedback_depth);
+  
+  loop(moop,
+    //spl0
+    index = spl_0.feedback_index - f;
+    
+    index < 0 ?
+      (
+      index = feedback_depth - index;    
+      );
+    
+    spl0 += spl_0.feedback[index] * mix_feedback;
+    spl0 /= 1 + abs(mix_feedback);
+        
+    f +=1;
+    );
+  );  
+spl_0.feedback_index += 1;
+
+//|||||||||||||||||||||||||||||RECTIFY - Fold Clip|||||||||||||||||||||||||||||
+is_rectify_on ?
+  (
+  spl0 += bias_fold;
+
+  spl0 = foldExClip(spl0, ceiling_fold, excursion);
+  
+  //LP FILTER
+  spl0 = spl0_fold.rc_lp(spl0, rc_a_fold);  
+  
+  //|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+  otm1 = 0.999 * otm1 + spl0 - itm1; itm1 = spl0; spl0 = otm1;
+  
+  );
+
+//|||||||||||||||||||||||||||||Tanh Clip|||||||||||||||||||||||||||||
+is_tanh_on ?
+  ( 
+  spl0 += bias_tanh;
+  
+  spl0 = tanh(spl0, ceiling_tanh);
+
+  //LP FILTER
+  spl0 = spl0_tanh.rc_lp(spl0, rc_a_tanh);  
+  );
+//|||||||||||||||||||||||||||||Square Clip|||||||||||||||||||||||||||||
+is_square_on ?
+  (
+  spl0 += bias_square;
+
+  transfer_square_spl0 = sign(spl0); //Boom Square
+  spl0 = transfer_square_spl0 * transfer_square_drive + spl0 * (1 - transfer_square_drive);
+
+  //LP FILTER
+  spl0 = spl0_square.rc_lp(spl0, rc_a_square);  
+  );
+
+spl0_fuzz = spl0;
+
+//|||||||||||||||||||||||||||||PHASE DISTORTION SYNTHESIS||||||||||||||||||||||||||||
+//mod_pos = remap(abs(spl0_dry), 0, 1, 0,  2 * $pi );
+
+is_pdsynth_on ?
+(
+//|||||||spl0
+
+mod_pos_spl0 = (spl0_fuzz + 1) * $pi;
+//Saw
+saw_spl0 = 1 - (pos + mod_pos_spl0) / $pi;
+
+//Triangle
+triangle_spl0 = 2 * (pos + mod_pos_spl0) / $pi - 1;
+(triangle_spl0 > 1) ? triangle_spl0 = 2 - triangle_spl0;
+
+//Sine
+sine_spl0 = cos(pos + mod_pos_spl0);
+
+//Square
+square_spl0 = 2 * (pos + mod_pos_spl0) / $pi - 1;
+(square_spl0 > 1) ? square_spl0 = 2 - square_spl0;
+square_spl0 = sign(square_spl0);
+
+
+////////////////////// REG MIX <<----------------
+//pulse_train = spl0_fuzz * mix_input + pulse_train_square * mix_square + pulse_train_saw * mix_saw + pulse_train_triangle * mix_triangle + pulse_train_sine * mix_sine; 
+pd_spl0 = spl0_fuzz * mix_input + square_spl0 * mix_square + saw_spl0 * mix_saw + triangle_spl0 * mix_triangle + sine_spl0 * mix_sine; 
+
+spl0 = pd_spl0 / mix_ratio;
+
+
+//LP FILTER
+spl0 = spl0_pulse.rc_lp(spl0, rc_a_pulse);  
+
+ 
+////////////////////// AMPLITUDE MODULATION MIX <<----------------
+spl0 = spl0 * (1 - mod_input * spl0_dry) * (1 - mod_square * square_spl0) * (1 - mod_sine * sine_spl0) * (1 - mod_saw * saw_spl0) * (1 - mod_triangle * triangle_spl0);
+
+//LP FILTER
+spl0 = spl0_mod.rc_lp(spl0, rc_a_mod);  
+
+spl0_mod = spl0;
+);
+
+//|||||||||||||||||||||||||||||FEEDBACK||||||||||||||||||||||||||||
+spl_0.feedback_index >= feedback_depth ? spl_0.feedback_index = 0; //wrap around
+spl_0.feedback[spl_0.feedback_index] = spl0;
+
+//|||||||||||||||||||||||||||||TREMOLO||||||||||||||||||||||||||||
+tremolo.shape == 0 ? ( tremolo.Sine();
+):(
+tremolo.shape == 1 ? ( tremolo.Triangle();
+):(
+tremolo.shape == 2 ? ( tremolo.Sawtooth();
+):(
+                       tremolo.Square();
+);););
+
+tremolo.mode != 0 ? //OFF
+  (
+  tremolo.mode == 1 ? ( //DRY-WET
+    spl0 = spl0_mod * (tremolo.amplitude * tremolo.depth) + spl0_dry * (1 - (tremolo.amplitude * tremolo.depth));
+  ):(
+  tremolo.mode == 2 ? ( //FUZZ-DRY-MOD
+    tremolo.amplitude > 0 ?
+      (
+      trem_amp = abs(tremolo.amplitude);
+      spl0 = spl0_fuzz * (trem_amp * tremolo.depth) + spl0_dry * (1 - (trem_amp * tremolo.depth));
+      ):(
+      trem_amp = abs(tremolo.amplitude);
+      spl0 = spl0_mod * (trem_amp * tremolo.depth) + spl0_dry * (1 - (trem_amp * tremolo.depth));
+      );
+  ):(
+  tremolo.mode == 3 ? ( //DRY-FUZZ-MOD
+    tremolo.amplitude > 0 ?
+      (
+      trem_amp = abs(tremolo.amplitude);
+      spl0 = spl0_dry * (trem_amp * tremolo.depth) + spl0_fuzz * (1 - (trem_amp * tremolo.depth));
+      ):(
+      trem_amp = abs(tremolo.amplitude);
+      spl0 = spl0_mod * (trem_amp * tremolo.depth) + spl0_fuzz * (1 - (trem_amp * tremolo.depth));
+      );
+    
+  ):(                   //DRY-MOD-FUZZ
+    tremolo.amplitude > 0 ?
+      (
+      trem_amp = abs(tremolo.amplitude);
+      spl0 = spl0_dry * (trem_amp * tremolo.depth) + spl0_mod * (1 - (trem_amp * tremolo.depth));
+      ):(
+      trem_amp = abs(tremolo.amplitude);
+      spl0 = spl0_fuzz * (trem_amp * tremolo.depth) + spl0_mod * (1 - (trem_amp * tremolo.depth));
+      );
+  );););
+  );
+//|||||||||||||||||||||||||||||PHASOR||||||||||||||||||||||||||||
+tremolo.clockPhaseAcc();
+
+internal_osc ?
+  (  
+  pos = pos + adj;
+  (pos >= 2 * $pi) ? pos -= 2 * $pi;
+  ):(
+  pos = 0;
+  );
+  
+//|||||||||||||||||||||||||||||OUTPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_output;
+
+//|||||||||||||||||||||||||||||SOFT LIMITER||||||||||||||||||||||||||||
+is_softlimiter_on ?
+  (
+  spl0 = tanH(spl0, 1);
+  );
+
+force_mono ? spl1 = spl0;
+/****************************GFX********************************
+****************************************************************/
+
+//@gfx 500 500
+/*
+fillScreen(0.15, 0.04, 0.03);
+
+
+setColor(0.5, 0.1, 0);
+memDiagnostic(30, 40);
+
+//Draw Baseline
+setColor(1, 0.1, 0.1);
+gfx_x = 0; gfx_y = gfx_h / 2;
+gfx_lineto(gfx_w , gfx_y, 0);
+
+//INPUT
+setColor(1, 0.3, 0.1);
+gfx_x = 0; gfx_y = gfx_h / 2;
+x_step_size = gfx_w / feedback_depth; 
+k = 0;
+
+loop(feedback_depth,
+  index = spl_0.feedback_index + k;
+  
+  index > feedback_depth ?
+    (
+    index -= feedback_depth;    
+    );
+  gfx_lineto(x_step_size * k , gfx_h / 2 + (gfx_h - 20) / 2 * spl_0.feedback[index], 0);
+  k +=1;
+  );
+*/
+///////////////////////////DUMP
+
+

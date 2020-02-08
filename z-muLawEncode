@@ -1,0 +1,154 @@
+/*******************************************************************************
+*  2018 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:muLaw Encode - Compander
+
+options:gmem=muLawNetwork
+
+/* TODO []
+
+
+
+*/
+slider1:255<1,1023,1>mu  μ spl0
+slider2:255<1,1023,1>mu  μ spl1
+slider3:0<-255,255,1>mu LR offset
+slider4:0<-255,255,1>mu Network offset
+slider10:0<-36,36,1>Input Gain (db)
+slider11:0<0,1,1{off,on}>Soft Limit Input
+slider20:1<1,64,1>Network ID
+slider21:0<0,1,1{off,on}>Network 
+slider22:255<1,1023,1>Network mu
+slider23:255<1,1023,1>Set Network mu
+//IMPORT CRITICAL STUFF FIRST - IF THERE IS A CONFLICT IMPORT FROM INSIDE THE LIBRARY ?
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-ListManager.jsfx-inc
+import z/z-Oversampler.jsfx-inc
+import z/z-MathFunctions.jsfx-inc
+import z/z-TaylorApproximations.jsfx-inc
+import z/z-Integrals.jsfx-inc
+import z/z-Differentials.jsfx-inc
+import z/z-Transforms.jsfx-inc
+import z/z-Matrices.jsfx-inc
+import z/z-StochasticProcesses.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-Windows.jsfx-inc
+import z/z-Analysis.jsfx-inc
+import z/z-Graph.jsfx-inc
+import z/z-Hysteresis.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Filters.jsfx-inc
+import z/z-NoiseGenerators.jsfx-inc
+import z/z-Oscillators.jsfx-inc
+import z/z-Resonators.jsfx-inc
+import z/z-Midi.jsfx-inc
+import z/z-DynamicProcessors.jsfx-inc
+
+//OBSERVER, ANALYSER, INTEGRER, RESTITUER
+//import cookdsp_0.2_2015-05-12/cookdsp.jsfx-inc
+//import tale/adsr.jsfx-inc
+//import tale/array.jsfx-inc 
+//import tale/lfo.jsfx-inc 
+//import tale/malloc.jsfx-inc 
+//import tale/midi_queue.jsfx-inc 
+//import tale/noise_generator.jsfx-inc 
+//import tale/oversampler.jsfx-inc 
+//import tale/poly_blep.jsfx-inc
+//import tale/rbj_filter.jsfx-inc
+//import tale/rc_filter.jsfx-inc
+//import tale/sine_oscillator.jsfx-inc
+//import tale/zdf_filter.jsfx-inc
+
+
+/*******************************************************************************/
+@init
+ext_nodenorm = 1;
+previously_set_network_mu = slider23;
+/*******************************************************************************/
+@slider
+
+network_id = slider20;
+//spl0_network_id = slider20 + 64;
+//spl1_network_id = slider20 + 128;
+is_network_on = slider21;
+
+
+network_offset = slider4;
+LR_offset = slider3;
+
+//network_mu = slider22;
+is_network_on ?
+(
+  network_mu != previously_set_network_mu ?
+  (
+    gmem[network_id] = slider23;
+    previously_set_network_mu = slider23;
+  );
+  spl_0_mu = max(1, gmem[network_id] + network_offset);
+  spl_1_mu = max(1,  spl_0_mu + LR_offset );
+):(
+  spl_0_mu = slider1;
+  spl_1_mu = slider2;
+);
+
+spl_0.muLawEncode_init(spl_0_mu);
+spl_1.muLawEncode_init(spl_1_mu);
+
+
+gain_input = exp(slider10 * 0.11552453);
+is_softlimiter_on = slider11;
+/*******************************************************************************/
+@block
+slider22 = gmem[network_id];
+
+is_network_on ?
+(
+  spl_0_mu = max(1, gmem[network_id] + network_offset);
+  spl_1_mu = max(1,  spl_0_mu + LR_offset );
+  spl_0.muLawEncode_init(spl_0_mu);
+  spl_1.muLawEncode_init(spl_1_mu);
+);
+/*******************************************************************************/
+@sample
+gmem[spl0_network_id] = spl0;
+gmem[spl1_network_id] = spl1;
+
+spl0 *= gain_input;
+spl1 *= gain_input;
+
+//|||||||||||||||||||||||||||||INPUT SOFT LIMITER||||||||||||||||||||||||||||
+is_softlimiter_on ?
+(
+  spl0 = tanH(spl0);
+  spl1 = tanH(spl1);
+);
+  
+
+//gmem[spl0_network_id] = spl0;
+//gmem[spl1_network_id] = spl1;
+spl2 = spl0;
+spl3 = spl1;
+
+spl0 = spl_0.muLawEncode(spl0);
+spl1 = spl_1.muLawEncode(spl1);
+/*******************************************************************************/
+
+
+
+
+
+
+

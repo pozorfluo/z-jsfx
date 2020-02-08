@@ -1,0 +1,67 @@
+/*******************************************************************************
+*  2016 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*       License: GPL - http://www.gnu.org/licenses/gpl.html                    *
+********************************************************************************
+
+desc:MIDI Route Channel to Bus
+
+
+slider1:0<0,15,1{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>Input Channel - A
+slider2:0<0,15,1{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>Output Bus - A
+slider11:0<0,15,1{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>Input Channel - B
+slider12:0<0,15,1{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>Output Bus - B
+
+// these lines tell Reaper the effect has no audio input/output,
+// which enables processing optimizations.
+// MIDI-only FX should always have these lines.
+in_pin:none
+out_pin:none
+
+
+@init
+
+/*******************************************************************
+  loNibble
+  -----
+     
+ https://en.wikipedia.org/wiki/Nibble
+  
+
+*******************************************************************/
+function loNibble(octet)
+  ( 
+  octet & $x0F;
+  );
+
+ext_midi_bus = 1; // causes midi_bus to be used for send/recv and midirecv() receives on all buses
+
+@slider
+midi.input_channel_a = slider1;
+midi.output_bus_a = slider2;
+midi.input_channel_b = slider11;
+midi.output_bus_b = slider12;
+
+
+@block
+
+while(midirecv(midi.offset, midi.channel, midi.cc, midi.vel)) 
+  (
+  debug_channel = loNibble(midi.channel);
+  loNibble(midi.channel) == midi.input_channel_a ? ( midi_bus = midi.output_bus_a;
+    ):(
+  loNibble(midi.channel) == midi.input_channel_b ? ( midi_bus = midi.output_bus_b;
+    ););
+    
+  midisend(midi.offset, midi.channel, midi.cc, midi.vel);
+  );
+
+

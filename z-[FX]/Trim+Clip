@@ -1,0 +1,45 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*       License: GPL - http://www.gnu.org/licenses/gpl.html                    *
+********************************************************************************
+desc: Trim + Clip (dB)
+slider1:0<-36,6,0.1>Trim
+slider2:0<-36,24,1>Clip
+//slider5:0<0,1,1{-,WARNING}>....................
+
+
+@init
+//slider5 = 0; sliderchange(slider5);
+//peak = 0;
+
+@slider
+  //2 ^ (slider1/6);
+  trim = exp(slider1 * 0.11552453);
+  clip = exp(slider2 * 0.11552453);
+
+@block
+/*
+peak > clip ? 
+  (
+  slider5 = 1; sliderchange(slider5);
+  );
+*/
+
+@sample
+//spl0 *= trim;
+//spl1 *= trim;
+//peak = max(peak, max(abs(spl0), abs(spl1)));
+
+spl0 = min(max(spl0 * trim, -clip), clip);
+spl1 = min(max(spl1 * trim, -clip), clip);
+
+

@@ -1,0 +1,1334 @@
+desc:ReCall 4352
+
+//Sliders are not gonna work to store recalls
+slider1:/z_ReCall:none: Mapping File
+slider2:/z_ReCall/display:none:Display Overlays Definitions File
+slider3:1<0,1,1{Nope,ReCall Now}>-ReCall Now ?
+
+
+//slider64:0<-96,0,0.01>Dummy Knob
+
+// these lines tell Reaper the effect has no audio input/output,
+// which enables processing optimizations.
+// MIDI-only FX should always have these lines.
+in_pin:none
+out_pin:none
+
+//filename:0,z_ReCall/display_types.txt 
+
+//IMPORT CRITICAL STUFF FIRST - IF THERE IS A CONFLICT IMPORT FROM INSIDE THE LIBRARY ?
+
+//Actually Needed
+import z/z-MemoryManager.jsfx-inc
+import z/z-Strings.jsfx-inc
+
+//Trim when Done
+import z/z-ListManager.jsfx-inc
+import z/z-Oversampler.jsfx-inc
+import z/z-Complex.jsfx-inc
+import z/z-MathFunctions.jsfx-inc
+import z/z-TaylorApproximations.jsfx-inc
+import z/z-Integrals.jsfx-inc
+import z/z-Differentials.jsfx-inc
+import z/z-Transforms.jsfx-inc
+import z/z-Matrices.jsfx-inc
+import z/z-StochasticProcesses.jsfx-inc
+import z/z-Utilities.jsfx-inc 
+import z/z-Windows.jsfx-inc
+import z/z-Analysis.jsfx-inc
+import z/z-Graph.jsfx-inc
+import z/z-Hysteresis.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Electronics.jsfx-inc
+import z/z-Filters.jsfx-inc
+import z/z-NoiseGenerators.jsfx-inc
+import z/z-Oscillators.jsfx-inc
+import z/z-Resonators.jsfx-inc
+import z/z-Midi.jsfx-inc
+import z/z-DynamicProcessors.jsfx-inc
+import z/z-Mouse.jsfx-inc
+
+
+
+//OBSERVER, ANALYSER, INTEGRER, RESTITUER
+//import cookdsp_0.2_2015-05-12/cookdsp.jsfx-inc
+//import tale/adsr.jsfx-inc
+//import tale/array.jsfx-inc 
+//import tale/lfo.jsfx-inc 
+//import tale/malloc.jsfx-inc 
+//import tale/midi_queue.jsfx-inc 
+//import tale/noise_generator.jsfx-inc 
+//import tale/oversampler.jsfx-inc 
+//import tale/poly_blep.jsfx-inc
+//import tale/rbj_filter.jsfx-inc
+//import tale/rc_filter.jsfx-inc
+//import tale/sine_oscillator.jsfx-inc
+//import tale/zdf_filter.jsfx-inc
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ init @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ init @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ init @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@init
+ext_noinit = 1; // Do not execute @init on playback start/stop
+
+/* you should not clear any variables saved/loaded by @serialize in @init, 
+as sometimes @init will be called following @serialize. */
+
+//Init MemoryManager
+//CAREFUL WITH SERIALIZE and having memInit() in @init
+memInit(100); //trim down mem size when done 
+
+//recall_file = -1;
+
+
+knobs = 17;
+pages = 8;
+modes = 8;
+characters_per_name = 8;
+
+current.mode = current.page = 1; 
+current.knob = 0;
+current.offset = modes + pages * modes;
+
+
+/*******************************************************************
+  reCall_init     
+  --------
+*******************************************************************/
+function reCall_init(size)
+  local(b, cc, channel)
+  (
+  this.file = -1;
+  this.size = size;
+  #this.all_names = "";
+  #this.tmp = "";
+  
+  this.value = memAlloc(this.size, "reCall.value"); //default/current value
+  this.cc = memAlloc(this.size, "reCall.cc"); //output cc
+  this.channel = memAlloc(this.size, "reCall.channel"); //output channel
+  this.steps = memAlloc(this.size, "reCall.steps"); //number of steps (more uses and precision than speed multiplier and can go above 127 ??!! if you ever find a way to use it)
+  this.color = memAlloc(this.size, "reCall.color"); //knob color
+  this.display = memAlloc(this.size, "reCall.display"); //knob color
+  
+  
+  
+  //fill reCall with default mapping - ONLY READ CUSTOM CHANGES FROM FILE  
+  b = 0;
+  cc = 0;
+  channel = 0;
+  
+  while (b < this.size)
+    (    
+    b < modes ? //MODES---------------------------------------------------------------------------------------------------
+      (           
+      sprintf(#this.tmp, "M %i", b);
+      stringPad(#this.tmp, " ", characters_per_name); //Add filler spaces to name if necessary
+      strcat(#this.all_names, #this.tmp); //append name to all_names list
+      
+      this.value[b] = 1; //fill with preferred/last page for modes
+      this.color[b] = colorPackRGB(102, 0, 255);  
+      ):(
+      
+      b < (modes + modes * pages) ? //PAGES-------------------------------------------------------------------------------
+        (
+        sprintf(#this.tmp, "P %i", b);
+        stringPad(#this.tmp, " ", characters_per_name); //Add filler spaces to name if necessary
+        strcat(#this.all_names, #this.tmp); //append name to all_names list
+        
+        this.value[b] = b; //fill with preferred/last page for modes
+        this.color[b] = colorPackRGB(rand(255), 255, rand(128));
+        
+        ):( //KNOBS-------------------------------------------------------------------------------------------------------
+        
+        sprintf(#this.tmp, "K %i", b);
+        stringPad(#this.tmp, " ", characters_per_name); //Add filler spaces to name if necessary
+        strcat(#this.all_names, #this.tmp); //append name to all_names list
+        
+        this.cc[b] = cc;
+        this.channel[b] = channel;
+        
+        //go through CC and channels
+        cc < 127 ? 
+        (
+        cc += 1;
+        ):(
+        cc = 0;
+        channel += 1;      
+        );       
+        
+        this.steps[b] = 2; //SOMETIMES YOU COUNT STEPS, SOMETIMES LIKE YOU CONFUSE IT WITH MAX_VALUE. PICK ONE DEFINITION AND STICK WITH IT
+        //this.value[b] = this.steps[b] / 2; //fill with default value for Knobs
+        this.value[b] = (this.steps[b] + 1) >> 1; //fill with default value for Knobs
+        this.color[b] = colorPackRGB(255 - 16 * ((this.channel[b] + 1) / 8 * 16) , rand(this.cc[b]) + this.cc[b] ,16 * ((this.channel[b] + 1) / 8 * 16));
+        
+        this.display[b] = 1000 + rand(23) >> 1;
+        
+        );
+        
+      );      
+    
+     b += 1;
+    );
+  //reCall.now = 0;
+  this.error = 1; //1 -> OK ; 0 -> error during reCall midisend
+  );
+
+/*******************************************************************
+  reCall_loadMapping     
+  --------
+*******************************************************************/  
+function reCall_loadMapping(mapping)
+  local(file_handle, load.mode, load.page, load.knob, load.offset, load.character_offset, load.index, load.color, load.steps, load.value, load.type)
+  (
+    
+  #this.load.line = "";
+  #this.load.name = "";
+  
+  
+  file_handle = file_open(mapping);
+  
+  this.debug_file_avail_count = 0; //DEBUG
+  
+  while(file_avail(file_handle))
+    (
+    file_string(file_handle, #this.load.line);
+    stringTrim(#this.load.line);
+    
+    this.debug_file_avail_count += 1; //DEBUG
+    
+    //knob=01____FF11FF____KNOBBY 1____steps=008____default=004____type=004
+    
+    match("*mode=%d____%6X____%s", #this.load.line, load.mode, load.color, #this.load.name) ? //MODES---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      (
+      stringPad(#this.load.name, " ", characters_per_name);      
+            
+      load.index = (load.mode - 1) * characters_per_name; //index for #this.all_names
+      load.character_offset = 0; 
+      
+      load.offset = load.mode - 1; //index for all non-string tables
+      
+      //write name in #this.all_names
+      loop 
+        (characters_per_name,    
+        str_setchar(#this.all_names, load.index + load.character_offset, str_getchar(#this.load.name, load.character_offset));
+        load.character_offset += 1;
+        );
+      
+      load.color ? this.color[load.offset] = load.color; //Basically ==> 000000 keeps default init color 
+      
+      );
+    
+    match("*page=%d____%6X____%s", #this.load.line, load.page, load.color, #this.load.name) ? //PAGES--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      (
+      stringPad(#this.load.name, " ", characters_per_name);    
+      load.character_offset = 0;
+      load.index = (modes * characters_per_name) + ((load.mode - 1) * pages * characters_per_name) + ((load.page - 1) * characters_per_name);
+      
+      load.offset = modes + ((load.mode - 1) * pages) + (load.page - 1); //index for all non-string tables
+      
+      //write name in #this.all_names    
+      loop
+        (characters_per_name,    
+        str_setchar(#this.all_names, load.index + load.character_offset, str_getchar(#this.load.name, load.character_offset));
+        load.character_offset += 1;
+        );
+        
+      load.color ? this.color[load.offset] = load.color; //Basically ==> 000000 keeps default init color
+      );
+    
+    match("*knob=%d____%6X____%s____steps=%d____default=%d____type=%d", #this.load.line, load.knob, load.color, #this.load.name, load.steps, load.value, load.type) ? //KNOBS-----------------------------------------------------------------------------------------------------
+      (  
+      stringPad(#this.load.name, " ", characters_per_name);
+      load.character_offset = 0;
+      load.index = (modes * characters_per_name) + (modes * pages * characters_per_name) + ((load.mode - 1) * pages * knobs * characters_per_name) + ((load.page - 1) * knobs * characters_per_name) + ((load.knob - 1 ) * characters_per_name)  ;
+      
+      load.offset = modes + (modes * pages) + ((load.mode - 1) * pages * knobs) + ((load.page - 1) * knobs) + (load.knob - 1); //index for all non-string tables
+      
+      //write name in #this.all_names    
+      loop
+        (characters_per_name,    
+        str_setchar(#this.all_names, load.index + load.character_offset, str_getchar(#this.load.name, load.character_offset));
+        load.character_offset += 1;
+        );
+        
+      load.color ? this.color[load.offset] = load.color; //Basically ==> 000000 keeps default init color
+      this.steps[load.offset] = load.steps - 1;
+      this.value[load.offset] = load.value - 1;
+      this.display[load.offset] = load.type;   
+      );
+      
+      //OMITTED type=???? SETTING
+      match("*knob=%d____%6X____%s____steps=%d____default=%d", #this.load.line, load.knob, load.color, #this.load.name, load.steps, load.value) ? //KNOBS-----------------------------------------------------------------------------------------------------
+        (  
+        stringPad(#this.load.name, " ", characters_per_name);
+        load.character_offset = 0;
+        load.index = (modes * characters_per_name) + (modes * pages * characters_per_name) + ((load.mode - 1) * pages * knobs * characters_per_name) + ((load.page - 1) * knobs * characters_per_name) + ((load.knob - 1 ) * characters_per_name)  ;
+        
+        load.offset = modes + (modes * pages) + ((load.mode - 1) * pages * knobs) + ((load.page - 1) * knobs) + (load.knob - 1); //index for all non-string tables
+        
+        //write name in #this.all_names    
+        loop
+          (characters_per_name,    
+          str_setchar(#this.all_names, load.index + load.character_offset, str_getchar(#this.load.name, load.character_offset));
+          load.character_offset += 1;
+          );
+          
+        load.color ? this.color[load.offset] = load.color; //Basically ==> 000000 keeps default init color
+        this.steps[load.offset] = load.steps - 1;
+        this.value[load.offset] = load.value - 1;   
+        );
+    
+    ); 
+    
+   
+  file_close(file_handle);
+  );
+  
+/*******************************************************************
+  display_parseLayout
+  --------
+    
+  parses the specified layout .png
+  looks for reserved colors pixel coordinates
+  looks at specific coordinates for pixel colors
+  uses extracted values as display settings
+  replaces said pixels in buffer with neighbour pixels color
+  
+  TODO []
+  + everything
+  
+  + REMOVE ALL BLITs
+  + PARSE A TXT FILE
+  
+*******************************************************************/  
+function display_parseLayout(layout)
+  (
+  margin.top = 14;
+  margin.left = 14;
+  margin.mode = 640;
+  margin.knob = 252;
+  
+  
+  knob.h_spacing = 9;
+  knob.v_spacing = 18;
+  knob.height = 290;
+  knob.width = 199;
+  knob.opacity = 0.5;
+  knob.txt_opacity = 1;
+  knob.overlay_opacity = 1;
+  
+  big_knob.height = 598;
+  big_knob.width = 229;
+  
+  
+  mode.height = 131;
+  mode.width = 229;
+  mode.h_spacing = 9;
+  mode.v_spacing = 8;
+  mode.line_height = 70;
+  mode.line_size = 61;
+  mode.name_v_offset = 10;
+  mode.dimmed_opacity = 0.15;
+  mode.on_opacity = 0.75; 
+  );
+
+/*******************************************************************
+  display_load
+  --------
+  
+*******************************************************************/  
+function display_load(mapping)
+  local(file_handle, load.display, load.steps)
+  (
+  #this.load.line = "";
+  
+  
+  !(this.display_table) ? this.display_table = memAlloc(1024, "display_table");
+  
+  file_handle = file_open(mapping);
+  
+  this.debug_file_avail_count = 0; //DEBUG
+    
+  while(file_avail(file_handle))
+    (
+    file_string(file_handle, #this.load.line);
+    stringTrim(#this.load.line);
+    
+    this.debug_file_avail_count += 1; //DEBUG
+    
+    match("*type=%d", #this.load.line, load.display) ?
+          (
+          strcpy(load.display, "");
+          this.display_table[load.display] = 0;
+          
+          ):(
+          stringPad(#this.load.line, " ", characters_per_name);
+          strcat(load.display, #this.load.line);
+          this.display_table[load.display] += 1;      
+          );
+    
+    );
+    
+  file_close(file_handle);
+  
+  );
+
+/*******************************************************************
+  display_init
+  --------
+  
+  TODO []
+  + merge all settings with display and make them accessible for
+  changes through combo presses
+  
+*******************************************************************/  
+function display_init()
+  (
+  this.display_parseLayout();  
+  
+  this.max_saturation = 0.70;
+  this.min_contrast = 0.5;
+  
+  #font = "Arial";
+  
+  #font_info = "MS sans serif"; //"Fixedsys";
+  
+  font.mode_number_size = 90;
+  font.mode_name_size = 75;
+  
+  font.page_number_size = 90;
+  font.page_name_size = 70;
+  
+  font.knob_number_size = 30;
+  font.knob_name_size = 35;
+  
+  font.info_size = 16;
+  
+  //COMBO NAMES---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  
+  #this.combo_names = "";
+  strcat(#this.combo_names, "lazy    "); // 1
+  strcat(#this.combo_names, "info    "); // 2
+  strcat(#this.combo_names, "debug   "); // 3
+  strcat(#this.combo_names, "malloc  "); // 4
+  strcat(#this.combo_names, "scale   "); // 5
+  strcat(#this.combo_names, "overlay "); // 6
+  strcat(#this.combo_names, "sat     "); // 7
+  strcat(#this.combo_names, "contrast"); // 8
+  strcat(#this.combo_names, "MEM 1   "); // 9       TODO [] PARTIAL MODE/PAGE RECALL !!!!!!!!!!!!!!!!!!!!!!!!
+  strcat(#this.combo_names, "MEM 2   "); // 10      TODO [] PARTIAL MODE/PAGE RECALL !!!!!!!!!!!!!!!!!!!!!!!!
+  strcat(#this.combo_names, "MEM 3   "); // 11      TODO [] PARTIAL MODE/PAGE RECALL !!!!!!!!!!!!!!!!!!!!!!!!
+  strcat(#this.combo_names, "MEM 4   "); // 12      TODO [] PARTIAL MODE/PAGE RECALL !!!!!!!!!!!!!!!!!!!!!!!!
+  strcat(#this.combo_names, "        "); // 13
+  strcat(#this.combo_names, "        "); // 14
+  strcat(#this.combo_names, "        "); // 15
+  strcat(#this.combo_names, "ReCall  "); // 16
+  
+  //STATE---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  
+  this.stateInit();
+   
+  this._LAZY = this.stateAlloc(); //wether to redraw the whole GUI on each @gfx call or only when something actually happens
+  this._REFRESH_GFX = this.stateAlloc(); //if lazy, flags for GUI refresh
+  
+  this._AUTOSCALE = this.stateAlloc(); //cpu intensive shitty auto scale to current window size
+  this._OVERLAY = this.stateAlloc(); //toggle overlay -----FOR NOW ONLY RELOADS OVERLAY
+  this._SATURATION = this.stateAlloc(); //cycle through max_saturation values
+  this._CONTRAST = this.stateAlloc(); //cycle through min_contrast values
+  
+  this._SPLIT = this.stateAlloc(); //some future split screen/controller mode I plan to do later
+  this._HALF = this.stateAlloc(); //some future half screen/controller mode I plan to do later
+  this._TOUCH = this.stateAlloc(); //some future touchscreen mode I plan to do later
+  
+  
+  this._INFO = this.stateAlloc(); //toggles midi info below each knob
+  this._DEBUG = this.stateAlloc(); //toggles debug text dump
+  this._MALLOC = this.stateAlloc(); //toggle memDiag
+ 
+  
+  );
+
+
+
+/*******************************************************************
+  midi_init
+  --------
+    
+*******************************************************************/  
+function midi_init()
+  (
+  this.expected_channel = 8 + $xB0; //channel number + command type
+  //this.stateInit();
+  
+  this.shift = 0; //shift state  
+  );
+
+/*******************************************************************
+  midi_comboRead    
+  --------
+  
+  I can't stand such an inconsistent naming policy...  
+  
+*******************************************************************/
+
+function midi_combo(key)
+  (
+  //There has to be a better way......
+  key == 0             ? ( display.stateToggle(display._LAZY); 
+    ):(
+  key == 1             ? ( display.stateToggle(display._INFO);
+    ):(
+  key == 2             ? ( display.stateToggle(display._DEBUG);
+    ):(
+  key == 3             ? ( display.stateToggle(display._MALLOC);
+    ):(  
+  key == 4             ? ( display.stateToggle(display._AUTOSCALE);
+    ):(
+  key == 5             ? ( display.display_load(strcpy_fromslider(#, slider2));
+    ):(
+  key == 6             ? ( display.max_saturation < 0.9 ? (display.max_saturation += 0.1):(display.max_saturation = 0.5);
+    ):(
+  key == 7             ? ( display.min_contrast < 0.9 ? (display.min_contrast += 0.1):(display.min_contrast = 0.5);
+    ):(
+  key == 8             ? ( 0;
+    ):(
+  key == 9             ? ( 0;
+    ):(
+  key == 10            ? ( 0;
+    ):(
+  key == 11            ? ( 0;
+    ):(
+  key == 12            ? ( 0;
+    ):(    
+  key == 13            ? ( 0;
+    ):(
+  key == 14            ? ( 0;
+    ):(
+  key == 15            ? ( 0;
+    ):(    
+    -1; //unexpected action 
+    ););););););););););););););););
+  );
+
+
+memWipe(); // wipe ptr_map alloc + reset memory heap region to 0 
+
+//Init + Load default reCall file
+reCall.reCall_init(modes + (modes * pages ) + (modes * pages * knobs));
+reCall.reCall_loadMapping(strcpy_fromslider(#, slider1));
+
+current.mapping = slider1;
+
+midi.midi_init();
+display.display_init();
+display.display_load(strcpy_fromslider(#, slider2));
+
+
+//display.stateOn(display._LAZY + display._REFRESH_GFX + display._INFO); //turn LAZY on by default + flag for GUI refresh
+//display.stateOn(display._INFO + display._MALLOC);
+
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ slider @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ slider @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ slider @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@slider
+
+
+//ReCall ?
+slider3 == 1 ?
+(
+  reCall.now = 1; //Flag for a full reCall
+  reCall.progress = modes + pages; //no need to send midi message for modes and pages, so skip em
+  slider3 = 0; sliderchange(slider3);
+);
+
+// Load mapping if necesary
+current.mapping != slider1 ?
+(
+  memWipe(); // wipe ptr_map alloc + reset memory heap region to 0 
+  //Init + Load default reCall file
+  reCall.reCall_init(modes + (modes * pages ) + (modes * pages * knobs));
+  reCall.reCall_loadMapping(strcpy_fromslider(#, slider1));
+  current.mapping = slider1;
+);
+
+display.display_load(strcpy_fromslider(#, slider2));
+
+display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ block @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ block @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ block @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@block
+
+/* TODO []
+  +ADD COMBO BUTTON PRESS for various functions eg : load mapping, load presets, reCall Now !
+  
+  +instance multiple reCall to hotswap between reCall s within one preset
+  
+  +split mode
+  
+  +touch screen mode
+  
+  +MONITOR VALUES FROM SLAVES, TALK VIA GLOBAL VARIABLES, DISPLAY STUFF WITHOUT HAVING TO ROUTE AUDIO/MIDI eg : meters
+  
+  +TRY USING REASCRIPT AS SLAVES TO GET ACTUAL NAMES/VALUES TO DISPLAY STRAIGHT FROM PLUGINS
+  
+  +TRIGGER DEBUG/DISPLAY MODE WITH COMBO BUTTON PRESSES
+*/
+
+
+while(midirecv(midi.offset, midi.channel, midi.cc, midi.vel)) 
+  (
+  ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //Combos - bitmask <-> cc 0.1.2.3____4.5.6.7____8.9.10.11____12.13.14.15 
+  //dec OR  32768.16384.8192.4096____2048.1024.512.256____128.64.32.16____8.4.2.1
+  //dec AND 32767.49151.57343.61439____63487.64511.65023.65279____65407.65471.65503.65519____65527.65531.65533.65534
+  
+  //cc      15   14   13   12      11   10   9    8       7    6    5    4       3    2    1    0
+  //hex OR  8000 4000 2000 1000    0800 0400 0200 0100    0080 0040 0020 0010    0008 0004 0002 0001 <--- |= turns on
+  //hex AND 7FFF BFFF DFFF EFFF    F7FF FBFF FDFF FEFF    FF7F FFBF FFDF FFEF    FFF7 FFFB FFFD FFFE <--- &= turns off
+  
+  /*                                  MIDI EVENT
+                                          |
+                                   EXPECTED CHANNEL ?
+                                ___________|_____________ _ _ _ _ _ _ 
+                             SHIFT        KEY         KNOB      (PASSTHROUGH) 
+                              _|_          |
+                             |   |       SHIFT ?
+                            ON  OFF       _|_
+                                        ON   OFF
+                                        |     |
+                                      COMBO   |
+                                             _|_
+                                            |   |
+                                          MODE PAGE
+  */
+  
+  ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //EXPECTED CHANNEL & CC range ?
+  midi.channel == midi.expected_channel && midi.cc < 34 ? 
+    ( 
+    //midi.previous_state = midi.state;
+    
+    ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //SHIFT
+    midi.cc == 33 ?
+      (
+      midi.shift = midi.vel;
+      ):(
+      ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      //KEY
+      midi.cc < 16 ?
+        (
+        midi.vel ? // ignore note-off
+          (
+          ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+          //SHIFT ?
+          midi.shift ?
+            (
+            ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            //COMBO
+            //midi.vel ? midi.midi_combo(midi.cc);
+            midi.midi_combo(midi.cc);
+            ):(
+            ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            //MODE          
+            midi.cc < 8 ?
+              (
+                reCall.value[current.mode - 1] = current.page; //save selected page number for the mode you're about to leave
+                current.mode = midi.cc + 1; //update currently selected mode
+                current.page = reCall.value[current.mode - 1]; //go straight to default/preferred/last selected page for newly selected mode
+                current.offset = modes + pages * modes + (current.mode - 1) * pages * knobs + (current.page - 1) * knobs;
+              ):(
+              ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+              //PAGE
+              current.page = midi.cc - 8 + 1; //update currently selected page
+              current.offset = modes + pages * modes + (current.mode - 1) * pages * knobs + (current.page - 1) * knobs;
+              );
+            );
+          );
+        ):(
+        ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        //KNOB
+        
+        //Maybe it's weird that current.mode and current.page are explicit value and current.knob is already resolved as a memory index
+        current.knob = current.offset + (midi.cc - 16); //update currently selected knob
+                       
+        reCall.value[current.knob] = max(0, min(reCall.steps[current.knob], reCall.value[current.knob] + midi.vel - 64)); //update knob value in memory; expecting RELATIVE midi info 63/65
+                
+        //send calculated midi message | TODO [] REPLACE WITH MIDI message LUTs   
+        reCall.steps[current.knob] == 127 ?
+          (
+          midisend(midi.offset, reCall.channel[current.knob] + $xB0, reCall.cc[current.knob], reCall.value[current.knob]);
+          ):(
+          midi.calculated_vel = floor(reMap(reCall.value[current.knob], 0, reCall.steps[current.knob], 0, 127));
+          midisend(midi.offset, reCall.channel[current.knob] + $xB0, reCall.cc[current.knob], midi.calculated_vel);
+          );
+          
+        //OR...
+        //midi.calculated_vel = 0.001 + floor(reMap(reCall.value[current.knob], 0, reCall.steps[current.knob], 0, 127));        
+        
+        //):(
+        //Passthrough other messages
+        //midisend(offset, channel, cc, vel);
+        
+        
+        );
+    
+      );
+    
+    display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+    );
+  );
+
+////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//reCall 
+/*
+reCall.now ?
+  (
+  q = 0; 
+  while(samplesblock) //process as much as possible in that block
+    (
+    reCall.progress < reCall.size ? 
+      (
+      reCall.error = min(reCall.error, midisend(q, reCall.channel[reCall.progress] + $xB0, reCall.cc[reCall.progress], reCall.value[reCall.progress]));
+      reCall.progress += 1;
+      ):(
+      reCall.now = 0; //reCall ALL DONE
+      );
+    q +=1;
+    )
+  );
+*/  
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ serialize @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ serialize @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ serialize @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@serialize
+/*
+The code in the @serialize section is executed when the plug-in needs to load or save some extended state. 
+The sliderX parameters are saved automatically, but if there are internal state variables or memory that should be saved,
+they should be saved/restored here using file_var() or file_mem() (passing an argument of 0 for the file handle).
+(If the code needs to detect whether it is saving or loading, it can do so with file_avail() (file_avail(0) will return <0
+if it is writing). 
+
+Note when saving the state of variables or memory, they are stored in a more compact 32 bit representation, so a slight precision
+loss is possible. Note also that you should not clear any variables saved/loaded by @serialize in @init, as sometimes @init will 
+be called following @serialize. */
+
+
+serialize_read = (file_avail(0) >= 0); // check for Read or Write serialize mode
+
+//Dump reCall to file | Load file to reCall
+
+file_var(0, reCall.size); //First line  is mapping size
+
+a = 0;
+while (a < reCall.size)
+  (
+  file_var(0, reCall.value[a]);
+  file_var(0, reCall.cc[a]);
+  file_var(0, reCall.channel[a]);
+  file_var(0, reCall.steps[a]);
+  file_var(0, reCall.color[a]);
+  //file_var(0, reCall.min[a]);
+  //file_var(0, reCall.max[a]);
+  
+  file_avail(0) ?
+    (
+    a += 1;
+    ):(
+    a = reCall.size + 1; //if unexpected EOF Exit loop
+    //TODO : signal file size and reCall.size mismatch
+    );
+  
+  );
+display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ gfx @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ gfx @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ gfx @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@gfx 1920 930
+
+/*******************************************************************
+  prettyInvertColor     
+  --------
+  
+  TODO
+  [] CALCULATE THIS ONLY ONCE PER ITEM IN INIT/LOAD_MAPPING..............
+  
+*******************************************************************/
+function prettyInvertColor()
+  local(srgb_luminosity, contrast)
+  (
+  srgb_luminosity = 0.2126 * gfx_r + 0.7152 * gfx_g + 0.0722 * gfx_b; //Y =  R + 0.7152 G + 0.0722 B
+  
+  gfx_r = min(display.max_saturation, 1 - gfx_r);
+  gfx_g = min(display.max_saturation, 1 - gfx_g);
+  gfx_b = min(display.max_saturation, 0.5 - gfx_b);
+  
+  contrast = abs(srgb_luminosity - (0.2126 * gfx_r + 0.7152 * gfx_g + 0.0722 * gfx_b));
+  
+  contrast < display.min_contrast ?
+    (
+    srgb_luminosity <= 0.5 ?
+      (
+      gfx_r = min(1, gfx_r + (display.min_contrast - contrast) / 4);
+      gfx_g = min(1, gfx_g + (display.min_contrast - contrast) / 4);
+      gfx_b = min(1, gfx_b + (display.min_contrast - contrast) / 4);
+      ):(
+      gfx_r = max(0, gfx_r - display.min_contrast + contrast);
+      gfx_g = max(0, gfx_g - display.min_contrast + contrast);
+      gfx_b = max(0, gfx_b - display.min_contrast + contrast);
+      ); 
+    
+    );  
+  );
+
+/*******************************************************************
+  drawSteps     
+  --------
+*******************************************************************/
+function drawSteps(type, knob)
+  local(s, steps, x, y, width, text_width, text_height)
+  (
+  s = 0;
+  steps = display.display_table[type];
+  
+  //gfx_mode = 1;
+  
+  loop(steps,
+  
+    knob == 0 ? //BIG KNOB
+      ( 
+      x = margin.left;
+      y = margin.top + big_knob.height / (steps - 1)  * s;
+      width = big_knob.width;
+      ):(
+    knob <= 8 ? //1ST ROW KNOBS
+      ( 
+      x = margin.knob + (knob.width + knob.h_spacing) * (knob - 1);
+      y = margin.top + knob.height / (steps - 1) * s;
+      width = knob.width;
+      ):(
+    knob <= 16 ? //2ND ROW KNOBS
+      (
+      x = margin.knob + (knob.width + knob.h_spacing) * (knob - 9);
+      y = margin.top + knob.height + knob.v_spacing + knob.height / (steps - 1) * s;
+      width = knob.width; 
+    );););
+    
+    //LINE
+    gfx_a = knob.opacity / 5;
+    gfx_line(x, y, x + width, y, 0); 
+    
+    //VALUE
+    gfx_setfont(2,#font, font.info_size); //, 'b'
+    //#display.value = "__";
+    #display.value = "";
+  
+    strcpy_substr(#display.tmp, type, s * characters_per_name, characters_per_name); //Load name from table
+    stringTrim(#display.tmp);
+    //sprintf(#display.tmp,"%d", s);
+    strcat(#display.value, #display.tmp);
+    //strcat(#display.value, "__");
+    
+    gfx_measurestr(#display.value, text_width, text_height);
+    //center_text_offset = floor((width - text_width) / 2);
+    
+    gfx_y = y - text_height;
+    gfx_x = x; // + center_text_offset;
+    //gfx_a = knob.opacity;
+    gfx_a = 1;
+    gfx_drawstr(#display.value);
+        
+    s += 1;
+    );
+  );
+
+////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Mouse | Touchscreen
+
+//You can mess with midi.combo here too
+/*
+function init_mouse() (
+  !X ? (X = mouse_x;);
+  !Y ? (Y = mouse_y;);
+);
+function uninit_mouse() (
+  X = 0;
+  Y = 0;
+);
+mouse_cap ? init_mouse() : uninit_mouse();
+*/
+
+
+display.info = display.stateQuery(display._INFO);
+////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Draw GUI
+!(display.stateQuery(display._LAZY)) || display.stateQuery(display._REFRESH_GFX) ? //due for GUI refresh ?
+  (
+  
+  display.stateQuery(display._AUTOSCALE) ? screenInitBuffer(127, 1920, 930); //init and direct drawing operation to offscreen buffer
+  
+  
+  //Draw BG
+  gfx_mode = 0;
+  gfx_a = 1;
+  gfx_x = gfx_y = 0;
+  //fillScreen(0.05, 0.05, 0.05);
+  colorSet(0.05, 0.05, 0.05);
+  gfx_rect(0, 0, 1920 ,930);
+  
+  
+  #display.name = "";
+    
+  midi.shift ? //display COMBO MAP when shift is pressed down
+    (
+    
+    m = 0;
+    while (m < 8)
+      (
+      gfx_a = mode.dimmed_opacity;
+      colorSet(1, 0, 0);
+      
+      //LINE 
+      gfx_rect(margin.left + (mode.width + mode.h_spacing) * m, margin.mode + mode.line_height, mode.width, mode.line_size); //First Row
+      gfx_rect(margin.left + (mode.width + mode.h_spacing) * m, margin.mode + mode.v_spacing + mode.height + mode.line_height, mode.width, mode.line_size); //Second Row
+      
+      //NUMBER
+      gfx_setfont(1,#font, font.mode_number_size); //, 'b'
+      gfx_x = 108 + (mode.width + mode.h_spacing) * m; gfx_y = margin.mode - 10;
+      gfx_drawnumber(m + 1, 0);
+      
+      gfx_x = 108 + (mode.width + mode.h_spacing) * m; gfx_y = margin.mode + mode.v_spacing + mode.height - 10;
+      gfx_drawnumber(m + 9, 0);
+      
+      //NAME
+      //colorSet(0, 0, 0);
+      gfx_a = mode.on_opacity;
+      gfx_setfont(2,#font, font.mode_name_size); //Set Font and justify
+      
+      strcpy_substr(#display.name, #display.combo_names, m * characters_per_name, characters_per_name); //Load name from table
+      stringTrim(#display.name);
+      
+      gfx_measurestr(#display.name, text_width, text_height);
+      center_text_offset = floor((mode.width - text_width) / 2);//abs(floor((mode.width - text_width) / 2));
+      gfx_x = margin.left + center_text_offset + (mode.width + mode.h_spacing) * m; gfx_y = margin.mode + mode.height - text_height + mode.name_v_offset;//mode.line_height - 10;
+      
+      gfx_drawstr(#display.name);
+      
+      
+      strcpy_substr(#display.name, #display.combo_names,  (m + 9) * characters_per_name, characters_per_name); //Load name from table
+      stringTrim(#display.name);
+      
+      gfx_measurestr(#display.name, text_width, text_height);
+      center_text_offset = floor((mode.width - text_width) / 2);//abs(floor((mode.width - text_width) / 2));
+      gfx_x = margin.left + center_text_offset + (mode.width + mode.h_spacing) * m; gfx_y = margin.mode +  mode.v_spacing + mode.height + mode.height - text_height + mode.name_v_offset;//mode.line_height - 10;
+      
+      gfx_drawstr(#display.name);
+      
+      m += 1;
+      );
+    
+    ):( //display regular mode + page
+    
+    gfx_a = mode.dimmed_opacity;
+    
+    //Draw modes
+      m = 0;
+      while (m < 8)
+        (
+        colorSetPacked(reCall.color[m]);
+         
+        
+        //LINE
+        gfx_rect(margin.left + (mode.width + mode.h_spacing) * m, margin.mode + mode.line_height, mode.width, mode.line_size);
+        
+        //colorSet(0, 0, 0);   
+        
+        //NUMBER
+        gfx_setfont(1,#font, font.mode_number_size); //, 'b'
+        gfx_x = 108 + (mode.width + mode.h_spacing) * m; gfx_y = margin.mode - 10;
+        gfx_drawnumber(m + 1, 0);
+        
+        //NAME
+        strcpy_substr(#display.name, #reCall.all_names, m * characters_per_name, characters_per_name); //Load name from table
+        stringTrim(#display.name);
+        
+        gfx_setfont(2,#font, font.mode_name_size); //Set Font and justify
+        gfx_measurestr(#display.name, text_width, text_height);
+        center_text_offset = floor((mode.width - text_width) / 2);//abs(floor((mode.width - text_width) / 2));
+        gfx_x = margin.left + center_text_offset + (mode.width + mode.h_spacing) * m; gfx_y = margin.mode + mode.height - text_height + mode.name_v_offset;//mode.line_height - 10;
+        
+        gfx_drawstr(#display.name);  
+        
+        m += 1;
+        );
+        
+      //Draw pages
+      p = 0;
+      while (p < 8)
+        (
+        page_offset = current.mode * 8 + p;
+        
+        colorSetPacked(reCall.color[page_offset]);
+        
+        //LINE
+        gfx_rect(margin.left + (mode.width + mode.h_spacing) * p, margin.mode + mode.v_spacing + mode.height + mode.line_height, mode.width, mode.line_size);
+        
+        //NUMBER
+        gfx_setfont(1,#font, font.page_number_size); //, 'b'
+        gfx_x = 108 + (mode.width + mode.h_spacing) * p; gfx_y = margin.mode + mode.v_spacing + mode.height - 10;
+        gfx_drawnumber(p + 1, 0);
+        
+        //NAME
+        strcpy_substr(#display.name, #reCall.all_names, page_offset * characters_per_name, characters_per_name); //Load name from table
+        stringTrim(#display.name);
+        
+        gfx_setfont(2,#font, font.page_name_size); //Set Font and justify
+        gfx_measurestr(#display.name, text_width, text_height);
+        center_text_offset = floor((mode.width - text_width) / 2);//abs(floor((mode.width - text_width) / 2));
+        gfx_x = margin.left + center_text_offset + (mode.width + mode.h_spacing) * p; gfx_y = margin.mode +  mode.v_spacing + mode.height + mode.height - text_height + mode.name_v_offset;//mode.line_height - 10;
+        
+        gfx_drawstr(#display.name);  
+        
+        p += 1;
+        );
+      
+      
+      gfx_a = mode.on_opacity; 
+      
+      
+      //Draw current.mode      
+      colorSetPacked(reCall.color[current.mode - 1]);      
+      gfx_rect(margin.left + (mode.width + mode.h_spacing) * (current.mode - 1), margin.mode, mode.width, mode.height);      
+      prettyInvertColor();
+      
+        
+      //NAME
+      strcpy_substr(#display.name, #reCall.all_names, (current.mode - 1) * characters_per_name, characters_per_name); //Load name from table
+      stringTrim(#display.name);
+      
+      gfx_setfont(2,#font, font.mode_name_size); //Set Font and justify
+      gfx_measurestr(#display.name, text_width, text_height);
+      center_text_offset = floor((mode.width - text_width) / 2);//abs(floor((mode.width - text_width) / 2));
+      gfx_x = margin.left + center_text_offset + (mode.width + mode.h_spacing) * (current.mode - 1); gfx_y = margin.mode;//+ mode.height - text_height + mode.name_v_offset
+      
+      gfx_drawstr(#display.name);  
+      
+      
+      ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      //Draw current.page
+      page_offset = current.mode * 8 + current.page - 1;
+      
+      colorSetPacked(reCall.color[page_offset]);      
+      gfx_rect(margin.left + (mode.width + mode.h_spacing) * (current.page - 1), margin.mode + mode.v_spacing + mode.height, mode.width, mode.height);      
+      prettyInvertColor();
+      
+        
+      //NAME
+      strcpy_substr(#display.name, #reCall.all_names, page_offset * characters_per_name, characters_per_name); //Load name from table
+      stringTrim(#display.name);
+      
+      gfx_setfont(2,#font, font.page_name_size); //Set Font and justify
+      gfx_measurestr(#display.name, text_width, text_height);
+      center_text_offset = floor((mode.width - text_width) / 2);//abs(floor((mode.width - text_width) / 2));
+      gfx_x = margin.left + center_text_offset + (mode.width + mode.h_spacing) * (current.page - 1); gfx_y = margin.mode +  mode.v_spacing + mode.height;// + mode.height - text_height + mode.name_v_offset
+    
+      gfx_drawstr(#display.name);
+    
+    );
+  
+ 
+  
+    
+  
+  
+  ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //Draw big knob
+  
+  //BG + OUTLINE
+  gfx_a = knob.opacity / 5;
+  colorSetPacked(reCall.color[current.offset]);  
+  gfx_rect(margin.left - 1, margin.top - 1, big_knob.width + 1, big_knob.height + 1);
+  gfx_a = 1;
+  colorSetPacked($x0D0D0D);  
+  gfx_rect(margin.left + 1, margin.top + 1, big_knob.width - 3, big_knob.height - 3);
+  
+  gfx_a = knob.opacity / 7;
+  colorSetPacked(reCall.color[current.offset]);  
+  gfx_rect(margin.left, margin.top, big_knob.width, big_knob.height);
+  
+  //VALUE
+  gfx_a = knob.opacity;
+  big_knob.pixel_value = ceil(big_knob.height / reCall.steps[current.offset] * (reCall.steps[current.offset] - reCall.value[current.offset]));
+  gfx_rect(margin.left, margin.top + big_knob.pixel_value, big_knob.width, big_knob.height - big_knob.pixel_value);
+  drawSteps(reCall.display[current.offset], 0);
+  
+  
+  //NAME
+  prettyInvertColor();
+  gfx_a = knob.txt_opacity;
+  strcpy_substr(#display.name, #reCall.all_names, current.offset * characters_per_name, characters_per_name); //Load name from table
+  stringTrim(#display.name);  
+  
+  gfx_setfont(2,#font, font.knob_name_size); //, 'b'
+  gfx_measurestr(#display.name, text_width, text_height);
+  center_text_offset = floor((big_knob.width - text_width) / 2);//abs(floor((mode.width - text_width) / 2));
+  gfx_x = margin.left + center_text_offset; gfx_y = margin.top + big_knob.height - text_height;//mode.line_height - 10;
+  
+  gfx_drawstr(#display.name);
+  
+  //INFO
+  display.info ? 
+    (
+    gfx_setfont(2,#font_info, font.info_size);
+    gfx_x = margin.left;gfx_y =  margin.top + big_knob.height;
+    gfx_drawstr(" ch");gfx_drawnumber(reCall.channel[current.offset] + 1, 0);
+    gfx_drawstr(" cc");gfx_drawnumber(reCall.cc[current.offset], 0);
+    
+        
+    //#display.value = "";
+    //display.calculated_value = reMap(reCall.value[current.offset], 0, reCall.steps[current.offset], reCall.min[current.offset], reCall.max[current.offset], 1) ;
+    //sprintf(#display.value,"%G  -- %d/%d", display.calculated_value, reCall.value[current.offset], reCall.steps[current.offset]);
+    sprintf(#display.value,"%d/%d", reCall.value[current.offset], reCall.steps[current.offset]);
+    
+    gfx_measurestr(#display.value, text_width, text_height);
+    gfx_x = margin.left + big_knob.width - text_width;
+    gfx_drawstr(#display.value);
+    ); 
+  
+  ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //Draw small knobs
+  k = 1;
+  while (k < 9) // first row
+    (
+    //BG + OUTLINE
+    gfx_a = knob.opacity / 5;
+    colorSetPacked(reCall.color[current.offset + k]);  
+    gfx_rect(margin.knob + (knob.width + knob.h_spacing) * (k - 1) - 1, margin.top - 1, knob.width + 1, knob.height + 1);
+    gfx_a = 1;
+    colorSetPacked($x0D0D0D);  
+    gfx_rect(margin.knob + (knob.width + knob.h_spacing) * (k - 1) + 1, margin.top + 1, knob.width - 3, knob.height - 3);
+    
+    gfx_a = knob.opacity / 7;
+    colorSetPacked(reCall.color[current.offset + k]);
+    gfx_rect(margin.knob + (knob.width + knob.h_spacing) * (k - 1), margin.top , knob.width, knob.height);
+    
+    //VALUE
+    gfx_a = knob.opacity;    
+    small_knob.pixel_value = ceil(knob.height / reCall.steps[current.offset + k] * (reCall.steps[current.offset + k] - reCall.value[current.offset + k]));      
+    gfx_rect(margin.knob + (knob.width + knob.h_spacing) * (k - 1), margin.top + small_knob.pixel_value, knob.width, knob.height - small_knob.pixel_value);
+    drawSteps(reCall.display[current.offset + k], k);
+    
+    
+    gfx_a = knob.txt_opacity;
+    prettyInvertColor();
+    
+    //NUMBER
+    gfx_setfont(1,#font, font.info_size); //, 'b'
+    gfx_x = knob.width / 2 + margin.knob + (knob.width + knob.h_spacing) * (k - 1); gfx_y = margin.top + knob.height - 75;
+    //gfx_x = margin.knob + (knob.width + knob.h_spacing) * (k - 1); gfx_y = margin.top + knob.height;
+    gfx_drawnumber(k, 0);
+    
+    //NAME
+    strcpy_substr(#display.name, #reCall.all_names, (current.offset + k) * characters_per_name, characters_per_name); //Load name from table
+    stringTrim(#display.name);
+    
+    gfx_setfont(2,#font, font.knob_name_size); //, 'b'
+    gfx_measurestr(#display.name, text_width, text_height);
+    center_text_offset = floor((knob.width - text_width) / 2);//abs(floor((mode.width - text_width) / 2));
+    gfx_x = margin.knob + (knob.width + knob.h_spacing) * (k - 1) + center_text_offset; gfx_y = margin.top + knob.height - text_height;//mode.line_height - 10;
+ 
+    gfx_drawstr(#display.name);  
+    
+    
+    //INFO
+    display.info ? 
+      (
+      gfx_setfont(2,#font_info, font.info_size);
+      gfx_x = margin.knob + (knob.width + knob.h_spacing) * (k - 1);gfx_y = margin.top + knob.height;
+      
+      gfx_drawstr("            ch");gfx_drawnumber(reCall.channel[current.offset + k] + 1, 0);
+      gfx_drawstr("  cc");gfx_drawnumber(reCall.cc[current.offset + k], 0);
+      
+      sprintf(#display.value, " %X", reCall.color[current.offset + k]);
+      gfx_drawstr(#display.value);
+    
+      //#display.value = "";    
+      //display.calculated_value = reMap(reCall.value[current.offset + k], 0, reCall.steps[current.offset + k], reCall.min[current.offset + k], reCall.max[current.offset + k], 0.148) ;    
+      //sprintf(#display.value,"%G  -- %d/%d", display.calculated_value, reCall.value[current.offset + k], reCall.steps[current.offset + k]);
+      sprintf(#display.value,"%d/%d", reCall.value[current.offset + k], reCall.steps[current.offset + k]);
+      gfx_measurestr(#display.value, text_width, text_height);
+      gfx_x = margin.knob + (knob.width + knob.h_spacing) * k - knob.h_spacing - text_width;
+      gfx_drawstr(#display.value);    
+      );
+    
+    k += 1;
+    );
+
+  while (k < 17) //second row
+    (
+    //BG + OUTLINE
+    gfx_a = knob.opacity /10;
+    colorSetPacked(reCall.color[current.offset + k]);  
+    gfx_rect(margin.knob + (knob.width + knob.h_spacing) * (k - 9) - 1, margin.top + knob.height + knob.v_spacing - 1, knob.width + 1, knob.height + 1);
+    gfx_a = 1;
+    colorSetPacked($x0D0D0D);  
+    gfx_rect(margin.knob + (knob.width + knob.h_spacing) * (k - 9) + 1, margin.top + knob.height + knob.v_spacing + 1, knob.width - 3, knob.height - 3);
+    
+    gfx_a = knob.opacity / 7;
+    colorSetPacked(reCall.color[current.offset + k]);
+    gfx_rect(margin.knob + (knob.width + knob.h_spacing) * (k - 9), margin.top + knob.height + knob.v_spacing, knob.width, knob.height);
+    
+    //VALUE
+    gfx_a = knob.opacity;
+    small_knob.pixel_value = ceil(knob.height / reCall.steps[current.offset + k] * (reCall.steps[current.offset + k] - reCall.value[current.offset + k]));    
+    gfx_rect(margin.knob + (knob.width + knob.h_spacing) * (k - 9), margin.top + knob.height + knob.v_spacing + small_knob.pixel_value, knob.width, knob.height - small_knob.pixel_value);
+    drawSteps(reCall.display[current.offset + k], k);
+    
+    
+    gfx_a = knob.txt_opacity;
+    prettyInvertColor();
+    
+    //NUMBER
+    gfx_setfont(1,#font, font.info_size); //, 'b'
+    gfx_x = knob.width / 2 + margin.knob + (knob.width + knob.h_spacing) * (k - 9); gfx_y = margin.top + knob.height + knob.height + knob.v_spacing - 75;
+    //gfx_x = margin.knob + (knob.width + knob.h_spacing) * (k - 9); gfx_y = margin.top + knob.height + knob.height + knob.v_spacing;
+    gfx_drawnumber(k, 0);
+    
+    //NAME
+    //sprintf(#display.name, "%d", k);
+    //strcat(#display.name, " - ");
+    
+    //strcpy_substr(#display.tmp, #reCall.all_names, (current.offset + k) * characters_per_name, characters_per_name); //Load name from table
+    //stringTrim(#display.tmp);
+    //strcat(#display.name, #display.tmp);
+    strcpy_substr(#display.name, #reCall.all_names, (current.offset + k) * characters_per_name, characters_per_name); //Load name from table
+    stringTrim(#display.name);
+    
+    gfx_setfont(2, #font, font.knob_name_size); //, 'b'
+    gfx_measurestr(#display.name, text_width, text_height);
+    center_text_offset = floor((knob.width - text_width) / 2);//abs(floor((mode.width - text_width) / 2));
+    gfx_x = margin.knob + (knob.width + knob.h_spacing) * (k - 9) + center_text_offset; gfx_y = margin.top + knob.height + knob.height + knob.v_spacing - text_height;//mode.line_height - 10;
+    
+    gfx_drawstr(#display.name);  
+    
+    
+    //INFO
+    display.info ? 
+      (
+      gfx_setfont(2, #font_info, font.info_size);
+      gfx_x = margin.knob + (knob.width + knob.h_spacing) * (k - 9);gfx_y = margin.top + knob.height + knob.height + knob.v_spacing;
+  
+      gfx_drawstr("            ch");gfx_drawnumber(reCall.channel[current.offset + k] + 1, 0);
+      gfx_drawstr("  cc");gfx_drawnumber(reCall.cc[current.offset + k], 0);
+      
+      sprintf(#display.value, " %X", reCall.color[current.offset + k]);
+      gfx_drawstr(#display.value);
+      //#display.value = "";
+      //display.calculated_value = reMap(reCall.value[current.offset + k], 0, reCall.steps[current.offset + k], reCall.min[current.offset + k], reCall.max[current.offset + k], 1) ;    
+      //sprintf(#display.value,"%G  -- %d/%d", display.calculated_value, reCall.value[current.offset + k], reCall.steps[current.offset + k]);
+      sprintf(#display.value, "%d/%d", reCall.value[current.offset + k], reCall.steps[current.offset + k]);
+      gfx_measurestr(#display.value, text_width, text_height);
+      gfx_x = margin.knob + (knob.width + knob.h_spacing) * (k - 8) - knob.h_spacing - text_width;
+      gfx_drawstr(#display.value);
+      ); 
+    
+    k += 1;
+    );
+    
+
+  //Warn if something went wrong during a reCall midisend
+  reCall.error == 0 ?
+    (
+    x_offset = 0;
+    loop(1200,
+      gfx_x = 0 + x_offset;
+      gfx_drawstr("!!!!reCall.error:::!!!");
+      gfx_y < 1000 ? ( gfx_y += 10; ) : (gfx_y = 0; x_offset += 175;); //RETURN
+      );
+    );
+
+  ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //DEBUG read recall[] content
+  display.stateQuery(display._DEBUG) ?
+  (
+  gfx_a = 0.5;
+  colorSet(0, 0, 0);
+  gfx_rect(0, 0, 1920 ,930);
+  gfx_a = 1;
+  
+  gfx_y = 0;
+  colorSet(0.5, 1, 0.3);
+  r = 0;
+  x_offset = 0;
+  gfx_setfont(1,"Arial", 13);
+  
+  while (r < reCall.size)
+    (
+    gfx_x = 0 + x_offset;  
+    colorSetPacked(reCall.color[r]);
+
+    gfx_drawnumber(reCall.value[r], 0); gfx_drawstr(".");    
+    gfx_drawstr(" cc"); gfx_drawnumber(reCall.cc[r], 0);
+    gfx_drawstr(" ch"); gfx_drawnumber(reCall.channel[r], 0);
+    gfx_drawstr("  ");
+    
+    //NAME
+    strcpy_substr(#display.name, #reCall.all_names, r * characters_per_name, characters_per_name); //Load name from table
+    stringTrim(#display.name);        
+    gfx_drawstr(#display.name);
+    
+    r += 1;
+    
+    gfx_y < 1000 ? ( gfx_y += 10; ) : (gfx_y = 0; x_offset += 150;); //RETURN
+    );
+     
+  );
+  
+  ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //Display memDiagnostic
+  display.stateQuery(display._MALLOC) ?
+  (
+    colorSet(1, 0, 0);
+    gfx_setfont(0);
+    memDiagnostic(30, 40, 0);
+  );
+
+  ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //Display display.display_table
+  /*
+  colorSet(1 , 0, 0);
+  gfx_setfont(0);  
+  s = 0;
+  gfx_y = 0;
+  loop(1024,
+    gfx_x = 5;
+    gfx_drawnumber(display.display_table[s], 0);
+    gfx_y += 10;
+    s += 1;
+    );
+  */ 
+  ////////////////////////////////////////////////------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //Display Scale
+  
+  // TODO []
+  //   + REPLACE WITH DRAWING STRAIGHT TO PROPER IMG SIZE ?  
+  //gfx_setimgdim(-1, gfx_w, gfx_h); 
+  display.stateQuery(display._AUTOSCALE) ?
+  (
+  gfx_dest = -1; //direct drawing operation to main frame buffer
+  gfx_x = gfx_y = 0; 
+  gfx_mode = 0;
+  gfx_a = 1;
+  gfx_blit(127, 1, 0, 0, 0, 1920, 930, 0, 0, gfx_w, gfx_h, 0, 0);
+  );
+
+  display.stateOff(display._REFRESH_GFX); //All done
+);
+
+

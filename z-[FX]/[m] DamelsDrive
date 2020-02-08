@@ -1,0 +1,316 @@
+/*******************************************************************************
+*  2017 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: DamelsDrive - Todo : Negative Coeff + Serialize + Oversample + Must Clip Below 1
+
+slider1:0<0,36,1>Input Gain (db)
+
+slider2:10<1,100,1>Highest Harmonic Order
+
+slider9:1<0.01,20,0.01>LFO (Hz)
+slider64:1<0,1,1{Passthrough Stereo,Force Mono}>x
+
+
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-Strings.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-MathFunctions.jsfx-inc
+import z/z-Graph.jsfx-inc
+import z/z-Strings.jsfx-inc
+import z/z-Oscillators.jsfx-inc
+
+@init
+ext_noinit = 1;
+/* TODO
+http://ajaxsoundstudio.com/cookdspdoc/cookdsp/effects.jsfx-inc
+http://ajaxsoundstudio.com/cookdspdoc/scale.html
+http://ajaxsoundstudio.com/cookdspdoc/cookdsp/filters.jsfx-inc
+http://www.embedded.com/design/configurable-systems/4025591/Digital-filtering-without-the-pain
+https://en.wikipedia.org/wiki/Inverse_trigonometric_functions
+https://en.wikipedia.org/wiki/Diode
+http://aries.ucsd.edu/NAJMABADI/CLASS/ECE65/12-W/Slides/ECE65_W12-Diode-2.pdf
+
++Replace Blend by a choice of transfer function or remap w pow
+
++Add parametric Pre/De-Emphasis network
++Add SlewRate
++Add Damping
++disconnect 'drive' from the transfer curve, treat it as a pre/de gain to hit the transfer curve higher/lower ??
+
+*/
+
+//MemoryManager
+memInit(100);
+
+
+@slider
+memWipe(); // DUH DON'T YOU EVER FORGET THAT AGAIN
+gain_input = exp(slider1 * 0.11552453);
+
+/*
+harmonic_amplitude = memAlloc(100, "harmonic_amplitude");
+harmonic_lfo_depth = memAlloc(100, "harmonic_lfo_depth");
+highest_harmonic = slider2;
+
+n = 0;
+loop(highest_harmonic,
+  harmonic_amplitude[n] = 1;
+  harmonic_lfo_depth[n] = 0.25;
+  n +=1;
+  );
+*/
+
+
+
+// 1.ADD LFO TO SEED SELECTION 2. PROFIT !
+//spl_0.damelsDistort_init(slider11, exp(slider12 * 0.11552453), exp(slider13 * 0.11552453), slider14, slider15, strcpy_fromslider(#, slider20));// 2 ^ (slider18 / 6), 2 ^ (slider19 / 6));
+
+spl_0.damelsDistort_init(slider2);
+spl_0.lfo.frequency_cw = 2 * $pi * (slider9) / srate;
+
+
+force_mono = slider64;
+
+@sample
+
+//|||||||||||||||||||||||||||||INPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_input;
+
+//spl0_dry = spl0;
+
+//|||||||||||||||||||||||||||||LFO||||||||||||||||||||||||||||
+spl_0.lfo.Sine();
+spl_0.lfo.clockPhaseAcc();
+//|||||||||||||||||||||||||||||DAMELS|||||||||||||||||||||||||||||
+// 1.ADD LFO TO SEED SELECTION 2. PROFIT !
+//spl0 = asin(spl0);
+spl0 = spl_0.damelsDistort(spl0) / spl_0.gain;
+
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL||||||||||||||||||||||||||||| 
+otm1 = 0.999 * otm1 + spl0 - itm1; itm1 = spl0; spl0 = otm1;
+
+//|||||||||||||||||||||||||||||OUTPUT GAIN||||||||||||||||||||||||||||
+//spl0 *= gain_output;
+
+//|||||||||||||||||||||||||||||SOFT LIMITER SINGLE||||||||||||||||||||||||||||
+//is_softlimiter_on ?
+//  (
+//  spl0 = tanH(spl0);
+//  );
+
+//|||||||||||||||||||||||||||||PASSTHROUGH STEREO|||||||||||||||||||||||||||||
+force_mono ? spl1 = spl0;
+/****************************GFX********************************
+****************************************************************/
+
+@gfx 500 500
+
+/*******************************************************************
+  coeffDraw    
+  --------
+  
+ 
+*******************************************************************/ 
+function coeffDraw()
+  local(n, n_color, gfx_x_offset, gfx_y_offset, gfx_y_start, font_h, font_w)
+  (
+  gfx_y += 10;
+  gfx_x_offset = 50;
+  gfx_y_offset = (gfx_h / spl_0.highest_harmonic) | 0;//min(16, gfx_h / (fir_sinc.window.length + 1));
+  //gfx_measurestr("0000",font_w, font_h);
+  gfx_setfont(1, "Lucida Console", min(18, gfx_y_offset)); //HyperFont
+  
+  gfx_y_start = gfx_y;
+  
+    n = 0;
+    loop(spl_0.highest_harmonic,    
+       
+      gfx_x = 0; 
+      colorSet(0.1, 0.3 ,0.3);
+      gfx_drawstr("[");
+      colorSet(0.1, 0.5 ,0.3);
+      gfx_drawnumber(n,0);
+      colorSet(0.1, 0.3 ,0.3);
+      gfx_drawstr("]");
+      gfx_x = 40;
+      
+      n_color = (n + 1) / 256;     
+      //gfx_drawnumber(roundUp(n / 255 * 255),16);
+      
+      //draw bed
+      gfx_x = gfx_x_offset - 10;
+      intParity(n) ? colorSet(0.1, 0, n_color) : colorSet(0, 0 , n_color);      
+      //gfx_rectto(gfx_x + (gfx_w / 2 - gfx_x) + 10, gfx_y + gfx_y_offset);
+      gfx_rectto(gfx_w, gfx_y + gfx_y_offset);
+      
+      //draw amplitude
+      gfx_x = gfx_x_offset;  gfx_y -= gfx_y_offset;
+      intParity(n) ? colorSet(1, 0, n_color) : colorSet(0.8, 0, n_color);      
+      gfx_rectto(gfx_x + (gfx_w / 2 - gfx_x) * spl_0.harmonic_amplitude[n], gfx_y + gfx_y_offset);
+
+      //draw lfo depth
+      gfx_x = gfx_x_offset; gfx_y -= gfx_y_offset / 2;
+      intParity(n) ? colorSet(1, 0.3, n_color) : colorSet(0.9, 0.2, n_color);      
+      gfx_rectto(gfx_x + (gfx_w / 2 - gfx_x) * spl_0.harmonic_lfo_depth[n], gfx_y + gfx_y_offset / 2);
+      
+      //draw amplitude * lfo
+      gfx_x = gfx_w / 2 + 20; gfx_y -= gfx_y_offset;
+      intParity(n) ? colorSet(0.2 + n_color, 0, 0.5) : colorSet(0.2 + n_color, 0 , 0.45);      
+      gfx_rectto(gfx_x + (gfx_w - gfx_x) * (spl_0.harmonic_amplitude[n] - spl_0.harmonic_amplitude[n] * ((1 + spl_0.lfo.amplitude) / 2) * spl_0.harmonic_lfo_depth[n]) , gfx_y + gfx_y_offset);      
+      
+      //dump amplitude
+      
+      gfx_x = gfx_w / 2 + 20; gfx_y -= gfx_y_offset;
+      colorInvert();
+      gfx_drawnumber(spl_0.harmonic_amplitude[n],16);
+      gfx_y += gfx_y_offset;
+      
+      //gfx_y >= gfx_h ? ( gfx_y = gfx_y_start; gfx_x_offset += 400;);
+      n +=1;
+      );
+  );
+
+gfx_setfont(0);
+
+screenFill(0.15, 0.15, 0.15);
+
+//colorSet(0, 0.5 ,1);
+memDiagnostic(30, 40);
+
+
+colorSet(0, 0.5 ,1);
+//gfx_x = 50; gfx_y = 125;
+
+  
+gfx_a = 0.7; colorSet(0.15, 0.15 ,0.15);
+gfx_rect(0, 0, gfx_w, gfx_h); 
+gfx_a = 1;
+
+gfx_x = 0; gfx_y = 0;
+
+coeffDraw();
+
+// LEFT CLICK AND DRAG ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+mouse_cap == 1 && mouse_x > 40 && mouse_x < (gfx_w / 2 + 10) ? ( //&& mouse_x > 5 && mouse_x < gfx_w - 5 && mouse_y > 5 && mouse_y < gfx_h - 5 ? (
+  //gfx_dest = 0;
+  gfx_x = mouse_x; gfx_y = mouse_y;
+  gfx_getpixel(left_click_r, left_click_g, left_click_b);
+  left_click_b = roundUp(left_click_b * 255);
+  spl_0.gain -= spl_0.harmonic_amplitude[left_click_b];
+  spl_0.harmonic_amplitude[left_click_b] = (max(50,min(mouse_x, gfx_w / 2)) - 50) / (gfx_w / 2 - 50);
+  spl_0.gain += spl_0.harmonic_amplitude[left_click_b];  
+  );
+
+// RIGHT CLICK AND DRAG ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+mouse_cap == 2 && mouse_x > 40 && mouse_x < (gfx_w / 2 + 10) ? ( //&& mouse_x > 5 && mouse_x < gfx_w - 5 && mouse_y > 5 && mouse_y < gfx_h - 5 ? (
+  //gfx_dest = 0;
+  gfx_x = mouse_x; gfx_y = mouse_y;
+  gfx_getpixel(left_click_r, left_click_g, left_click_b);
+  left_click_b = roundUp(left_click_b * 255);
+  spl_0.harmonic_lfo_depth[left_click_b] = (max(50,min(mouse_x, gfx_w / 2)) - 50) / (gfx_w / 2 - 50);
+  
+  );
+  
+// MIDDLE CLICK AND DRAG ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+mouse_cap == 64 && mouse_x > 40 && mouse_x < (gfx_w / 2 + 10) ? ( //&& mouse_x > 5 && mouse_x < gfx_w - 5 && mouse_y > 5 && mouse_y < gfx_h - 5 ? (
+  //gfx_dest = 0;
+  gfx_x = mouse_x; gfx_y = mouse_y;
+  gfx_getpixel(left_click_r, left_click_g, left_click_b);
+  left_click_b = roundUp(left_click_b * 255);
+  spl_0.harmonic_amplitude[left_click_b]*= -1;
+  
+  );
+
+
+//debug buffer map
+gfx_setfont(0);
+colorSet(128, 255, 255);
+//gfx_dest = 1;
+gfx_x = mouse_x; gfx_y = mouse_y;
+gfx_getpixel(rr, gg, bb);
+//gfx_dest = -1;
+gfx_drawnumber(rr * 255, 5); gfx_drawstr(" | ");
+gfx_drawnumber(gg * 255, 5); gfx_drawstr(" | ");
+gfx_drawnumber(bb * 255, 5);
+gfx_x = mouse_x; gfx_y = mouse_y + 8;
+memMap(4);       
+
+/*
+//Dump harmonic_amplitude
+gfx_y += 10; gfx_x_offset = 0;
+harmonic_amplitude_dump_y = gfx_y;
+  n = 1;
+  while (n <= spl_0.seed_count)
+    (
+    colorSet(0.3, 0.3 ,1); 
+    gfx_x = 0 + gfx_x_offset; 
+    gfx_drawstr("seed.precision[");
+    gfx_drawnumber(n,0);gfx_drawstr("] = ");
+    gfx_drawnumber(spl_0.seed.precision[n],2);
+
+    gfx_y += 8; gfx_y >= gfx_h ? ( gfx_y = harmonic_amplitude_dump_y; gfx_x_offset += 200;);
+    
+    gfx_x = 0 + gfx_x_offset; 
+    gfx_drawstr("seed.size[");
+    gfx_drawnumber(n,0);gfx_drawstr("] = ");
+    gfx_drawnumber(spl_0.seed.size[n],2);
+    
+    gfx_y += 8; gfx_y >= gfx_h ? ( gfx_y = harmonic_amplitude_dump_y; gfx_x_offset += 200;);
+    
+        
+    p = 0;    
+    while (p < spl_0.seed.size[n])
+      (
+      p % 2 == 0 ? //Alternate color between odd and even orders harmonics amplitudes
+        (
+        colorSet(0.2, 0.4 ,1);
+        ):(
+        colorSet(0.4, 0.2 ,1);
+        );
+      
+      gfx_x = 0 + gfx_x_offset; 
+      gfx_drawstr("[");
+      gfx_drawnumber(p, 0);gfx_drawstr("] seed val = ");
+     
+      
+      seed_value_ptr = spl_0.seed.ptr[n] + p * spl_0.seed.precision[n];
+      #seed_value = "";
+      strcpy_substr(#seed_value, #spl_0.all_seeds, seed_value_ptr, spl_0.seed.precision[n]); 
+      match("*%d", #seed_value, seed_value) ?
+        (
+        gfx_drawstr(#seed_value);
+        gfx_drawnumber(seed_value,0);  
+        );
+  
+      
+      gfx_y += 8; gfx_y >= gfx_h ? ( gfx_y = harmonic_amplitude_dump_y; gfx_x_offset += 200;);  
+      
+      p += 1;
+      );
+  
+    n += 1;
+    );
+    
+    /*s = 0;
+    while (s < spl_0.seed.precision[n])
+      (
+      str_getchar(#spl_0.all_seeds, seed_value_ptr + s, 'i');
+      s +=1;
+      );
+    */
+    
+

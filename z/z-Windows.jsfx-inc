@@ -1,0 +1,320 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+
+desc: Window Functions Library
+
+/* TODO []
+  
+    
+  http://www.analog.com/media/en/technical-documentation/dsp-book/dsp_book_Ch16.pdf
+  https://fr.mathworks.com/help/signal/ref/windowdesigner-app.html  
+  
+  https://en.wikipedia.org/wiki/Kernelization
+  
+  fir_lp.jsfx-inc
+
+    0 - Rectangular (none, normalized Boxcar) 
+    1 - Bartlett/Triangular
+    2 - Hanning
+    3 - Hamming
+    4 - Blackman
+    5 - Blackman-Harris
+    6 - Raised Cosine
+    7 - Flat-top
+    
+ MORE - https://en.wikipedia.org/wiki/Window_function
+    ? - Boxcar (moving average)
+   
+   
+    ? Zero-Phase version ?
+   
+   Usually symmetrical sequences, odd length with a single maximum at the center. 
+*/
+    
+@init
+
+/*******************************************************************
+  windowRectangular   
+  ----
+  
+  returns coefficient/amplitude for this type of Window of given window_length at sample_index.
+  
+  These windows run from sample_index = 0 to window_length, for a total of window_length + 1 points.
+  
+*******************************************************************/
+function windowRectangular(sample_index, window_length)
+  (
+  1;
+  );
+
+/*******************************************************************
+  windowTriangular   
+  ----  
+*******************************************************************/
+function windowTriangular(sample_index, window_length)
+  (  
+  1 - (2 * abs(sample_index - (window_length / 2)) / window_length);  
+  );
+
+/*******************************************************************
+  windowHann  
+  ----  
+*******************************************************************/
+function windowHann(sample_index, window_length)
+  (
+  0.5 - 0.5 * cos(2 * $pi * sample_index / window_length);
+  );
+/*******************************************************************
+  windowHamming  
+  ----  
+  OG is approx
+  α = 25/46
+  β = 1 - α = 21/46
+  
+*******************************************************************/
+function windowHamming(sample_index, window_length)
+  (
+  0.54 - 0.46 * cos(2 * $pi * sample_index / window_length);  // 2 * pi = 6.2831853071795864; 2 * $pi
+  );
+/*******************************************************************
+  windowHammingEqr  
+  ----  
+  α = 0.53836 and β = 0.46164
+*******************************************************************/
+function windowHammingEqr(sample_index, window_length)
+  (
+  0.53836 - 0.46164 * cos(2 * $pi * sample_index / window_length);
+  );
+/*******************************************************************
+  windowBlackman  
+  ----  
+*******************************************************************/
+function windowBlackman(sample_index, window_length)
+  (
+  0.42 
+  - 0.5  * cos(2 * $pi * sample_index / window_length) 
+  + 0.08 * cos(4 * $pi * sample_index / window_length);
+  );
+/*******************************************************************
+  windowBlackmanHarris  
+  ----
+  0.35875 0.48829 0.14128 0.01168 
+  
+  0.36 - 0.49*cos(2*$pi*n/m) + 0.14*cos(4*$pi*n/m) - 0.01*cos(6*$pi*n/m);
+*******************************************************************/
+function windowBlackmanHarris(sample_index, window_length)
+  (
+  0.35875 
+  - 0.48829 * cos(2 * $pi * sample_index / window_length) 
+  + 0.14128 * cos(4 * $pi * sample_index / window_length) 
+  - 0.01168 * cos(6 * $pi * sample_index / window_length);
+  );
+/*******************************************************************
+  windowCosineSquared
+  ----  
+*******************************************************************/
+function windowCosineSquared(sample_index, window_length)
+  (
+  (0.5 - 0.5 * cos(2 * $pi * sample_index / window_length)) * (0.5 - 0.5 * cos(2 * $pi * sample_index / window_length));
+  );
+/*******************************************************************
+  windowFlatTop  
+  ----
+  1 
+  - 1.93  * cos(2 * $pi * sample_index / window_length)
+  + 1.29  * cos(4 * $pi * sample_index / window_length)
+  - 0.388 * cos(6 * $pi * sample_index / window_length)
+  + 0.028 * cos(8 * $pi * sample_index / window_length);
+  
+  https://fr.mathworks.com/help/signal/ref/flattopwin.html
+    
+*******************************************************************/
+function windowFlatTop(sample_index, window_length)
+  (
+  0.21557895 
+  - 0.41663158   * cos(2 * $pi * sample_index / window_length)
+  + 0.277263158  * cos(4 * $pi * sample_index / window_length)
+  - 0.083578947  * cos(6 * $pi * sample_index / window_length)
+  + 0.006947368  * cos(8 * $pi * sample_index / window_length);
+  );
+  
+/*******************************************************************
+  windowInit   
+  ----
+ 
+ periodic / DFT Even
+ 
+ These windows run from sample_index = 0 to window_length, for a total of window_length + 1 points.
+  
+ To avoid a divide-by-zero error, for i ' M/2, use h[i] ' 2Bf . 
+ 
+ https://en.wikipedia.org/wiki/Binary_scaling
+*******************************************************************/
+
+_RECTANGULAR              = 0;
+_TRIANGULAR               = 1;
+_HANN                     = 2;
+_HAMMING                  = 3;
+_HAMMING_EQUIRIPPLE       = 4;
+_BLACKMAN                 = 5;
+_BLACKMAN_HARRIS          = 6;
+_COSINE_SQUARED           = 7;
+_FLAT_TOP                 = 8;
+
+function windowInit(window_type, window_length, fixed_precision)
+  local(n)
+  (
+  this.window.length = window_length | 0; //Truncate. Allow even or odd number. Make sure the kernel size is even inside the halfband/sinc/etc... filters  
+  this.window = memAlloc(window_length + 1, "window");
+  this.window.sum = 0;
+  
+  this.window_fixed = memAlloc(window_length + 1, "window_fixed");
+  this.window_fixed.sum = 0;
+  this.window_fixed.sum_target = 2 ^ fixed_precision / 2;// - 1; 256 => -128 to 127 ? 128 ?
+  
+  n = 0;
+  
+  window_type == _RECTANGULAR          ? ( loop(window_length + 1,
+                                           this.window[n] = windowRectangular(n, this.window.length); 
+                                           this.window.sum += this.window[n]; n +=1; );
+    ):(
+  window_type == _TRIANGULAR           ? ( loop(window_length + 1,
+                                           this.window[n] = windowTriangular(n, this.window.length);
+                                           this.window.sum += this.window[n]; n +=1; );
+    ):(
+  window_type == _HANN                 ? ( loop(window_length + 1,
+                                           this.window[n] = windowHann(n, this.window.length);
+                                           this.window.sum += this.window[n]; n +=1; );
+    ):(                                                              
+  window_type == _HAMMING              ? ( loop(window_length + 1,
+                                           this.window[n] = windowHamming(n, this.window.length);
+                                           this.window.sum += this.window[n]; n +=1; );
+    ):(  
+  window_type == _HAMMING_EQUIRIPPLE   ? ( loop(window_length + 1,
+                                           this.window[n] = windowHammingEqr(n, this.window.length);
+                                           this.window.sum += this.window[n]; n +=1; );
+    ):(    
+  window_type == _BLACKMAN             ? ( loop(window_length + 1,
+                                           this.window[n] = windowBlackman(n, this.window.length);
+                                           this.window.sum += this.window[n]; n +=1; );
+    ):( 
+  window_type == _BLACKMAN_HARRIS      ? ( loop(window_length + 1,
+                                           this.window[n] = windowBlackmanHarris(n, this.window.length);
+                                           this.window.sum += this.window[n]; n +=1; );
+    ):(
+  window_type == _COSINE_SQUARED       ? ( loop(window_length + 1,
+                                           this.window[n] = windowCosineSquared(n, this.window.length);
+                                           this.window.sum += this.window[n]; n +=1; );
+    ):(
+  window_type == _FLAT_TOP             ? ( loop(window_length + 1,
+                                           this.window[n] = windowFlatTop(n, this.window.length);
+                                           this.window.sum += this.window[n]; n +=1; );
+    ):(                                                                    
+    -1;
+    );););););););););
+  
+  //fixed_point coeff scaled window
+  this.window_fixed.sum_ratio = this.window_fixed.sum_target / (this.window.sum);
+  
+  n = 0;  
+  loop(window_length + 1,
+      
+    this.window_fixed[n]  = this.window[n] * this.window_fixed.sum_ratio; //roundHalfUp((this.window[n] * this.window_fixed.sum_ratio)); // | 0;
+    this.window_fixed[n]  = roundHalfUp(this.window_fixed[n]);
+    this.window_fixed.sum  += this.window_fixed[n];
+    n += 1;    
+    );
+  );
+
+//|||||||||||||||||||||||||||||DUMP |||||||||||||||||||||||||||||
+
+/*******************************************************************
+  windowBoxcar
+  ===============
+
+  Object Oriented : it must be used with a variable name as prefix
+  
+  generate a window of a given size
+  
+*******************************************************************/
+/*
+function windowBoxcar(size)
+  local(n)
+  (
+  n = 0;
+  size = ceil(size);
+  this.window = memAlloc(size, "window");
+  
+  while (n < size)
+    (
+    this.window[n] = 1; //DUH
+    n +=1;
+    );
+  );
+*/
+/*******************************************************************
+  windowTriangular
+  ===============
+  
+  Object Oriented : it must be used with a variable name as prefix
+  
+  generate a window of a given size
+    
+dwindowpos = $pi*2/(fftsize-1);
+    windowpos=0;
+
+    loop(fftsize,
+       window[i] = (
+         windowtype==1 ? 0.53836 - cos(windowpos)*0.46164 :
+         windowtype==2 ? 0.35875 - 0.48829 * cos(windowpos) + 0.14128 * cos(2*windowpos) - 0.01168 * cos(6*windowpos) :
+         windowtype==3 ? 0.42 - 0.50 * cos(windowpos) + 0.08 * cos(2.0*windowpos) :
+          1.0)*ifftsize*0.5;
+       windowpos+=dwindowpos;
+       i+=1;
+    );
+  );
+  
+  w(n)=1 - |(n - ((size - 1) / 2)) / (L / 2)|
+  L = size | L = size - 1 | L = size + 1 // have a look into this
+  
+*******************************************************************/
+/*
+function windowTriangular(size)
+  local(n)
+  (
+  n = 0;
+  size = ceil(size);
+  this.window = memAlloc(size, "window");
+  
+  while (n < size)
+    (
+    this.window[n] = 1 - abs((n - ((size - 1) / 2)) / (size / 2)); 
+    n +=1;
+    );
+  );
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+

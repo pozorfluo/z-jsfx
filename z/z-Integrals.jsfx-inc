@@ -1,0 +1,253 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+
+desc: Integral Calculus Library
+
+/* TODO []
+   
+   
+  
+  
+  https://en.wikipedia.org/wiki/Integral
+  https://en.wikipedia.org/wiki/Function_space
+  https://en.wikipedia.org/wiki/Cumulative_distribution_function
+  
+  http://rosettacode.org/wiki/Numerical_integration
+  http://rosettacode.org/wiki/Active_object <--- EXAMPLE OF REAL TIME INTEGRATOR BUT NO WINDOWS
+  https://en.wikipedia.org/wiki/Integrator
+  https://en.wikipedia.org/wiki/Digital_differential_analyzer
+  
+  https://en.wikipedia.org/wiki/Numerical_methods_for_ordinary_differential_equations
+  https://en.wikipedia.org/wiki/Trapezoidal_rule <<--- BASIC EASY TO IMPLEMENT W PARAMETRIC PRECISION
+  http://csweb.cs.wfu.edu/bigiron/LittleFE-CUDA-TrapezoidalRule/build/html/seqAlg.html  
+  http://math.stackexchange.com/questions/312498/writing-a-program-using-the-trapezoidal-rule
+  http://pages.pacificcoast.net/~cazelais/187/trapezoidal_rule.pdf
+  
+  https://en.wikipedia.org/wiki/Smoothing  <--- SMOOTH PMF W A MOVING AVERAGE W PARAMETRIC PERIOD|WINDOW SIZE (AUTO ADJUSTED AS A FRACTION OF HISTOGRAM PERIOD)
+  
+  The effect of an infinite impulse response low-pass filter can be simulated on a computer by analyzing an RC filter's behavior in the time domain, and then discretizing the model.
+  https://en.wikipedia.org/wiki/Low-pass_filter  <--- DO A LOW-PASS TIME DOMAIN FILTER W PARAMETRIC PERIOD|WINDOW SIZE (AUTO ADJUSTED AS A FRACTION OF HISTOGRAM PERIOD)
+  
+  // Return RC low-pass filter output samples, given input samples,
+  // time interval dt, and time constant RC
+  function lowpass(real[0..n] x, real dt, real RC)
+  var real[0..n] y
+  var real a := dt / (RC + dt)
+  y[0] := x[0]
+  for i from 1 to n
+  y[i] := a * x[i] + (1-a) * y[i-1]
+  return y
+  
+  
+  http://www.gnu.org/software/gsl/manual/html_node/Ordinary-Differential-Equations.html  
+  https://en.wikipedia.org/wiki/Predictor%E2%80%93corrector_method  
+  
+  https://en.wikipedia.org/wiki/Adaptive_quadrature
+  https://en.wikipedia.org/wiki/Adaptive_Simpson%27s_method
+  https://en.wikipedia.org/wiki/Gauss%E2%80%93Kronrod_quadrature_formula
+  https://en.wikipedia.org/wiki/Gaussian_quadrature
+  https://en.wikipedia.org/wiki/Tanh-sinh_quadrature   double exponential (DE) formula
+  https://en.wikipedia.org/wiki/Arbitrary-precision_arithmetic 
+  http://www.kurims.kyoto-u.ac.jp/~ooura/intde.html  
+  http://www.researchgate.net/post/What_is_the_best_Numerical_integration_method_and_why
+  
+  https://en.wikipedia.org/wiki/Backward_differentiation_formula
+  http://csweb.cs.wfu.edu/bigiron/LittleFE-CUDA-TrapezoidalRule/build/html/cudaAlg.html
+  
+  http://stackoverflow.com/questions/9417807/what-are-some-good-algorithms-for-numerical-integration-for-a-physics-engine
+  
+  https://en.wikipedia.org/wiki/Stiff_equation
+  
+  
+  Object Oriented : it must be used with a variable name as prefix 
+  
+  
+  
+  https://books.google.fr/books?id=ygxqHqE9OtYC&pg=PA189&lpg=PA189&dq=probability+density+function+is+the+step+response+to+cumulative+distribution+impulse+response&source=bl&ots=YuinGCUyJL&sig=sp93b-H6WOnO1Tns32tcsVUPDLU&hl=en&sa=X&ved=0CCUQ6AEwAWoVChMIsq-q7Y2bxwIViMMUCh2REgq4#v=onepage&q=probability%20density%20function%20is%20the%20step%20response%20to%20cumulative%20distribution%20impulse%20response&f=false
+  
+  http://www.ieee-iwqos.org/2013/Communication%20Reliability%20Analysis%20from%20Frequency%20Domain.pdf
+  
+  https://en.wikipedia.org/wiki/Stochastic_process
+  https://en.wikipedia.org/wiki/Stochastic_calculus
+  http://math.stackexchange.com/questions/132920/what-is-the-best-state-of-the-art-numerical-integral-algorithm
+  
+  end-to-end delay distribution is indeed the inverse laplace transform of the
+  transfer function of the signal flow graph. Two efficient methods,
+  Cramers rule based method and Mason gain rule based method,
+  are adopted to obtain the transfer function. Further, we propose
+  an efficient method using the dominant poles of the transfer
+  function 
+  
+  http://mathworld.wolfram.com/DistributionFunction.html
+  http://www.math.vt.edu/people/qlfang/class_home/Lesson2021.pdf
+  https://en.wikipedia.org/wiki/Cumulative_distribution_function
+  http://www.danielsoper.com/statcalc3/calc.aspx?id=53
+  https://en.wikipedia.org/wiki/Numerical_integration
+  
+  FUNCTION INDEX []
+  
+*/
+
+@init
+
+
+
+/*******************************************************************
+  NumericalIntegrator   
+  --------
+  
+  'offline'
+  
+  http://www.alglib.net/integration/
+  
+  approximation_resolution 
+  -> width in number of bins
+  -> 1 is max resolution and evaluate the area between every bin midpoints
+  -> higher values faster, lower resolution
+ 
+*******************************************************************/
+
+/*******************************************************************
+  NumericalIntegrator   
+  --------
+  
+  'offline'
+  
+  http://www.alglib.net/integration/
+   
+*******************************************************************/
+
+/*******************************************************************
+  NumericalIntegrator   
+  --------
+  
+  'offline'
+  
+  http://www.alglib.net/integration/
+ 
+*******************************************************************/
+/*******************************************************************
+  NumericalIntegrator   
+  --------
+  
+  'offline'
+  
+  http://www.alglib.net/integration/
+ 
+*******************************************************************/
+/*******************************************************************
+  NumericalIntegrator   
+  --------
+  
+  'offline'
+  http://www.alglib.net/integration/
+ 
+*******************************************************************/
+
+
+
+
+
+
+/*******************************************************************
+  runningNumericalIntegrator
+  -----
+  
+  set it up like running histogram, evaluate what you need to update for each sample discarded and aded by the moving window
+
+*******************************************************************/
+function runningNumericalIntegrator(integrand_ptr, lower_limit_of_integration, upper_limit_of_integration, approximation_resolution) 
+  local(n, phi)
+  (
+  n = 1;
+  phi = 0;
+  
+  //remap the upper limit to [0;this.range]find which bin it falls into
+  upper_limit_of_integration = floor((upper_limit_of_integration + this.range / 2) * this.bin_ratio); 
+  
+  while (n <= upper_limit_of_integration)
+    (
+    phi += this.histogram[bin] / this.length; //numerical integration of the pmf
+    );
+  
+  phi;
+  //phi = phi * 2 - 1; //remap from [0;1] to [-1,1] in order to use it as a transfer function
+  );
+
+
+
+
+/*******************************************************************
+  runningIntegratorTrapezoidal
+  -----
+  
+  
+
+*******************************************************************/
+
+/*******************************************************************
+  runningIntegratorRectangle
+  -----
+  
+  
+
+*******************************************************************/
+
+/*******************************************************************
+  runningIntegratorGauss
+  -----
+  
+  
+
+*******************************************************************/
+
+/*******************************************************************
+  runningIntegratorSimpson
+  -----
+  
+  
+
+*******************************************************************/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

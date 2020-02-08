@@ -1,0 +1,151 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: FBV GroupSexPression
+
+
+// these lines tell Reaper the effect has no audio input/output,
+// which enables processing optimizations.
+// MIDI-only FX should always have these lines.
+in_pin:none
+out_pin:none
+
+
+slider9:   1 <1, 16,1> Midi Channel - NOT USED YET
+slider10: 20 <0,127,1> A cc
+slider11: 21 <0,127,1> B cc
+slider12: 22 <0,127,1> C cc
+slider13: 23 <0,127,1> D cc
+slider14: 24 <0,127,1> Toe Switch cc
+slider15: 11 <0,127,1> Wah cc
+slider16:  7 <0,127,1> Volume cc
+
+slider20: 0   <0,127,1> A lowest
+slider21: 127 <0,127,1> A highest
+
+slider23: 0   <0,127,1> B lowest
+slider24: 127 <0,127,1> B highest
+
+slider26: 0   <0,127,1> C lowest
+slider27: 127 <0,127,1> C highest
+
+slider29: 0   <0,127,1> D lowest
+slider30: 127 <0,127,1> D highest
+
+slider32: 0   <0,127,1> Wah lowest
+slider33: 127 <0,127,1> Wah highest
+
+slider35: 0   <0,127,1> Vol lowest
+slider36: 127 <0,127,1> Vol highest
+
+
+slider40:0<0,1,0{NO,YES}>A Midi passthrough
+slider41:0<0,1,0{NO,YES}>B Midi passthrough
+slider42:0<0,1,0{NO,YES}>C Midi passthrough
+slider43:0<0,1,0{NO,YES}>D Midi passthrough
+slider44:0<0,1,0{NO,YES}>Wah Midi passthrough
+slider45:0<0,15,1{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>passthrough Midi Channel
+
+
+
+import z/z-Utilities.jsfx-inc
+
+@init
+ext_noinit = 1; // Do not execute @init on playback start/stop
+
+
+wah.on = 127;
+
+@slider
+a.cc = slider10;
+b.cc = slider11;
+c.cc = slider12;
+d.cc = slider13;
+toe.cc = slider14;
+wah.cc = slider15;
+vol.cc = slider16;
+
+a.hi = slider21;
+b.hi = slider24;
+c.hi = slider27;
+d.hi = slider30;
+wah.hi = slider33;
+vol.hi = slider36;
+
+a.lo = slider20;
+b.lo = slider23;
+c.lo = slider26;
+d.lo = slider29;
+wah.lo = slider32;
+vol.lo = slider35;
+
+a.pass = slider40;
+b.pass = slider41;
+c.pass = slider42;
+d.pass = slider43;
+wah.pass = slider44;
+channel.pass = slider45 + $xB0;
+
+
+a.pow = 1; // Todo
+b.pow = 1;
+c.pow = 1;
+d.pow = 1;
+wah.pow = 1;
+vol.pow = 1;
+
+@block
+
+
+while (midirecv(offset,channel,cc,vel)) 
+  (
+  //status = channel;
+ 
+  cc == wah.cc ? //decide what to do with incoming wah cc message
+  (
+  wah.on == 127 ? midisend(offset, channel, wah.cc, reMap(vel, 0, 127, wah.lo, wah.hi, wah.pow)); 
+  a.on == 127 ? midisend(offset, channel, a.cc, reMap(vel, 0, 127, a.lo, a.hi, a.pow)); //if A is on, send incoming wah cc message on a.cc
+  b.on == 127 ? midisend(offset, channel, b.cc, reMap(vel, 0, 127, b.lo, b.hi, b.pow)); //etc...
+  c.on == 127 ? midisend(offset, channel, c.cc, reMap(vel, 0, 127, c.lo, c.hi, c.pow));
+  d.on == 127 ? midisend(offset, channel, d.cc, reMap(vel, 0, 127, d.lo, d.hi, d.pow));
+ 
+  ) : ( //else update what needs updating and passthrough
+  
+  cc == a.cc ? (a.on = vel; a.pass ? midisend(offset, channel.pass, cc, 127 - vel););
+  cc == b.cc ? (b.on = vel; b.pass ? midisend(offset, channel.pass, cc, 127 - vel););
+  cc == c.cc ? (c.on = vel; c.pass ? midisend(offset, channel.pass, cc, 127 - vel););
+  cc == d.cc ? (d.on = vel; d.pass ? midisend(offset, channel.pass, cc, 127 - vel););
+  cc == toe.cc ? (wah.on = vel;wah.pass ? midisend(offset, channel.pass, wah.cc, 127 - vel););
+  
+  );
+  
+  );
+  
+  
+  //vel = wah.on;
+  //cc == toe.cc ? wah.on = vel;
+  
+  /* toe.cc in single mode
+  cc == toe.cc ? 
+    (
+    wah.on ? 
+      (
+      wah.on = 0;
+      ) : (
+      wah.on = 127;
+      );
+    );
+  */
+
+

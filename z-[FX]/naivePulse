@@ -1,0 +1,59 @@
+/*******************************************************************************
+*  2017 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                         *
+*******************************************************************************/
+
+desc:Naive Pulse Generator
+
+slider1:-12<-96,-6,1>Volume (db)
+slider2:512<1,48000,1>Period (spl)
+slider3:32<1,512,1>Length (spl)
+//slider4:1<0,1,1{Stay Based, Alt}> 
+//Don't Bother, if you want to : try paramods or phase mod as carrier
+
+
+@init
+
+@slider
+slider1 == -96 ?
+  (
+  volume = 0;
+  ):(
+  volume = exp(slider1 * 0.11552453);
+  );
+  
+  
+pulse_period = slider2 | 0;
+pulse_length = slider3 | 0;
+
+//pulse_alt    = slider4; //Don't Bother, if you want to : try paramods or phase mod as carrier
+
+period = 0;
+length = 0;
+
+@sample
+
+period < pulse_period ?
+  (
+  length < pulse_length ?
+    (
+    spl0 = spl1 = volume;
+    length += 1;
+    ):(
+    spl0 = spl1 = 0;
+    );
+  
+  period +=1;
+  ):(
+  period = 0;
+  length = 0;
+  );

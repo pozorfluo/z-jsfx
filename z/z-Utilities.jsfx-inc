@@ -1,0 +1,667 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: Utilities Library
+
+/* TODO []
+
+  http://www.dspguide.com/CH4.PDF
+  http://ajaxsoundstudio.com/cookdspdoc/
+  http://folk.ntnu.no/oyvinbra/gdsp/Lessons.html
+  
+  FUNCTION INDEX []
+  
+*/
+
+@init
+  
+/*******************************************************************
+  reMap    
+  -----
+  TODO []
+  + replace power factor with selectable transfer curve
+  
+  http://rpackages.ianhowson.com/cran/SciencesPo/man/normalize.html
+  https://en.wikipedia.org/wiki/Feature_scaling
+  https://en.wikipedia.org/wiki/Normalization_(statistics)
+  https://en.wikipedia.org/wiki/Normalization_(image_processing)
+  https://processing.org/reference/map_.html  
+  https://en.wikipedia.org/wiki/Normalized_frequency_(unit)
+  
+   
+
+- copy/pasted from CookDSP Scale  
+  
+Maps an input value from an input range to an output range with power factor.
+
+The scale function takes an input value, scales it down
+to a 0-1 range according to input range (`xmin` - `xmax`),
+raises it to `ex` power and then rescales the result to
+the output range (`ymin` - `ymax`). This function is useful
+to convert a value from a  linear scale to an exponential one,
+like converting a midi slider (0-127 linear) to a frequency
+scale (20-20000 exponential).
+
+Power factor : 1 is linear, less than 1 is logarithmic, greater than 1 is exponential
+ 
+Example
+-------
+   
+    desc:Normalized to Frequency Range
+ 
+    import cookdsp.jsfx-inc
+
+    slider1:0<0,1,0.001>Normalized Frequency
+
+    @init
+    lp.lop(20);
+
+    @slider
+    // 0-1 range converted to frequency range
+    f = scale(slider1, 0, 1, 20, srate/2, 4);
+    lp.lop_set_freq(f);
+
+    @sample
+    spl0 = lp.lop_do(spl0);
+    spl1 = lp.lop_do(spl1);
+
+*******************************************************************/
+function reMap(x, xmin, xmax, ymin, ymax, ex)
+  (
+  x -= xmin;
+  x /= (xmax - xmin);
+  x ^= ex;
+  x *= (ymax - ymin);
+  x + ymin;
+  );
+  
+/*******************************************************************
+  reMap    
+  -----
+  no power factor version
+*******************************************************************/
+function reMap(x, xmin, xmax, ymin, ymax)
+  (
+  x -= xmin;
+  x /= (xmax - xmin);
+  x *= (ymax - ymin);
+  x + ymin;
+  );
+
+  
+/*******************************************************************
+  Normalize    
+  -----
+  
+  http://rpackages.ianhowson.com/cran/SciencesPo/man/normalize.html
+  https://en.wikipedia.org/wiki/Feature_scaling
+  https://en.wikipedia.org/wiki/Normalization_(statistics)
+  
+Unity-based Normalization
+
+Scale input value from a known [min, max] into the range [0,1] 
+   
+ 
+
+*******************************************************************/
+function Normalize(x, xmin, xmax)
+  (
+  x -= xmin;
+  x /= (xmax - xmin);
+  );
+
+
+
+/*******************************************************************
+  dBToAmp
+  -----
+     
+  dB to linear Amplitude
+  
+  gain_output = 2 ^ (db / 6);
+  10^(x*0.05) |  10^(x/20);
+  is equivalent to
+  2^(x/6)
+  
+  according to jsfx documentation exp() is faster than pow()
+  
+  b = e^ln(b)
+  b^x = (e^ln(b))^x = e^(x .ln(b))
+    
+  ln10 = 2.30258509; //approx
+  ln2 = 0.69314718; //approx
+  
+  dbtoampln10 = exp(slider2 / 20 * ln10);
+  dbtoampln2 = exp(slider2 / 6 * ln2);
+  dbwamppow = dBtoAmp(slider2);
+  
+  ==> exp(dB / 6 * ln2);
+
+  1/6 * ln2 = 0.11552453 //approx   
+  ==>  exp(slider2 * 0.11552453);
+  
+  8.65617025 = 1 / 0.11552453 approx
+  //exp(dB / 8.65617025);
+
+*******************************************************************/
+function dBtoAmp(dB)
+  (
+  exp(dB * 0.11552453);
+  //exp(dB / 8.65617025);
+  );
+
+/*******************************************************************
+  AmpTodB
+  -----
+     
+  linear Amplitude to dB
+  
+  y = logb x is equivalent to x = by
+  
+       amp = e^(dB * 0.11552453) 
+   =>  dB * 0.11552453 = ln(amp)
+   =>  dB = ln(amp) / 0.11552453 
+   
+   dB = log(amp) / 0.11552453;
+   
+ 
+*******************************************************************/
+function AmpTodB(amp)
+  ( 
+  log(amp) / 0.11552453;
+  );
+/*******************************************************************
+  DegreesToRadians
+  -----
+     
+ 
+  
+
+*******************************************************************/
+//* $pi / 180;
+
+/*******************************************************************
+  RadiansToDegrees
+  -----
+     
+ 
+  
+
+*******************************************************************/
+
+/*******************************************************************
+  hiNibble
+  -----
+     
+ https://en.wikipedia.org/wiki/Nibble
+  
+
+*******************************************************************/
+function hiNibble(octet)
+  ( 
+  (octet >> 4 ) & $x0F;
+  );
+
+/*******************************************************************
+  loNibble
+  -----
+     
+ https://en.wikipedia.org/wiki/Nibble
+  
+
+*******************************************************************/
+function loNibble(octet)
+  ( 
+  octet & $x0F;
+  );
+
+/*******************************************************************
+  bitOn
+  -----
+     
+ https://en.wikipedia.org/wiki/Mask_(computing)
+ https://en.wikipedia.org/wiki/Bitwise_operation
+ https://en.wikipedia.org/wiki/Logical_disjunction
+  
+
+*******************************************************************/
+function bitOn(word, bit_position)
+  ( 
+  //word |= 2 ^ bit_position;
+  word |= 1 << bit_position;
+  );
+
+/*******************************************************************
+  bitOff
+  -----
+     
+ https://en.wikipedia.org/wiki/Mask_(computing)
+ https://en.wikipedia.org/wiki/Bitwise_operation
+ https://en.wikipedia.org/wiki/Logical_disjunction
+  
+
+*******************************************************************/
+function bitOff(word, bit_position)
+  ( 
+  //word &= 65535 - (2 ^ bit_position);
+  word &= 4294967295 - (1 << bit_position); //32 bits integers
+  );
+  
+/*******************************************************************
+  bitToggle
+  -----
+     
+ https://en.wikipedia.org/wiki/Mask_(computing)
+ https://en.wikipedia.org/wiki/Exclusive_or  
+
+*******************************************************************/
+function bitToggle(word, bit_position)
+  ( 
+  word ~= 1 << bit_position;
+  );
+/*******************************************************************
+  bitQuery
+  -----
+     
+ https://en.wikipedia.org/wiki/Mask_(computing)
+ https://en.wikipedia.org/wiki/Exclusive_or
+ 
+ returns 1 if bit is on, 0 otherwise  
+
+*******************************************************************/
+function bitQuery(word, bit_position)
+  ( 
+  //(word &= 1 << bit_position) != 0; //is it useful to store back in word ? &= vs &
+  (word & (1 << bit_position)) != 0; //is it useful to store back in word ? &= vs &
+  );
+
+
+/*******************************************************************
+  stateInit
+  --------
+   
+*******************************************************************/  
+function stateInit()
+  (
+  this.state = 0;
+  //this.previous_state = 0;
+  this.state_count = 0;
+  );
+
+/*******************************************************************
+  stateAlloc
+  --------
+  
+  increments state_count
+  returns next available bitmask out of 32 total, -1 otherwise
+   
+*******************************************************************/  
+function stateAlloc()
+  (
+  this.state_count += 1;
+  
+  this.state_count <= 32 ?
+    (
+    1 << (this.state_count - 1);
+    ):(
+    -1;
+    );
+  );
+
+/*******************************************************************
+  stateOn
+  --------
+  
+  eg : stateOn(_STATE1 + _STATE4 + _STATE7);  
+  
+*******************************************************************/  
+function stateOn(mask)
+  (
+  this.state |= mask;
+  );
+
+/*******************************************************************
+  stateOff
+  --------
+  
+  eg : stateOff(_STATE1 + _STATE4 + _STATE7);  
+  
+*******************************************************************/  
+function stateOff(mask)
+  (
+  this.state &= 4294967295 - mask; //32 bits integers
+  );
+  
+/*******************************************************************
+  stateToggle
+  --------
+  
+  eg : stateToggle(_STATE1 + _STATE4 + _STATE7);  
+  
+*******************************************************************/  
+function stateToggle(mask)
+  (
+  this.state ~= mask;
+  );
+  
+/*******************************************************************
+  stateQuery
+  --------
+  
+  eg : stateQuery(_STATE1 + _STATE4 + _STATE7);  
+  
+  returns 1 if ALL states queried are ON, 0 otherwise
+  
+*******************************************************************/  
+function stateQuery(mask)
+  (
+  (this.state & mask) == mask;
+  );
+
+/*******************************************************************
+  stateUpdate
+  --------
+  
+  for when you need to programmatically decide what to do
+
+  action :
+  0 - turns off
+  1 - turns on
+  2 - toggles
+  3 - queries
+  
+  
+*******************************************************************/  
+_OFF    = 0;
+_ON     = 1;
+_TOGGLE = 2;
+_QUERY  = 3;
+
+function stateUpdate(action, mask)
+  (
+  action == _OFF      ? ( stateOff(mask);
+    ):(
+  action == _ON       ? ( stateOn(mask);
+    ):(
+  action == _TOGGLE   ? ( stateToggle(mask);
+    ):(
+  action == _QUERY    ? ( stateQuery(mask);
+    ):(
+    -1; //unexpected action 
+    ););););
+  );
+
+/*******************************************************************
+  popCount
+  --------
+  
+  https://en.wikipedia.org/wiki/Hamming_weight 
+  
+  //This is better when most bits in x are 0
+  //It uses 3 arithmetic operations and one comparison/branch per "1" bit in x.
+  int popcount_4(uint64_t x) {
+      int count;
+      for (count=0; x; count++)
+          x &= x-1;
+      return count;
+  } 
+  
+*******************************************************************/  
+function popCount(word)
+  local(count)
+  (
+  count = 0;
+  
+  while(word)
+    (
+    word &= word - 1;
+    count += 1;
+    );
+    
+  count;
+  );
+
+/*******************************************************************
+  hammingDistance
+  --------
+  
+  https://en.wikipedia.org/wiki/Hamming_distance
+  
+*******************************************************************/ 
+
+/*******************************************************************
+  firstDigit
+  -----
+   
+  http://stackoverflow.com/questions/2051817/return-first-digit-of-an-integer  
+   
+  returns first digit of input
+
+  +look into this supposedly faster way later, NO IDEA IF AND HOW IT WOKS ATM   
+    Compute log of the abs(x), then get floor. Let's call it n.
+    Divide the number with 10^n  
+    
+
+*******************************************************************/
+function firstDigit(input)
+ local(abs_input)
+ (
+ abs_input = abs(input);
+ 
+ while(abs_input >= 10)
+   (
+   abs_input /= 10;
+   );
+ abs_input | 0; //floor(abs_input); 
+ ); 
+
+
+/*******************************************************************
+  intParity
+  -----      
+  casts input as integer and returns parity
+      
+*******************************************************************/
+function intParity(number)
+  (
+  number &= $~1;
+  );
+
+/*******************************************************************
+  intEven
+  -----      
+  returns input cast as integer and made even
+      
+*******************************************************************/
+function intEven(number)
+  (
+  ((number  / 2) | 0) * 2;
+  );
+  
+/*******************************************************************
+  intOdd
+  -----      
+  returns input cast as integer and made odd
+      
+*******************************************************************/
+function intOdd(number)
+  (
+  number |= $~1;
+  );
+/*******************************************************************
+  Truncate
+  ----- 
+  x |= 0;
+    
+*******************************************************************/  
+function Truncate(number)
+  (  
+  number | 0;
+  );
+  
+/*******************************************************************
+  roundUp
+  -----  
+  
+*******************************************************************/  
+function roundUp(number)
+  (  
+  number += 0.9999999999999999 * sign(number);
+  number | 0;
+  );
+/*******************************************************************
+  roundHalfUp
+  ----- 
+  
+  more here 
+  https://en.wikipedia.org/wiki/Rounding#Tie-breaking 
+  
+*******************************************************************/  
+function roundHalfUp(number)
+  ( 
+  number += 0.5 * sign(number);
+  number | 0;
+  );
+ 
+/*******************************************************************
+  roundRand
+  ----- 
+  
+  https://www.mathsisfun.com/numbers/rounding-methods.html
+  
+*******************************************************************/  
+
+/*******************************************************************
+  MSB
+  -----
+     
+ https://en.wikipedia.org/wiki/Most_significant_bit
+  
+
+*******************************************************************/
+
+/*******************************************************************
+  LSB
+  -----
+     
+ https://en.wikipedia.org/wiki/Least_significant_bit
+  
+
+*******************************************************************/
+
+
+/*******************************************************************
+  linearInterpolate
+  -----
+     
+  https://en.wikipedia.org/wiki/Interpolation
+  
+
+*******************************************************************/
+
+/*******************************************************************
+  exponentialSmooth
+  -----
+     
+  https://en.wikipedia.org/wiki/Exponential_smoothing
+
+*******************************************************************/
+
+
+
+/*******************************************************************
+  functionCompose
+  -----
+    
+  https://en.wikipedia.org/wiki/Function_composition 
+  https://en.wikipedia.org/wiki/Function_composition_(computer_science)
+    
+
+*******************************************************************/
+
+/*******************************************************************
+  functionCall
+  -----
+    
+    use function_ID to figure out where to route 
+    ping ? compare with list ? code a hierarchy in ID number file/type/param/rank/whatever
+     or just use a big fat dropdown list and do something w strings ?
+    
+    in the meantine :
+    
+    dump that crap
+
+*******************************************************************/      
+function functionCall(function_ID, function_Param, input)
+       local(output)
+        (
+         output = input;
+         output;         
+        );
+
+//||||||||||||||||||||||||||||| DUMP |||||||||||||||||||||||||||||
+/*******************************************************************
+  roundToNearestMultiple
+  -----   
+   
+  http://stackoverflow.com/questions/3407012/c-rounding-up-to-the-nearest-multiple-of-a-number
+  http://phrogz.net/round-to-nearest-via-modulus-division
+  
+  In general, rounding a number x to a multiple of some specified increment m entails the following steps:
+  
+  Divide x by m, let the result be y;
+  Round y to an integer value, call it q;
+  Multiply q by m to obtain the rounded value z.
+
+  !!!!!!!!! NOT WORKING ATM !!!!!!!!!!!!!
+*******************************************************************/
+/*
+function roundToNearestMultiple(number, multiple)
+  local(half)
+  (
+  half = multiple / 2;
+  number + half - ( number + half) % multiple;
+  );
+*/
+/*******************************************************************
+  roundDownTo
+  ----- 
+  truncate 
+  x |= 0;
+  
+  ceil  
+  x += 0.9999999999999999 * sign(x);
+  x |= 0;
+  
+  
+  x + = 0.5 * sign(x);
+  x |= 0;
+*******************************************************************/  
+/*
+function roundDownTo(number, multiple)
+  (
+ 
+  ((number / multiple) * multiple) | 0;  //floor(number / multiple) * multiple;
+  );
+*/ 
+/*******************************************************************
+  roundUpTo
+  -----   
+*******************************************************************/  
+/*
+function roundUpTo(number, multiple)
+  (  
+  ((number / multiple) * multiple) | 0; //ceil(number / multiple) * multiple;
+  );
+*/

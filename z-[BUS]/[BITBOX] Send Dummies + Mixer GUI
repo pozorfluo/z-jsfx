@@ -1,0 +1,1001 @@
+desc:BITBOX Mixer
+
+//hide me later with -
+slider1:    0<-96,0,0.01>-bus_1
+slider2:    0<-96,0,0.01>-bus_2
+slider3:    0<-96,0,0.01>-bus_3
+slider4:    0<-96,0,0.01>-bus_4
+
+slider5:  -96<-96,0,0.01>-bus_1_send_1
+slider6:  -96<-96,0,0.01>-bus_1_send_2
+slider7:  -96<-96,0,0.01>-bus_1_send_3
+slider8:  -96<-96,0,0.01>-bus_1_send_4
+slider9:  -96<-96,0,0.01>-bus_1_send_5
+slider10: -96<-96,0,0.01>-bus_1_send_6
+
+slider11: -96<-96,0,0.01>-bus_2_send_1
+slider12: -96<-96,0,0.01>-bus_2_send_2
+slider13: -96<-96,0,0.01>-bus_2_send_3
+slider14: -96<-96,0,0.01>-bus_2_send_4
+slider15: -96<-96,0,0.01>-bus_2_send_5
+slider16: -96<-96,0,0.01>-bus_2_send_6
+slider17: -96<-96,0,0.01>-bus_2_send_7
+
+slider18: -96<-96,0,0.01>-bus_3_send_1
+slider19: -96<-96,0,0.01>-bus_3_send_2
+slider20: -96<-96,0,0.01>-bus_3_send_3
+slider21: -96<-96,0,0.01>-bus_3_send_4
+slider22: -96<-96,0,0.01>-bus_3_send_5
+slider23: -96<-96,0,0.01>-bus_3_send_6
+slider24: -96<-96,0,0.01>-bus_3_send_7
+slider25: -96<-96,0,0.01>-bus_3_send_8
+
+slider26: -96<-96,0,0.01>-bus_4_send_1
+slider27: -96<-96,0,0.01>-bus_4_send_2
+slider28: -96<-96,0,0.01>-bus_4_send_3
+slider29: -96<-96,0,0.01>-bus_4_send_4
+slider30: -96<-96,0,0.01>-bus_4_send_5
+slider31: -96<-96,0,0.01>-bus_4_send_6
+slider32: -96<-96,0,0.01>-bus_4_send_7
+slider33: -96<-96,0,0.01>-bus_4_send_8
+slider34: -96<-96,0,0.01>-bus_4_send_9
+
+slider35:   0<-100,100,0.1>-bus_1_send_1_pan
+slider36:   0<-100,100,0.1>-bus_1_send_2_pan
+slider37:   0<-100,100,0.1>-bus_1_send_3_pan
+slider38:   0<-100,100,0.1>-bus_1_send_4_pan
+slider39:   0<-100,100,0.1>-bus_1_send_5_pan
+slider40:   0<-100,100,0.1>-bus_1_send_6_pan
+
+slider41:   0<-100,100,0.1>-bus_2_send_1_pan
+slider42:   0<-100,100,0.1>-bus_2_send_2_pan
+slider43:   0<-100,100,0.1>-bus_2_send_3_pan
+slider44:   0<-100,100,0.1>-bus_2_send_4_pan
+slider45:   0<-100,100,0.1>-bus_2_send_5_pan
+slider46:   0<-100,100,0.1>-bus_2_send_6_pan
+slider47:   0<-100,100,0.1>-bus_2_send_7_pan
+
+slider48:   0<-100,100,0.1>-bus_3_send_1_pan
+slider49:   0<-100,100,0.1>-bus_3_send_2_pan
+slider50:   0<-100,100,0.1>-bus_3_send_3_pan
+slider51:   0<-100,100,0.1>-bus_3_send_4_pan
+slider52:   0<-100,100,0.1>-bus_3_send_5_pan
+slider53:   0<-100,100,0.1>-bus_3_send_6_pan
+slider54:   0<-100,100,0.1>-bus_3_send_7_pan
+slider55:   0<-100,100,0.1>-bus_3_send_8_pan
+
+slider56:   0<-100,100,0.1>-bus_4_send_1_pan
+slider57:   0<-100,100,0.1>-bus_4_send_2_pan
+slider58:   0<-100,100,0.1>-bus_4_send_3_pan
+slider59:   0<-100,100,0.1>-bus_4_send_4_pan
+slider60:   0<-100,100,0.1>-bus_4_send_5_pan
+slider61:   0<-100,100,0.1>-bus_4_send_6_pan
+slider62:   0<-100,100,0.1>-bus_4_send_7_pan
+slider63:   0<-100,100,0.1>-bus_4_send_8_pan
+slider64:   0<-100,100,0.1>-bus_4_send_9_pan
+
+
+//slider63:0<0,12,1{BOX,KIT,BASS,VOX,BVOX,GTR1,GTR2,SYN1,SYN2,KEY,BIT1,BIT2,AUX,FREE,FREE,FREE}>Track Color
+//slider64:0<0,2,1{Off,Buffer Map, Values}>Debug Mode
+
+import z/z-Utilities.jsfx-inc
+import z-Bus.jsfx-inc
+
+@init
+
+// 6 SENDS MAX
+#send_1  = "FX 01";
+#send_2  = "FX 02";
+#send_3  = "FX 03";
+#send_4  = "FX 04";
+#send_5  = "FX 05";
+#send_6  = "FX 06";
+
+// 4 BUSSES
+#bus_1  = "[ DRY ]";
+#bus_2  = "[ WET ]";
+#bus_3  = "[ TIME ]";
+#bus_4  = "[ RACK ]";
+
+//QnD Memory Alloc
+window.send_name = 256;
+window.bus_name  = 320;
+_COLOR = 384;
+
+window.send_name[0] = #send_1;
+window.send_name[1] = #send_2;
+window.send_name[2] = #send_3;
+window.send_name[3] = #send_4;
+window.send_name[4] = #send_5;
+window.send_name[5] = #send_6;
+
+
+window.bus_name[0]  = #bus_1;
+window.bus_name[1]  = #bus_2;
+window.bus_name[2]  = #bus_3;
+window.bus_name[3]  = #bus_4;
+
+
+window.bus_count  = 4;
+window.send_count = 6;
+
+_TYPE_KNOB = 1;
+_TYPE_PAN  = 2;
+_TYPE_BUS  = 3; 
+
+_SPEED_FAST     = 2;
+_SPEED_DEFAULT  = 1;
+_SPEED_SLOW     = 0.25;
+_SPEED_PRECISE  = 0.05;
+
+_COLOR_BG = 0.13;
+
+//TRACK COLOR
+_COLOR[0]  = packRGB( 164, 128,  0);
+_COLOR[1]  = packRGB( 255,  92,  0);
+/*
+_COLOR[2]  = packRGB(255,   0,   0);
+_COLOR[3]  = packRGB(128,   0, 255);
+_COLOR[4]  = packRGB( 61,  47, 162);
+_COLOR[5]  = packRGB(  0,  64, 255);
+_COLOR[6]  = packRGB( 22,  45, 133);
+_COLOR[7]  = packRGB(  0, 192, 255);
+_COLOR[8]  = packRGB(255, 128,   0);
+_COLOR[9]  = packRGB(128, 255,   0);
+_COLOR[10] = packRGB(128,   0,  64);
+_COLOR[11] = packRGB(128,   0, 128);
+_COLOR[12] = packRGB(013, 013, 013);
+_COLOR[13] = packRGB(046, 046, 046);
+_COLOR[14] = packRGB(085, 085, 085);
+_COLOR[15] = packRGB(128, 128, 128);
+*/
+window.track_color = 0;
+
+font.name = "HaxrCorp S8";
+
+_MARGIN_TOP  =  5;
+_MARGIN_LEFT =  5;
+_H_SPACING   =  15;
+_V_SPACING   =  6;
+
+knob.opacity           =  0.5;
+knob.txt_opacity       =    1;
+knob.big_multiplier    =  1.5;
+knob.height_multiplier =  1.5;
+
+mouse.param_focus = 0;
+mouse.knob_speed = _SPEED_DEFAULT;
+
+display.stateInit();
+display._REFRESH_GFX = display.stateAlloc();
+display._BUFFER_MAP = display.stateAlloc();
+//display._VALUE = display.stateAlloc();
+display._REFRESH_METERS = display.stateAlloc();
+
+display.refresh_interval = 1000 / 1000;
+display.time.now = display.time.last_update = time_precise();
+
+display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+
+
+////////////////////////////////// METERS //////////////////////////////////
+ext_noinit = 1;
+MAX_CH = 64;
+sc = 6 / log(2);
+dbMin = 60; //JFB 305.885547;
+dbRulerStep = 6;
+CLIC_TRES = 200 * srate / 1000;  //JFB hidden!!
+
+bufCh = 0;
+bufPeak = MAX_CH; // i.e. after bufCh
+bufValue = MAX_CH * 2;
+coordinatelist = MAX_CH * 3;   //JFB
+
+memset(bufCh, dbMin * -1, MAX_CH);
+memset(bufPeak, dbMin * -1, MAX_CH);
+memset(bufValue, dbMin * -1, MAX_CH);
+
+
+uiTop = 1;
+uiLeft = 1;
+uiCharWidth = 10;
+uiRightMargin = 45;
+uiWidthRatio = 75;
+
+//QnD Memory Alloc
+pin_name = 192; //crude memAlloc
+
+n = 0;
+loop(64,
+  pin_name[n] = n;
+  n += 1;
+  );
+strcpy(pin_name[0],  "L");
+strcpy(pin_name[1],  "R");
+strcpy(pin_name[2],  "FX 01");
+strcpy(pin_name[3],  "FX 01");
+strcpy(pin_name[4],  "FX 02");
+strcpy(pin_name[5],  "FX 02");
+strcpy(pin_name[6],  "FX 03");
+strcpy(pin_name[7],  "FX 03");
+strcpy(pin_name[8],  "FX 04");
+strcpy(pin_name[9],  "FX 04");
+strcpy(pin_name[10], "FX 05");
+strcpy(pin_name[11], "FX 05");
+strcpy(pin_name[12], "FX 06");
+strcpy(pin_name[13], "FX 06");
+strcpy(pin_name[14], "[ DRY ]");
+strcpy(pin_name[15], "[ DRY ]");
+strcpy(pin_name[16], "[ WET ]");
+strcpy(pin_name[17], "[ WET ]");
+strcpy(pin_name[18], "[ TIME ]");
+strcpy(pin_name[19], "[ TIME ]");
+/////////////////////////////////////////////////////////////////////////////
+
+@slider
+//DEBUG RANDOM VALUES ON INIT FOR SLIDERS
+/*
+debug_slider_index = 1;
+loop(34,
+  slider(debug_slider_index) = -debug_slider_index * 2; //-rand(96);
+  debug_slider_index += 1;
+);
+
+loop(30,
+  slider(debug_slider_index) = rand(200) - 100; //-rand(96);
+  debug_slider_index += 1;
+);
+*/
+updateSliders();
+
+Debug.CallSlidersCount += 1;
+////////////////////////////////// METERS //////////////////////////////////
+sampletime = 45 * srate / 1000;  //JFB hidden!! 45<25,1000,1>-sample time (ms)
+channel_highlight = min(MAX_CH, min(num_ch, 1)) | 0; //1<1,64,1>-Highlight channel (0 = disabled)
+
+////////////////////////////////// METERS //////////////////////////////////
+@block
+display.stateQuery(display._REFRESH_METERS) ?
+  (
+bscnt>sampletime ?
+(
+    bufCh[0] = bufCh0;
+    bufCh[1] = bufCh1;
+    num_ch > 2 ?
+    (
+      bufCh[2] = bufCh2;
+      bufCh[3] = bufCh3;
+      num_ch > 4 ?
+      (
+        bufCh[4] = bufCh4;
+        bufCh[5] = bufCh5;
+        num_ch > 6 ?
+        (
+          bufCh[6] = bufCh6;
+          bufCh[7] = bufCh7;
+          num_ch > 8 ?
+          (
+            bufCh[8] = bufCh8;
+            bufCh[9] = bufCh9;
+            num_ch > 10 ?
+            (
+              bufCh[10] = bufCh10;
+              bufCh[11] = bufCh11;
+              num_ch > 12 ?
+              (
+                bufCh[12] = bufCh12;
+                bufCh[13] = bufCh13;
+                num_ch > 14 ?
+                (
+                  bufCh[14] = bufCh14;
+                  bufCh[15] = bufCh15;
+                  num_ch > 16 ?
+                  (
+                    bufCh[16] = bufCh16;
+                    bufCh[17] = bufCh17;
+                    bufCh[18] = bufCh18;
+                    bufCh[19] = bufCh19;
+                    num_ch > 20 ?
+                    (
+                      bufCh[20] = bufCh20;
+                      bufCh[21] = bufCh21;
+                      bufCh[22] = bufCh22;
+                      bufCh[23] = bufCh23;
+                      num_ch > 24 ?
+                      (
+                        bufCh[24] = bufCh24;
+                        bufCh[25] = bufCh25;
+                        bufCh[26] = bufCh26;
+                        bufCh[27] = bufCh27;
+                        num_ch > 28 ?
+                        (
+                          bufCh[28] = bufCh28;
+                          bufCh[29] = bufCh29;
+                          bufCh[30] = bufCh30;
+                          bufCh[31] = bufCh31;
+                          num_ch > 32 ?
+                          (
+                            bufCh[32] = bufCh32;
+                            bufCh[33] = bufCh33;
+                            bufCh[34] = bufCh34;
+                            bufCh[35] = bufCh35;
+                            bufCh[36] = bufCh36;
+                            bufCh[37] = bufCh37;
+                            bufCh[38] = bufCh38;
+                            bufCh[39] = bufCh39;
+                            num_ch > 40 ?
+                            (
+                              bufCh[40] = bufCh40;
+                              bufCh[41] = bufCh41;
+                              bufCh[42] = bufCh42;
+                              bufCh[43] = bufCh43;
+                              bufCh[44] = bufCh44;
+                              bufCh[45] = bufCh45;
+                              bufCh[46] = bufCh46;
+                              bufCh[47] = bufCh47;
+                              num_ch > 48 ?
+                              (
+                                bufCh[48] = bufCh48;
+                                bufCh[49] = bufCh49;
+                                bufCh[50] = bufCh50;
+                                bufCh[51] = bufCh51;
+                                bufCh[52] = bufCh52;
+                                bufCh[53] = bufCh53;
+                                bufCh[54] = bufCh54;
+                                bufCh[55] = bufCh55;
+                                num_ch > 56 ?
+                                (
+                                  bufCh[56] = bufCh56;
+                                  bufCh[57] = bufCh57;
+                                  bufCh[58] = bufCh58;
+                                  bufCh[59] = bufCh59;
+                                  bufCh[60] = bufCh60;
+                                  bufCh[61] = bufCh61;
+                                  bufCh[62] = bufCh62;
+                                  bufCh[63] = bufCh63;
+                                );
+                              );
+                            );
+                          );
+                        );
+                      );
+                    );
+                  );
+                );
+              );
+            );
+          );
+        );
+      );
+    );
+    
+
+    j=0;
+    while
+    (
+      bufValue[j] = log(bufCh[j])*sc;
+      bufPeak[j] = max(bufPeak[j], bufValue[j]);
+//JFB      bufCh[j] = 0;
+      j+=1;
+      j < num_ch;
+    );
+    bscnt=0;
+
+    bufCh0 = 0;
+    bufCh1 = 0;
+    num_ch > 2 ?
+    (
+      bufCh2 = 0;
+      bufCh3 = 0;
+      num_ch > 4 ?
+      (
+        bufCh4 = 0;
+        bufCh5 = 0;
+        num_ch > 6 ?
+        (
+          bufCh6 = 0;
+          bufCh7 = 0;
+          num_ch > 8 ?
+          (
+            bufCh8 = 0;
+            bufCh9 = 0;
+            num_ch > 10 ?
+            (
+              bufCh10 = 0;
+              bufCh11 = 0;
+              num_ch > 12 ?
+              (
+                bufCh12 = 0;
+                bufCh13 = 0;
+                num_ch > 14 ?
+                (
+                  bufCh14 = 0;
+                  bufCh15 = 0;
+                  num_ch > 16 ?
+                  (
+                    bufCh16 = 0;
+                    bufCh17 = 0;
+                    bufCh18 = 0;
+                    bufCh19 = 0;
+                    num_ch > 20 ?
+                    (
+                      bufCh20 = 0;
+                      bufCh21 = 0;
+                      bufCh22 = 0;
+                      bufCh23 = 0;
+                      num_ch > 24 ?
+                      (
+                        bufCh24 = 0;
+                        bufCh25 = 0;
+                        bufCh26 = 0;
+                        bufCh27 = 0;
+                        num_ch > 28 ?
+                        (
+                          bufCh28 = 0;
+                          bufCh29 = 0;
+                          bufCh30 = 0;
+                          bufCh31 = 0;
+                          num_ch > 32 ?
+                          (
+                            bufCh32 = 0;
+                            bufCh33 = 0;
+                            bufCh34 = 0;
+                            bufCh35 = 0;
+                            bufCh36 = 0;
+                            bufCh37 = 0;
+                            bufCh38 = 0;
+                            bufCh39 = 0;
+                            num_ch > 40 ?
+                            (
+                              bufCh40 = 0;
+                              bufCh41 = 0;
+                              bufCh42 = 0;
+                              bufCh43 = 0;
+                              bufCh44 = 0;
+                              bufCh45 = 0;
+                              bufCh46 = 0;
+                              bufCh47 = 0;
+                              num_ch > 48 ?
+                              (
+                                bufCh48 = 0;
+                                bufCh49 = 0;
+                                bufCh50 = 0;
+                                bufCh51 = 0;
+                                bufCh52 = 0;
+                                bufCh53 = 0;
+                                bufCh54 = 0;
+                                bufCh55 = 0;
+                                num_ch > 56 ?
+                                (
+                                  bufCh56 = 0;
+                                  bufCh57 = 0;
+                                  bufCh58 = 0;
+                                  bufCh59 = 0;
+                                  bufCh60 = 0;
+                                  bufCh61 = 0;
+                                  bufCh62 = 0;
+                                  bufCh63 = 0;
+                                );
+                              );
+                            );
+                          );
+                        );
+                      );
+                    );
+                  );
+                );
+              );
+            );
+          );
+        );
+      );
+    );
+
+);
+bscnt += samplesblock;
+cpt += samplesblock; //JFB for clic only!
+
+
+);
+//display.stateOn(display._REFRESH_GFX); //flag for GUI refresh 
+//sliderchange($xFFFFFFFFFFFFFFFF);
+@sample
+
+////RETRIEVE [ MAIN ] >> [ BUS 3]
+spl18 = spl0;
+spl19 = spl1;
+//slider_automate(slider4);
+
+//bus_4
+
+spl0   =  bus_4_output * (
+          (spl2  * bus_4_send_1_L) + 
+          (spl4  * bus_4_send_2_L) +
+          (spl6  * bus_4_send_3_L) + 
+          (spl8  * bus_4_send_4_L) +
+          (spl10 * bus_4_send_5_L) +
+          (spl12 * bus_4_send_6_L) +
+          (spl14 * bus_4_send_7_L) +
+          (spl16 * bus_4_send_8_L) +
+          (spl18 * bus_4_send_9_L) );
+          
+spl1   =  bus_4_output * (
+          (spl3  * bus_4_send_1_R) + 
+          (spl5  * bus_4_send_2_R) +
+          (spl7  * bus_4_send_3_R) +            
+          (spl9  * bus_4_send_4_R) +
+          (spl11 * bus_4_send_5_R) +
+          (spl13 * bus_4_send_6_R) +
+          (spl15 * bus_4_send_7_R) +
+          (spl17 * bus_4_send_8_R) +
+          (spl19 * bus_4_send_9_R) );
+         
+//spl0   *= bus_4_output;// * bus_4_phase;
+//spl1   *= bus_4_output;
+
+
+display.stateQuery(display._REFRESH_METERS) ?
+  (
+bufCh0 = max(bufCh0,abs(spl0));
+bufCh1 = max(bufCh1,abs(spl1));
+num_ch > 2 ?
+(
+  bufCh2 = max(bufCh2,abs(spl2));
+  bufCh3 = max(bufCh3,abs(spl3));
+  num_ch > 4 ?
+  (
+    bufCh4 = max(bufCh4,abs(spl4));
+    bufCh5 = max(bufCh5,abs(spl5));
+    num_ch > 6 ?
+    (
+      bufCh6 = max(bufCh6,abs(spl6));
+      bufCh7 = max(bufCh7,abs(spl7));
+      num_ch > 8 ?
+      (
+        bufCh8 = max(bufCh8,abs(spl8));
+        bufCh9 = max(bufCh9,abs(spl9));
+        num_ch > 10 ?
+        (
+          bufCh10 = max(bufCh10,abs(spl10));
+          bufCh11 = max(bufCh11,abs(spl11));
+          num_ch > 12 ?
+          (
+            bufCh12 = max(bufCh12,abs(spl12));
+            bufCh13 = max(bufCh13,abs(spl13));
+            num_ch > 14 ?
+            (
+              bufCh14 = max(bufCh14,abs(spl14));
+              bufCh15 = max(bufCh15,abs(spl15));
+              num_ch > 16 ?
+              (
+                bufCh16 = max(bufCh16,abs(spl16));
+                bufCh17 = max(bufCh17,abs(spl17));
+                bufCh18 = max(bufCh18,abs(spl18));
+                bufCh19 = max(bufCh19,abs(spl19));
+                num_ch > 20 ?
+                (
+                  bufCh20 = max(bufCh20,abs(spl20));
+                  bufCh21 = max(bufCh21,abs(spl21));
+                  bufCh22 = max(bufCh22,abs(spl22));
+                  bufCh23 = max(bufCh23,abs(spl23));
+                  num_ch > 24 ?
+                  (
+                    bufCh24 = max(bufCh24,abs(spl24));
+                    bufCh25 = max(bufCh25,abs(spl25));
+                    bufCh26 = max(bufCh26,abs(spl26));
+                    bufCh27 = max(bufCh27,abs(spl27));
+                    num_ch > 28 ?
+                    (
+                      bufCh28 = max(bufCh28,abs(spl28));
+                      bufCh29 = max(bufCh29,abs(spl29));
+                      bufCh30 = max(bufCh30,abs(spl30));
+                      bufCh31 = max(bufCh31,abs(spl31));
+                      num_ch > 32 ?
+                      (
+                        bufCh32 = max(bufCh32,abs(spl32));
+                        bufCh33 = max(bufCh33,abs(spl33));
+                        bufCh34 = max(bufCh34,abs(spl34));
+                        bufCh35 = max(bufCh35,abs(spl35));
+                        bufCh36 = max(bufCh36,abs(spl36));
+                        bufCh37 = max(bufCh37,abs(spl37));
+                        bufCh38 = max(bufCh38,abs(spl38));
+                        bufCh39 = max(bufCh39,abs(spl39));
+                        num_ch > 40 ?
+                        (
+                          bufCh40 = max(bufCh40,abs(spl40));
+                          bufCh41 = max(bufCh41,abs(spl41));
+                          bufCh42 = max(bufCh42,abs(spl42));
+                          bufCh43 = max(bufCh43,abs(spl43));
+                          bufCh44 = max(bufCh44,abs(spl44));
+                          bufCh45 = max(bufCh45,abs(spl45));
+                          bufCh46 = max(bufCh46,abs(spl46));
+                          bufCh47 = max(bufCh47,abs(spl47));
+                          num_ch > 48 ?
+                          (
+                            bufCh48 = max(bufCh48,abs(spl48));
+                            bufCh49 = max(bufCh49,abs(spl49));
+                            bufCh50 = max(bufCh50,abs(spl50));
+                            bufCh51 = max(bufCh51,abs(spl51));
+                            bufCh52 = max(bufCh52,abs(spl52));
+                            bufCh53 = max(bufCh53,abs(spl53));
+                            bufCh54 = max(bufCh54,abs(spl54));
+                            bufCh55 = max(bufCh55,abs(spl55));
+                            num_ch > 56 ?
+                            (
+                              bufCh56 = max(bufCh56,abs(spl56));
+                              bufCh57 = max(bufCh57,abs(spl57));
+                              bufCh58 = max(bufCh58,abs(spl58));
+                              bufCh59 = max(bufCh59,abs(spl59));
+                              bufCh60 = max(bufCh60,abs(spl60));
+                              bufCh61 = max(bufCh61,abs(spl61));
+                              bufCh62 = max(bufCh62,abs(spl62));
+                              bufCh63 = max(bufCh63,abs(spl63));
+                            );
+                          );
+                        );
+                      );
+                    );
+                  );
+                );
+              );
+            );
+          );
+        );
+      );
+    );
+  );
+);
+
+);
+@gfx 650 530
+/*******************************************************************
+// MOUSE EVENTS  -------- MOUSE EVENTS  -------- MOUSE EVENTS  --------
+*******************************************************************/
+
+  /*
+  // MOUSE WHEEL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_wheel != 0 && mouse_cap == 0 ?
+    (
+    //colorAdjust(mouse_wheel);
+    time_precise(time.scroll.in);
+    mouse.Scroll(mouse_wheel);
+    time_precise(time.scroll.out);
+    );
+  
+  // SHIFT + MOUSE WHEEL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_wheel != 0 && mouse_cap == 8 ?
+    (
+    0;
+    );
+    
+  // CONTROL + MOUSE WHEEL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_wheel != 0 && mouse_cap == 4 ?
+    (
+    0;
+    );    
+
+    
+  // ALT + MOUSE WHEEL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_wheel != 0 && mouse_cap == 16 ?
+    (
+    0;
+    );
+  */
+  
+  
+  //SHIFT + RIGHT CLICK---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //mouse_state == 0 && mouse_cap == 2 && mouse_x > 5 && mouse_x < gfx_w - 5 && mouse_y > 5 && mouse_y < gfx_h - 5 ? (
+  mouse_state == 0 && mouse_cap == 10 ? (
+    mouse_state = 1;
+    
+    display.stateToggle(display._BUFFER_MAP);
+    display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+
+  );
+  
+  /*
+  //CTRL + RIGHT CLICK---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //mouse_state == 0 && mouse_cap == 2 && mouse_x > 5 && mouse_x < gfx_w - 5 && mouse_y > 5 && mouse_y < gfx_h - 5 ? (
+  mouse_state == 0 && mouse_cap == 6 ? (
+    mouse_state = 1;
+    
+    window.track_color < 15 ? 
+      (
+      window.track_color += 1;
+      ):(
+      window.track_color = 0;
+      );
+  
+  
+  );
+  */
+  //RIGHT CLICK---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  //mouse_state == 0 && mouse_cap == 2 && mouse_x > 5 && mouse_x < gfx_w - 5 && mouse_y > 5 && mouse_y < gfx_h - 5 ? (
+  mouse_state == 0 && mouse_cap == 2 ? (
+    mouse_state = 1;
+    
+    
+    display.stateToggle(display._REFRESH_METERS);
+    window.initWindow();
+    //>>>>> REDRAW MAP BUFFER HERE !!!!!!!!!!!!!!!! NOT ELSEWHERE !!!!!!!!!!!!! <<<
+    map.drawMap();
+  );
+  
+  // LEFT CLICK---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_state == 0 && mouse_cap == 1 ? ( //&& mouse_x > 5 && mouse_x < gfx_w - 5 && mouse_y > 5 && mouse_y < gfx_h - 5 ? (
+    mouse_state = 1;
+    
+    mouse.knob_speed = _SPEED_DEFAULT;
+    
+    gfx_dest = 1;
+    gfx_x = mouse_x; gfx_y = mouse_y;
+    gfx_getpixel(offscreen_r, offscreen_g, offscreen_b);
+    
+    offscreen_r = ceil(255 * offscreen_r);
+    offscreen_g = ceil(255 * offscreen_g);
+    offscreen_b = ceil(255 * offscreen_b);
+    
+    
+    //Knob/Pan/Bus events
+    offscreen_g == _TYPE_KNOB || offscreen_g == _TYPE_BUS || offscreen_g == _TYPE_PAN ?
+      (
+      clickKnob(offscreen_r, offscreen_g, offscreen_b);
+      mouse.param_focus = offscreen_b; //Only change focus on CLICK. This allows left dragging to stay focused.
+      mouse.x_focus = mouse_x;
+      mouse.y_focus = mouse_y;
+      );  
+        
+    gfx_dest = -1;
+    display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+   
+  );
+  
+  
+  
+  // DRAG LEFT CLICKED ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_state == 1 && mouse_cap == 1  && mouse.param_focus ? (
+       
+    gfx_dest = 1;
+    gfx_x = mouse_x; gfx_y = mouse_y;
+    
+    
+    
+    /* NO NEED THE CLICK TOOK CARE OF THAT
+    gfx_getpixel(offscreen_r, offscreen_g, offscreen_b);
+      
+    offscreen_r = 255 * offscreen_r; //Let's try without the Ceil()
+    offscreen_g = 255 * offscreen_g; 
+    offscreen_b = 255 * offscreen_b;
+    */
+    //Knob/Pan/Bus events
+    //mouse.param_focus > 0 ? ( ):
+    dragKnob(offscreen_g); 
+      
+    mouse.x_focus = mouse_x;
+    mouse.y_focus = mouse_y;          
+    gfx_dest = -1;
+    display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+    
+    //debug_focus += 1;
+    );
+  
+  // SHIFT LEFT CLICK---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_state == 0 && mouse_cap == 9 ? (
+    mouse_state = 1;
+    
+    mouse.knob_speed = _SPEED_SLOW;
+    
+    gfx_dest = 1;
+    gfx_x = mouse_x; gfx_y = mouse_y;
+    gfx_getpixel(offscreen_r, offscreen_g, offscreen_b);
+    
+    offscreen_r = ceil(255 * offscreen_r);
+    offscreen_g = ceil(255 * offscreen_g);
+    offscreen_b = ceil(255 * offscreen_b);
+    
+    
+    //Knob/Pan/Bus events
+    //clickKnob(offscreen_r, offscreen_g, offscreen_b); //NO JUMP TO CLICKED VALUE ON SLOW/PRECISE MODE.
+    mouse.param_focus = offscreen_b; //Only change focus on CLICK. This allows left dragging to stay focused.
+    mouse.x_focus = mouse_x;
+    mouse.y_focus = mouse_y;
+ 
+        
+    gfx_dest = -1;
+    display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+  );
+  
+  // ALT LEFT CLICK---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_state == 0 && mouse_cap == 17 ? (
+    mouse_state = 1;
+    
+    mouse.knob_speed = _SPEED_PRECISE;
+    
+    gfx_dest = 1;
+    gfx_x = mouse_x; gfx_y = mouse_y;
+    gfx_getpixel(offscreen_r, offscreen_g, offscreen_b);
+    
+    offscreen_r = ceil(255 * offscreen_r);
+    offscreen_g = ceil(255 * offscreen_g);
+    offscreen_b = ceil(255 * offscreen_b);
+    
+    
+    //Knob/Pan/Bus events
+    offscreen_g == _TYPE_KNOB || offscreen_g == _TYPE_BUS || offscreen_g == _TYPE_PAN ?
+      (
+      //clickKnob(offscreen_r, offscreen_g, offscreen_b); //NO JUMP TO CLICKED VALUE ON SLOW/PRECISE MODE.
+      mouse.param_focus = offscreen_b; //Only change focus on CLICK. This allows left dragging to stay focused.
+      mouse.x_focus = mouse_x;
+      mouse.y_focus = mouse_y;
+      );  
+        
+    gfx_dest = -1;
+    display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+  ); 
+  
+  /*
+  // DRAG ALT + LEFT CLICKED ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_state == 1 && mouse_cap == 17 ? (
+    
+    mouse.knob_speed = _SPEED_PRECISE;
+    
+    gfx_dest = 1;
+    gfx_x = mouse_x; gfx_y = mouse_y;
+    gfx_getpixel(offscreen_r, offscreen_g, offscreen_b);
+      
+    offscreen_r = 255 * offscreen_r; //Let's try without the Ceil()
+    offscreen_g = 255 * offscreen_g; 
+    offscreen_b = 255 * offscreen_b;
+    
+    //Knob/Pan/Bus events
+    offscreen_g == _TYPE_KNOB || offscreen_g == _TYPE_BUS || offscreen_g == _TYPE_PAN ?
+      (
+      //dragKnob(offscreen_r, offscreen_g, offscreen_b);
+      0;
+      );          
+      gfx_dest = -1;
+      display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+  );
+  */
+  
+  // DRAG SHIFT | ALT + LEFT CLICKED ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_state == 1 && (mouse_cap == 9 || mouse_cap == 17) && mouse.param_focus ? (
+        
+    gfx_dest = 1;
+    gfx_x = mouse_x; gfx_y = mouse_y;
+    
+    /* NO NEED THE CLICK TOOK CARE OF THAT
+    gfx_getpixel(offscreen_r, offscreen_g, offscreen_b);
+      
+    offscreen_r = 255 * offscreen_r; //Let's try without the Ceil()
+    offscreen_g = 255 * offscreen_g; 
+    offscreen_b = 255 * offscreen_b;
+    */
+    
+    //Knob/Pan/Bus events
+    dragKnob(offscreen_g);
+      
+    mouse.x_focus = mouse_x;
+    mouse.y_focus = mouse_y;          
+    gfx_dest = -1;
+    display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+  );
+  
+  // CTRL + LEFT CLICK---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_state == 0 && mouse_cap == 5 ? ( 
+    mouse_state = 1;
+    
+    gfx_dest = 1;
+    gfx_x = mouse_x; gfx_y = mouse_y;
+    gfx_getpixel(offscreen_r, offscreen_g, offscreen_b);
+    
+    offscreen_r = ceil(255 * offscreen_r);
+    offscreen_g = ceil(255 * offscreen_g);
+    offscreen_b = ceil(255 * offscreen_b);
+    
+    
+    //Knob/Pan/Bus events
+    offscreen_g == _TYPE_KNOB || offscreen_g == _TYPE_BUS || offscreen_g == _TYPE_PAN ?
+      (
+      resetKnob(offscreen_r, offscreen_g, offscreen_b);
+      mouse.param_focus = offscreen_b; //Only change focus on CLICK. This allows left dragging to stay focused.
+      mouse.x_focus = mouse_x;
+      mouse.y_focus = mouse_y;
+      );  
+        
+    gfx_dest = -1;
+    display.stateOn(display._REFRESH_GFX); //flag for GUI refresh
+  );
+    
+  // MIDDLE CLICK---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_state == 0 && mouse_cap == 64 ? ( //&& mouse_x > 5 && mouse_x < gfx_w - 5 && mouse_y > 5 && mouse_y < gfx_h - 5
+    mouse_state = 1;
+    
+    knob.height_multiplier < 6 ?
+      (
+      knob.height_multiplier += 0.5;
+      ):(
+      knob.height_multiplier = 1.5;
+      );
+    
+    window.width = -1; //FORCE RE-INIT
+  );
+    
+
+  // RELEASE ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  mouse_cap == 0 ? 
+    (
+    mouse_state = 0;
+    
+    // When < 0 you know shit has been released, but "storing" last touched as a negative number      
+    //mouse.x_focus = - abs(mouse.x_focus);
+    //mouse.y_focus = - abs(mouse.y_focus);
+    //mouse.param_focus = - abs(mouse.param_focus);
+    mouse.param_focus = 0;
+    mouse.knob_speed = _SPEED_DEFAULT;
+    );
+    
+    
+    
+//Resize Event or Track Channel Count Change Event
+(window.width != gfx_w) || (window.height != gfx_h) || (window.channel_count != num_ch) ?
+  (  
+  window.initWindow();
+  //>>>>> REDRAW MAP BUFFER HERE !!!!!!!!!!!!!!!! NOT ELSEWHERE !!!!!!!!!!!!! <<<
+  map.drawMap();
+  );
+
+
+//Refresh Rate
+
+time_precise(display.time.now);
+(display.time.now - display.time.last_update) >= display.refresh_interval ?
+  (
+  display.time.last_update = display.time.now;
+  display.stateOn(display._REFRESH_GFX); //flag for GUI refresh 
+  );   
+
+
+//display.stateOn(display._REFRESH_GFX); //flag for GUI refresh <<-- NOT BOTHERING TO REFRESH METERS AND MIXER AT DIFFERENT RATE ATM
+//Draw Interface
+display.stateQuery(display._REFRESH_GFX) ? //due for GUI refresh ?
+  (
+  
+  window.drawWindow();
+  
+  //display.stateQuery(display._REFRESH_METERS) == 0 ? drawMeters();
+  
+  //DEBUG BUFFER MAP
+  
+  display.stateQuery(display._BUFFER_MAP) ? 
+    (
+    
+    //Draw Background
+    //gfx_r = gfx_g = gfx_b = 0.14;
+    //gfx_a = 0;
+    //gfx_rect(0, 0, window.width, window.height);
+    
+    gfx_a = 0.80;
+    gfx_x = 0; gfx_y = 0;
+    gfx_blit(1, 1, 0);
+    
+    setColor(128, 255, 255);
+    gfx_dest = 1;
+    gfx_x = mouse_x; gfx_y = mouse_y;
+    gfx_getpixel(rr, gg, bb);
+    gfx_dest = -1;
+    gfx_drawstr("     ");
+    gfx_drawnumber(rr * 255, 5); gfx_drawstr(" | ");
+    gfx_drawnumber(gg * 255, 5); gfx_drawstr(" | ");
+    gfx_drawnumber(bb * 255, 5);
+    setColor(0, 0, 0);
+    gfx_drawstr(" | display.state ");gfx_drawnumber(display.state, 5);   
+    display.stateOn(display._REFRESH_GFX); //flag for GUI refresh   
+    );
+  ); 
+
+display.stateQuery(display._REFRESH_METERS) ? 
+  (
+  drawMeters();
+  display.stateOn(display._REFRESH_GFX);
+  );

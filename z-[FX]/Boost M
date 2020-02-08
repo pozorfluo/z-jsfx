@@ -1,0 +1,32 @@
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+desc: Smooth Pedal Boost
+
+slider1:0<0,36,1>Boost
+
+@init
+amp_2_dB = 8.65617025;
+
+rc = 0.01; // rc filter Smoothing coefficient
+rc_a = 1 / (rc * srate + 1);
+
+@slider
+gain = exp( slider1 / amp_2_dB );
+doseek=1;
+
+@block
+doseek ? (
+  dadj = (gain - adj_s) / samplesblock;
+  doseek = 0;
+):(
+  dadj = 0;
+  adj_s = gain;
+);
+
+@sample
+
+rc_lp += rc_a * (adj_s - rc_lp);
+
+spl0 *= rc_lp;
+spl1 *= rc_lp;
+adj1_s += dadj;

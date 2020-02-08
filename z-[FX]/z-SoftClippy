@@ -1,0 +1,188 @@
+ desc:SoftClippy
+slider1:0<0,2,1{FREE, LINKED}>Mode
+
+slider10:0<-24,24,0.1>Input Gain (dB)
+slider11:0<0,8,1{through,atan,sin(atan),tanh,sin(tanh),sin,sin(hard),hard}>Positive Shape
+slider12:94<0,100,1>Positive Threshold
+
+slider21:0<0,8,1{through,atan,sin(atan),tanh,sin(tanh),sin,sin(hard),hard,through}>Negative Shape
+slider22:96<0,100,1>Negative Threshold
+
+
+slider64:0<-120,0,0.1>Output Gain (dB)
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+
+@init
+pi = 3.1415926535;
+halfpi = pi / 2;
+
+@slider
+mode = slider1;
+
+mode ?
+  (
+  slider21 = slider11;
+  slider22 = slider12;
+  );
+
+gain_input = dBtoAmp(slider10);
+
+positive.shape = slider11;
+positive.threshold = slider12 / 100;
+
+negative.shape = slider21;
+negative.threshold = slider22 / 100;
+
+gain_output = dBtoAmp(slider64);  
+@block
+
+@sample
+//|||||||||||||||||||||||||||||INPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_input;
+spl1 *= gain_input;
+
+//|||||||||||||||||||||||||||||SOFT CLIP||||||||||||||||||||||||||||
+//                           Soft -> Hard
+//          {through,atan,sin(atan),tanh,sin(tanh),sin,sin(hard),hard}
+spl0 > 0 ?
+  (
+  spl0 > positive.threshold ?
+    (
+    //  through
+    positive.shape < 1 ? ( spl0 /= 1; //TROOOLOL
+    ):(
+    //  atan
+    positive.shape < 2 ? ( spl0 = positive.threshold + atanSigmoid(spl0 - positive.threshold, 1) / (1 / (1 - positive.threshold));
+    ):(
+    //  sin(atan)
+    positive.shape < 3 ? ( spl0 = positive.threshold + sin(atan(spl0 - positive.threshold)) / (1 / (1 - positive.threshold));
+    ):(
+    //  tanh
+    positive.shape < 4 ? ( spl0 = positive.threshold + tanH(spl0 - positive.threshold, 1) / (1 / (1 - positive.threshold));
+    ):(
+    //  sin(tanh)
+    positive.shape < 5 ? ( spl0 = positive.threshold + sin(tanH(spl0 - positive.threshold, 1) * halfpi) / (1 / (1 - positive.threshold));
+    ):(
+    //  sin
+    positive.shape < 6 ? ( spl0 = positive.threshold + sin((spl0 - positive.threshold) * halfpi) / (1 / (1 - positive.threshold));
+    ):(
+    //  sin(hard)
+    positive.shape < 7 ? ( spl0 = positive.threshold + sin((min(spl0, 1) - positive.threshold) * halfpi) / (1 / (1 - positive.threshold));
+    ):(
+    //  hard
+                           spl0 = min(spl0, positive.threshold);
+    );););););););
+    );
+  ):(
+  spl0_abs = abs(spl0);  
+  /*
+  spl0_abs > negative.threshold ?
+    (
+    negative.shape < 1 ? ( spl0_abs = negative.threshold + tanH(spl0_abs - negative.threshold, 1) / (1 / (1 - negative.threshold));
+    ):(
+    negative.shape < 2 ? ( spl0_abs = negative.threshold + sin((spl0_abs - negative.threshold) * halfpi) / (1 / (1 - negative.threshold));
+    ):(
+    negative.shape < 3 ? ( spl0_abs = spl0_abs; //spl0 = negative.threshold + stillGain(spl0 - negative.threshold, 1) / (1 / (1 - negative.threshold));
+    ):(
+                           spl0_abs = min(spl0_abs, negative.threshold);
+    );););
+    );
+  */
+  spl0_abs > negative.threshold ?
+    (
+    //  through
+    negative.shape < 1 ? ( spl0_abs /= 1; //TROOOLOL
+    ):(
+    //  atan
+    negative.shape < 2 ? ( spl0_abs = negative.threshold + atanSigmoid(spl0_abs - negative.threshold, 1) / (1 / (1 - negative.threshold));
+    ):(
+    //  sin(atan)
+    negative.shape < 3 ? ( spl0_abs = negative.threshold + sin(atan(spl0_abs - negative.threshold)) / (1 / (1 - negative.threshold));
+    ):(
+    //  tanh
+    negative.shape < 4 ? ( spl0_abs = negative.threshold + tanH(spl0_abs - negative.threshold, 1) / (1 / (1 - negative.threshold));
+    ):(
+    //  sin(tanh)
+    negative.shape < 5 ? ( spl0_abs = negative.threshold + sin(tanH(spl0_abs - negative.threshold, 1) * halfpi) / (1 / (1 - negative.threshold));
+    ):(
+    //  sin
+    negative.shape < 6 ? ( spl0_abs = negative.threshold + sin((spl0_abs - negative.threshold) * halfpi) / (1 / (1 - negative.threshold));
+    ):(
+    //  sin(hard)
+    negative.shape < 7 ? ( spl0_abs = negative.threshold + sin((min(spl0_abs, 1) - negative.threshold) * halfpi) / (1 / (1 - negative.threshold));
+    ):(
+    //  hard
+                           spl0_abs = min(spl0_abs, negative.threshold);
+    );););););););
+    );
+  spl0 = sign(spl0) * spl0_abs;  
+  );
+  
+spl1 > 0 ?
+  (
+  spl1 > positive.threshold ?
+    (
+    //  through
+    positive.shape < 1 ? ( spl1 /= 1; //TROOOLOL
+    ):(
+    //  atan
+    positive.shape < 2 ? ( spl1 = positive.threshold + atanSigmoid(spl1 - positive.threshold, 1) / (1 / (1 - positive.threshold));
+    ):(
+    //  sin(atan)
+    positive.shape < 3 ? ( spl1 = positive.threshold + sin(atan(spl1 - positive.threshold)) / (1 / (1 - positive.threshold));
+    ):(
+    //  tanh
+    positive.shape < 4 ? ( spl1 = positive.threshold + tanH(spl1 - positive.threshold, 1) / (1 / (1 - positive.threshold));
+    ):(
+    //  sin(tanh)
+    positive.shape < 5 ? ( spl1 = positive.threshold + sin(tanH(spl1 - positive.threshold, 1) * halfpi) / (1 / (1 - positive.threshold));
+    ):(
+    //  sin
+    positive.shape < 6 ? ( spl1 = positive.threshold + sin((spl1 - positive.threshold) * halfpi) / (1 / (1 - positive.threshold));
+    ):(
+    //  sin(hard)
+    positive.shape < 7 ? ( spl1 = positive.threshold + sin((min(spl1, 1) - positive.threshold) * halfpi) / (1 / (1 - positive.threshold));
+    ):(
+    //  hard
+                           spl1 = min(spl1, positive.threshold);
+    );););););););
+    );
+  ):(
+  spl1_abs = abs(spl1);  
+
+  spl1_abs > negative.threshold ?
+    (
+    //  through
+    negative.shape < 1 ? ( spl1_abs /= 1; //TROOOLOL
+    ):(
+    //  atan
+    negative.shape < 2 ? ( spl1_abs = negative.threshold + atanSigmoid(spl1_abs - negative.threshold, 1) / (1 / (1 - negative.threshold));
+    ):(
+    //  sin(atan)
+    negative.shape < 3 ? ( spl1_abs = negative.threshold + sin(atan(spl1_abs - negative.threshold)) / (1 / (1 - negative.threshold));
+    ):(
+    //  tanh
+    negative.shape < 4 ? ( spl1_abs = negative.threshold + tanH(spl1_abs - negative.threshold, 1) / (1 / (1 - negative.threshold));
+    ):(
+    //  sin(tanh)
+    negative.shape < 5 ? ( spl1_abs = negative.threshold + sin(tanH(spl1_abs - negative.threshold, 1) * halfpi) / (1 / (1 - negative.threshold));
+    ):(
+    //  sin
+    negative.shape < 6 ? ( spl1_abs = negative.threshold + sin((spl1_abs - negative.threshold) * halfpi) / (1 / (1 - negative.threshold));
+    ):(
+    //  sin(hard)
+    negative.shape < 7 ? ( spl1_abs = negative.threshold + sin((min(spl1_abs, 1) - negative.threshold) * halfpi) / (1 / (1 - negative.threshold));
+    ):(
+    //  hard
+                           spl1_abs = min(spl1_abs, negative.threshold);
+    );););););););
+    );
+  spl1 = sign(spl1) * spl1_abs;  
+  );
+
+//OUTPUT GAIN
+spl0 *= gain_output;
+spl1 *= gain_output;

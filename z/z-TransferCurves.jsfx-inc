@@ -1,0 +1,1137 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+
+
+desc: Transfer Curve Library
+
+/* TODO []
+
+  !!!!!!!!!!!!!!! REMOVE ALL drive ARGUMENT WHERE IT'S JUST A MULTIPLICATION ON THE INPUT !!!!!!!!
+  !!!!!!!!!!!!!!! REMOVE ALL drive ARGUMENT WHERE IT'S JUST A MULTIPLICATION ON THE INPUT !!!!!!!!
+  !!!!!!!!!!!!!!! REMOVE ALL drive ARGUMENT WHERE IT'S JUST A MULTIPLICATION ON THE INPUT !!!!!!!!
+  
+  
+  http://www.ecircuitcenter.com/Circuits.htm
+  http://folk.ntnu.no/oyvinbra/gdsp/Lessons.html
+  https://en.wikipedia.org/wiki/List_of_mathematical_functions
+  http://www.ecircuitcenter.com/Basics.htm
+  http://www.ecircuitcenter.com/OpModels/OpampModels.htm
+  
+  https://en.wikipedia.org/wiki/Gain_compression
+  https://en.wikipedia.org/wiki/Third-order_intercept_point
+  
+  FUNCTION INDEX []
+  
+*/
+
+@init
+
+
+/*******************************************************************
+  hardClip     
+  --------
+  
+  hard clips input to [minimum, maximum]
+  
+  symmetric clipping  : (minimum <= 0) && (maximum >= 0) && abs(miminum) == maximum
+  asymmetric clipping : (minimum <= 0) && (maximum >= 0) && abs(miminum) != maximum
+  funky ??? clipping : sign(minimum) == sign (maximum)
+
+
+*******************************************************************/
+function hardClip(input, minimum, maximum)
+  (
+  max(min(input, maximum), minimum);
+  );
+  
+  
+/*******************************************************************
+  wrapClip     
+  --------
+  
+  wrap clips input to threshold
+  
+
+*******************************************************************/
+function wrapClip(input, threshold)
+  (
+  abs(input) > threshold ?
+    (
+    sign(input) * (abs(input) - threshold);
+    ):(
+    input;
+    );
+  );
+
+/*******************************************************************
+  foldClip     
+  --------
+  
+  wave folds
+  
+  http://www.keithmcmillen.com/blog/simple-synthesis-part-8-wavefolding/
+
+*******************************************************************/
+function foldClip(input, threshold)
+  (
+  abs(input) > threshold ?
+    (
+    //sign(input) * threshold - input + sign(input) * threshold;
+    sign(input) * (threshold - abs(input) + threshold);
+    ):(
+    input;
+    );
+  );
+  
+/*******************************************************************
+  foldExClip     
+  --------
+  
+  wave folds within excursion range
+  
+  http://www.keithmcmillen.com/blog/simple-synthesis-part-8-wavefolding/
+
+*******************************************************************/
+function foldExClip(input, threshold, excursion)
+  local(output, excursion_floor, signal_above_threshold, folded_signal_below_excursion_floor)
+  (
+  output = abs(input);
+  excursion_floor = threshold - excursion;
+  
+  //fold within excursion range as many times as necessary
+  while (output > threshold)   
+    (
+    //fold what's above threshold
+    signal_above_threshold = output - threshold;    
+    output = threshold - signal_above_threshold;
+    
+    //fold back what's below excursion floor
+    folded_signal_below_excursion_floor = signal_above_threshold - excursion;        
+    folded_signal_below_excursion_floor > 0 ?
+      (
+      output = excursion_floor + folded_signal_below_excursion_floor;
+      );      
+    );
+    
+  output *= sign(input);
+  );
+
+
+/*******************************************************************
+  damelsDistort     
+  --------
+  
+  Object Oriented : it must be used with a variable name as prefix
+      eg : 
+            spl_0.damelsDistort_init(slider57, 2 ^ (slider58 / 6), 2 ^ (slider59 / 6)); //init in slider section
+            spl0 += spl_0.damelsDistort(spl0); 
+  
+  - based on David Amels patent http://www.google.com/patents/US6611854
+  
+  y=A1*sin(arcsin(x))+A2*cos(2*arcsin(x))+A3*sin(3*arcsin(x))+A4*cos(4*arcsin(x))+ . . . An*sin(n*arcsin(x))+A(n+1)*cos((n+1)*arcsin(x))
+  
+  where x is the input signal, y is the output signal, A is the amplitude of the harmonic level for a given harmonic, 1 being the fundamental,
+ 
+  n is an odd number and (n+1) represents the highest harmonic of interest
+  
+  
+  floor(n);
+  n % 2 == 0 ? n +=1;   updated with Parity(integer_input)
+
+*******************************************************************/
+function damelsDistort_init(highest_harmonic)
+  local(n)
+  (
+  this.harmonic.amplitude        = memAlloc(128, "harmonic.amplitude"); //generous allocation
+  this.harmonic.amplitude_db     = memAlloc(128, "harmonic.amplitude_db"); //generous allocation
+  this.harmonic.lfo_depth        = memAlloc(128, "harmonic.lfo_depth");
+  this.harmonic.lfo_sign         = memAlloc(128, "harmonic.lfo_sign ");
+  this.harmonic.mod_amplitude    = memAlloc(128, "harmonic.mod_amplitude");
+  this.harmonic.lpf_frequency    = memAlloc(128, "harmonic.lpf_frequency");
+  this.harmonic.lock             = memAlloc(128, "harmonic.lock");
+  
+  this.harmonic.count = highest_harmonic;
+  
+  this.gain = 1; 
+  
+  this.harmonic.amplitude[0]     = 1;
+  this.harmonic.lfo_depth[0]     = 0;
+  this.harmonic.lfo_sign[0]      = 1;
+  this.harmonic.lpf_frequency[0] = srate;
+    
+  n = 1;
+  loop(highest_harmonic - 1,
+    this.harmonic.amplitude[n]    = 0;
+    this.harmonic.lfo_depth[n]    = 0;
+    this.harmonic.lfo_sign[n]     = 1;
+    n +=1;
+    );
+  );
+
+
+function damelsDistort(input)
+local(n, modulated_amplitude, input_asin)
+(
+  //start at n+1 https://www.desmos.com/calculator/kxj3dodknw
+  this.harmonic.mod_amplitude[0] = this.harmonic.amplitude[0] -  this.harmonic.amplitude[0] * (1 + this.lfo.amplitude * this.harmonic.lfo_sign[0]) / 2 * this.harmonic.lfo_depth[0];
+  
+  
+  this.output = input * this.harmonic.mod_amplitude[0]; //* modulated_amplitude;// - this.harmonic_amplitude[0] * ((1 + this.lfo.amplitude) / 2) * this.harmonic_lfo_depth[0]; //(this.harmonic_amplitude[n] - this.harmonic_amplitude[n] * ((1 + this.lfo.amplitude) / 2) * this.harmonic_lfo_depth[n]); 
+  //this.output = 0;
+  this.gain = 1;
+  
+  input_asin = asin(input);
+  
+  n = 1;
+  
+  loop(this.harmonic.count - 1, //loop(this.harmonic.count,
+    
+    this.harmonic.mod_amplitude[n] = this.harmonic.amplitude[n] -  this.harmonic.amplitude[n] * (1 + this.lfo.amplitude * this.harmonic.lfo_sign[n]) / 2 * this.harmonic.lfo_depth[n];
+    this.gain += abs(this.harmonic.mod_amplitude[n]);
+    
+    //n % 2 == 0 ?  
+    //n & $~1 ?
+    this.harmonic.mod_amplitude[n] ?
+      (
+      (n + 1) % 2 == 0 ?
+        (
+        this.output += this.harmonic.mod_amplitude[n] * cos((n + 1) * input_asin); //this.harmonic_amplitude[n] * cos(n * asin(input));     
+        ):(
+        this.output += this.harmonic.mod_amplitude[n] * sin((n + 1) * input_asin);
+        );      
+      );
+    
+    n +=1;
+    );
+  
+  
+  this.output; 
+);
+
+
+/*******************************************************************
+  muLawEncode / muLawDecode    
+  --------
+  
+  http://digitalsoundandmusic.com/5-3-8-algorithms-for-audio-companding-and-compression/
+
+  Let x be a sample value, −1≤x≤1 !!!
+  saturate however you want or suffer
+*******************************************************************/
+function muLawEncode_init (mu)
+(
+  this.mu = mu;
+  this.inv_mu = 1 / mu;
+  this.inv_ln_one_plus_mu = 1 / log( 1 + mu );
+);
+
+function muLawEncode (input)
+(
+  //input / abs(input); 
+  sign(input) * log(1 + this.mu * abs(input)) * this.inv_ln_one_plus_mu;
+);
+
+function muLawDecode (input)
+(
+  sign(input) * this.inv_mu * ( pow(( 1 + this.mu ), abs(input)) - 1 ) ;
+);
+
+  
+/*******************************************************************
+  fastSigmoid    
+  ----
+  
+  --- SIGMOID ---
+  
+  https://en.wikipedia.org/wiki/Sigmoid_function
+  https://en.wikipedia.org/wiki/File:Gjl-t(x).svg
+  
+*******************************************************************/
+function fastSigmoid(input)
+(
+  input / (1 + abs(input));
+);
+  
+  
+/*******************************************************************
+  controlTanH    
+  ----
+  
+*******************************************************************/
+function controlTanH(input)
+(
+  (1 - exp(-2 * input)) / (1 + exp(-2 * input)); 
+);
+
+/*******************************************************************
+  tanH    
+  ----
+  
+  FASTER TAN H HERE :
+  http://forum.cockos.com/showthread.php?t=143308
+  
+  --- SIGMOID ---
+  
+  https://en.wikipedia.org/wiki/Hyperbolic_function
+  http://folk.ntnu.no/oyvinbra/gdsp/Lesson4tanh.html
+  tanh(input * drive) = (1 - exp(-2 * input * drive)) / (1 + exp(-2 * input * drive));
+  
+  ALT :
+  (1 - exp(-2 * input * drive)) / (1 + exp(-2 * input * drive)); 
+  
+*******************************************************************/
+function tanH(input)
+  ( 
+  //  (exp(2 * x) - 1)/(exp( 2 * x) + 1)
+  input = exp(2 * input);
+  (input - 1) / (input + 1);
+  );
+  
+
+/*******************************************************************
+  tp1TanH    
+  ----
+  
+  FASTER TAN H HERE :
+  http://forum.cockos.com/showthread.php?t=143308
+  
+*******************************************************************/
+function tp1TanH(input)
+  ( 
+  input = min(max(input, -1), 1);
+  input - 0.3333333 * input * input * input;
+  );
+  
+/*******************************************************************
+  tp3TanH    
+  ----
+  
+  FASTER TAN H HERE :
+  http://forum.cockos.com/showthread.php?t=143308
+  
+*******************************************************************/
+function tp3TanH(input)
+  local(input_squared)
+  (
+  input = min(max(input, -1.13894395), 1.13894395);
+  input_squared = input * input;
+  input * (1 - input_squared * (0.3333333333 - input_squared * (0.1333333333 - x2 * 0.053968254)));
+  );  
+
+/*******************************************************************
+  vosTanH    
+  ----
+  
+  https://varietyofsound.wordpress.com/2011/02/14/efficient-tanh-computation-using-lamberts-continued-fraction/
+  
+  optimized gauss continued fraction approximation
+  
+  ((((x^2 + 378) * x^2 + 17325) * x^2 + 135135) * x) / (((28 * x^2 + 3150) * x^2 + 62370) * x^2 + 135135);
+*******************************************************************/
+function vosTanH(input)
+  local(input_squared)
+  (
+  input_squared = input * input;
+  ((((input_squared + 378) * input_squared + 17325) * input_squared + 135135) * input) / (((28 * input_squared + 3150) * input_squared + 62370) * input_squared + 135135);
+  );
+
+/*******************************************************************
+  gauss3TanH    
+  ----
+  gauss / lambert  
+  https://varietyofsound.wordpress.com/2011/02/14/efficient-tanh-computation-using-lamberts-continued-fraction/
+  https://en.wikipedia.org/wiki/Gauss%27s_continued_fraction
+  
+  https://someclassicalmaths.wordpress.com/2010/04/20/lamberts-continued-fractions-for-tanhx-and-tanx-revisited/
+  
+  x/(1+x^2/(3))
+  
+*******************************************************************/
+function gauss3TanH(input)
+  local(input_squared)
+  (
+  input_squared = input * input;
+  input / (1 + input_squared / 3);
+  );
+
+/*******************************************************************
+  gauss5TanH    
+  ----  
+  x/(1+x^2/(3+x^2/(5)))
+  
+*******************************************************************/
+function gauss5TanH(input)
+  local(input_squared)
+  (
+  input_squared = input * input;
+  input / (1 + input_squared / (3 + input_squared /5));
+  );
+
+/*******************************************************************
+  gauss7TanH    
+  ----  
+  
+  x/(1+x^2/(3+x^2/(5+x^2/(7))))
+  
+*******************************************************************/
+function gauss7TanH(input)
+  local(input_squared)
+  (
+  input_squared = input * input;
+  input / (1 + input_squared /(3 + input_squared / (5 + input_squared / 7)));
+  );
+
+/*******************************************************************
+  gauss9TanH    
+  ----  
+  
+  x/(1+x^2/(3+x^2/(5+x^2/(7+x^2/(9)))))
+  
+*******************************************************************/
+function gauss9TanH(input)
+  local(input_squared)
+  (
+  input_squared = input * input;
+  input / (1 + input_squared / (3 + input_squared / (5 + input_squared / (7 + input_squared / 9))));
+  );
+
+/*******************************************************************
+  gauss13TanH    
+  ----
+  
+  might want to make a recursive version to get whatever precision needed programmatically 
+
+  
+  x/(1+x^2/(3+x^2/(5+x^2/(7+x^2/(9+x^2/(11+x^2/(13)))))))
+  
+  //old crap w drive
+  input = input * drive; 
+  input_squared = input * input;
+  input / (1 + input_squared / 3);
+*******************************************************************/
+
+
+/*******************************************************************
+  errorFunction     
+  ----
+  
+  --- SIGMOID ---
+  
+  https://en.wikipedia.org/wiki/Sigmoid_function
+  https://en.wikipedia.org/wiki/File:Gjl-t(x).svg
+  
+*******************************************************************/
+
+/*******************************************************************
+  sqrtSigmoid    
+  ----
+  
+  --- SIGMOID ---
+  
+  https://en.wikipedia.org/wiki/Sigmoid_function
+  https://en.wikipedia.org/wiki/File:Gjl-t(x).svg
+  
+*******************************************************************/
+function sqrtSigmoid(input)
+  (
+  input / sqrt(1 + input * input);
+  );
+/*******************************************************************
+  modSqrtSigmoid    
+  ----
+  
+*******************************************************************/
+function modSqrtSigmoid(input, drive)
+  (
+  input / sqrt(1 + input ^ (((drive  / 2) | 0) * 2)); // intEven(drive));
+  );  
+  
+/*******************************************************************
+  exptSigmoid    
+  ----
+  
+  --- SIGMOID ---
+  
+  https://en.wikipedia.org/wiki/Sigmoid_function
+  https://en.wikipedia.org/wiki/File:Gjl-t(x).svg
+  http://txt.arboreus.com/2013/03/29/fast-sigmoid.html
+  
+*******************************************************************/
+
+/*******************************************************************
+  atanSigmoid    
+  ----
+  
+  --- SIGMOID ---
+  
+  https://en.wikipedia.org/wiki/Sigmoid_function
+  https://en.wikipedia.org/wiki/File:Gjl-t(x).svg
+  
+*******************************************************************/
+function atanSigmoid(input)
+  (
+  atan($pi * input / 2) * 2 / $pi;
+  );
+  
+/*******************************************************************
+  modTanH    
+  -------
+
+  http://folk.ntnu.no/oyvinbra/gdsp/Lesson4Modtanh.html
+  http://www.csounds.com/manual/html/distort1.html
+          exp(asig * (shape1 + pregain)) - exp(asig * (shape2 - pregain))
+  aout = ---------------------------------------------------------------
+            exp(asig * pregain)            + exp(asig * - pregain)  
+  
+  (exp(a1 * (kA + kG)) - exp(a1 * (kB - kG))) / (exp(a1 * kG) + exp(a1 * -kG))
+              
+  Maybe replace negative exponent ?
+  http://www.purplemath.com/modules/exponent2.htm
+  
+*******************************************************************/
+function modTanH(input, drive, coef_a, coef_b)
+  (
+  (exp(input * (coef_a + drive)) - exp(input * (coef_b - drive))) / (exp(input * drive) + exp(input * -drive));
+  );
+  
+/*******************************************************************
+  singleModTanH    
+  -------
+  http://math.stackexchange.com/questions/1224774/modified-tanhx-function
+  
+*******************************************************************/
+  
+/*******************************************************************
+  stillLoud   
+  ----
+  
+  adapted from Louderizer [stillwell]
+ 
+  http://www.mathopenref.com/graphfunctions.html?fx=(1/(1-(a/2)))*X*(1-abs(x*a/2))&gx=(1/(1-(a/2)))*X/(1-abs(x*a/2))&hx=a*X/(1-abs(a*X))&ah=1&a=0.2712765957446808
+
+  !!!!!!!!!!!!!!!
+  0 <= drive <= 1
+  0 <= drive <= 1
+  0 <= drive <= 1
+  
+*******************************************************************/
+function stillLoud(input, drive)
+  local(drive_a)
+  (
+  drive_a = 1 / (1 - (drive / 2));
+  drive /= 2;
+  drive_a * input * (1 - abs(input * drive));
+  );
+  
+/*******************************************************************
+  stillReaLoud   
+  ----
+  
+ adapted from ReaLoud LP [stillwell]
+ 
+ http://www.mathopenref.com/graphfunctions.html?fx=(1/(1-(a/2)))*X*(1-abs(x*a/2))&gx=sin(min(max(a*x, -1), 1)*pi/2)&hx=a*X/(1-abs(a*X))&sh=f&ah=10&a=1.276595744680851
+ 
+ sin(x * halfpi);
+  
+*******************************************************************/
+function stillReaLoud(input)
+  (
+  input = min(max(input, -1), 1); //clamp to expected range
+  sin(input * 1.57079633); //$pi / 2 approx
+  );
+
+/*******************************************************************
+  stillGain   
+  ----
+  
+  From misreading Louderizer formula
+  
+  Use it as a non drive I guess
+  
+  http://www.mathopenref.com/graphfunctions.html?fx=(1/(1-(a/2)))*X*(1-abs(x*a/2))&gx=a*x&hx=a*X/(1-abs(a*X))&ah=1&a=0.7978723404255319
+  
+*******************************************************************/
+function stillGain(input, drive)
+  local(drive_a)
+  (
+  drive_a = 1 / (1 - (drive / 2));
+  drive /= 2;
+  drive_a * input / (1 - abs(input * drive));
+  );
+
+/*******************************************************************
+  asymClip   
+  ----
+  
+  lifted from Sault's Wuff Big Muff asymmetric input stage
+ 
+*******************************************************************/
+
+function asymClip(x) 
+  local(y)
+  (
+  x = x * 0.106 + 0.25 ; 
+  
+  x <= 0 ?
+   y = x * 15.5122 - 2.69922 : 
+  x  < 0.07653 ?
+   y = -13.309756*x*x*x + 15.51569*x - 2.69922 :
+  x < 0.15355 ?
+   y = -26.328981*x*x*x + 2.989084*x*x + 15.286935*x - 2.693384 :
+  x < 0.19355 ?
+   y = -82.647374*x*x*x + 28.932151*x*x + 11.303377*x - 2.489493 :
+  x < 0.21355 ?
+   y = -216.407553*x*x*x + 106.6*x*x - 3.729235*x - 1.519639 :
+  x < 0.23355 ?
+   y = -214.757605*x*x*x + 105.54296*x*x - 3.503504*x - 1.535707 :
+  x < 0.25355 ?
+   y = -718.312027*x*x*x + 458.358366*x*x - 85.903542*x + 4.879136 :
+  x < 0.31355 ?
+   y = 325.480384*x*x*x - 335.602331*x*x + 115.405193*x - 12.134807 :
+  x < 0.35355 ?
+   y = 269.625134*x*x*x - 283.062091*x*x + 98.931201*x - 10.413 :
+  x < 0.42 ?
+   y =  -17.944895*x*x*x + 21.949061*x*x - 8.905492*x + 2.295554 :
+  x < 0.5 ?
+   y = 2.75628*x*x*x - 4.134419*x*x + 2.049569*x + 0.761845 :
+  y = 1.09756; 
+  
+  y;  
+  );
+
+/*******************************************************************
+  diodeClip   
+  ----
+  
+  lifted from Sault's Wuff Big Muff diode clipping
+ 
+*******************************************************************/
+function diodeClip(x) 
+  local(y, sg)
+  (
+   sg = sign(x);
+   x = abs(x);
+  
+   x < 0.2868 ?
+    y = -0.253547*x*x*x + 1.015242*x :
+   x < 0.44305 ?
+    y = -3.213782*x*x*x + 2.546986*x*x + 0.284766*x + 0.069833 :
+   x < 0.56024 ?
+    y = 2.4945*x*x*x - 5.040176*x*x + 3.646258*x - 0.426603 :
+   x < 0.63837 ?
+    y = 1.572526*x*x*x - 3.490596*x*x + 2.778122*x - 0.264481 :
+   x < 0.75555 ?
+    y = 0.741219*x*x*x - 1.898552*x*x + 1.761808*x - 0.04822 :
+   x < 1.10712 ?
+    y = 0.174563*x*x*x - 0.614142*x*x + 0.791372*x + 0.196184 :
+   x < 2.25109 ?
+    y = 0.008158*x*x*x - 0.061451*x*x + 0.179477*x + 0.421998 :
+   x < 4.26 ?
+    y = 0.0009024*x*x*x - 0.012449*x*x + 0.06917*x + 0.504769 :
+   x < 9.92408 ?
+    y = 0.0000392*x*x*x - 0.001427*x*x + 0.022215*x + 0.571445 :
+   x < 20 ?
+    y = 0.00000829*x*x*x - 0.000497*x*x + 0.012983*x + 0.601986 :
+   y = 0.72919;
+   
+   y * sg;
+  );
+
+
+/*******************************************************************
+  powtanH    
+  -------
+  (x/abs(x))*abs(tanh(x^drive))
+
+
+*******************************************************************/
+
+/*******************************************************************
+  pdfWeibull
+  -------
+  
+  
+  https://en.wikipedia.org/wiki/Weibull_distribution
+
+
+*******************************************************************/
+
+/*******************************************************************
+  cdfWeibull
+  -------
+  
+  
+  https://en.wikipedia.org/wiki/Weibull_distribution
+
+
+*******************************************************************/
+
+
+/*******************************************************************
+  mirrorCdfWeibull
+  -------
+  
+  
+  https://en.wikipedia.org/wiki/Weibull_distribution
+
+
+  (x/abs(x))*abs(1-e^(-abs(x)/lambda)^kappa)
+  
+  where kappa > 0 is the shape parameter and lambda > 0 is the scale parameter of the distribution
+  
+  1 > drive >= 0 ??
+
+*******************************************************************/
+
+function  mirrorCdfWeibull(input, drive, shape)
+  (
+  sign(input) * abs(1 - exp((-abs(input) / (1 - drive)) ^ shape)); //  TODO []adapt graph plot function to check curves shapes inside jsfx
+  );  
+
+/*******************************************************************
+  pdfRayleigh
+  -------
+  
+  
+  https://en.wikipedia.org/wiki/Rayleigh_distribution
+
+
+*******************************************************************/
+
+/*******************************************************************
+  cdfRayleigh
+  -------
+  
+  
+  https://en.wikipedia.org/wiki/Rayleigh_distribution
+
+
+*******************************************************************/
+
+/*******************************************************************
+  mirrorCdfRayleigh
+  -------
+  
+  
+  https://en.wikipedia.org/wiki/Rayleigh_distribution
+
+
+*******************************************************************/
+
+/*******************************************************************
+  Rectify    
+  -------
+  halfRectify 
+  fullRectify
+  
+  +leave the asymetrical implementation with 2 pos/neg thresholds out, the Paramatric Piecewise Shaper thingy will deal with it
+*******************************************************************/
+
+/*******************************************************************
+  softRectify    
+  -------------
+  
+  +leave the asymetrical implementation with 2 pos/neg thresholds out, the Paramatric Piecewise Shaper thingy will deal with it
+  
+*******************************************************************/
+
+/*******************************************************************
+  mirrorRectify    
+  -------------
+http://folk.ntnu.no/oyvinbra/gdsp/Lesson4Mirror.html
+
+--->use only one threshold
+fold back |input| > threshold ? input = sign(input)*(|threshold| - (|input| - |threshold|); //or something like that
+
+  +leave the asymetrical implementation with 2 pos/neg thresholds out, the Paramatric Piecewise Shaper thingy will deal with it
+*******************************************************************/
+
+/*******************************************************************
+  softmirrorRectify    
+  -------------
+*******************************************************************/
+
+/*******************************************************************
+  oneMinus    
+  -------------
+  
+  Does the threshold have to be part of the function here ? 
+  It's probably better to remove it and let a meta piecewise function define it's own thresholds, no ?
+  
+  
+*******************************************************************/
+function oneMinus(input, threshold)
+  local(abs_input)
+  (
+  abs_input = abs(input);  
+  abs_input >= threshold ? input = sign(input) * (1 - abs_input);
+  input;
+  );
+  
+
+/*******************************************************************
+  thresholdMinus    
+  -------------
+*******************************************************************/
+/*
+function oneMinus(input, threshold)
+  local(abs_input)
+  (
+  abs_input = abs(input);  
+  abs_input >= threshold ? input = sign(input) * (threshold - abs_input);
+  input;
+  );
+*/
+
+/*******************************************************************
+  geometricPow     
+  ------------
+
+   - Is this even an appropriate name ?
+   - maybe restrict input to [0,1] if you're not finding uses for the other interval
+  
+   f(x) = x / (limit_point - x)
+   0 is a root
+   f(x) -> -1 as x -> +|-inf  (horizontal asymptote)
+   
+   f(x) -> +inf   as x -> limit_point+  (vertical asymptote)
+   f(x) -> -inf   as x -> limit_point-    
+   
+   [-inf,0]       ->   ]-1,0]
+   [0,limit_point+[     ->   [0,+inf[
+   ]limit_point-, +inf] ->   ]-inf, 1[
+      
+   undefined for x = limit
+   useful to to remap [0,limit[ to [0,+inf[
+*******************************************************************/
+function geometricPow(x, limit_point)
+  (
+  x == limit_point ?
+    (
+    x -= 0.00001;
+    );
+    x / (limit_point - x);    
+  );
+
+ 
+/*******************************************************************
+  distortPower    
+  -----
+  TODO []
+  + replace power factor with selectable transfer curve
+  
+
+Power factor : 1 is linear, less than 1 is logarithmic, greter than 1 is exponential
+
+*******************************************************************/
+function distortPower(input, drive)
+  (
+  /*
+  x -= xmin;
+  x /= (xmax - xmin);
+  x ^= ex;
+  x *= (ymax - ymin);
+  x + ymin;
+  */
+  sign(input) * abs(input)^drive;
+  );
+
+/*******************************************************************
+  distortSigmoid   
+  -----
+  TODO []
+  
+
+(2/(1+e^(-drive*x)))-1
+
+*******************************************************************/
+/*******************************************************************
+  sininversePower    
+  -------------
+  http://www.math.washington.edu/~conroy/general/sin1overx/
+
+*******************************************************************/
+
+/*******************************************************************
+  slopeDistort    
+  ------------
+
+  http://folk.ntnu.no/oyvinbra/gdsp/Lesson4SlopeDelay.html 
+*******************************************************************/
+
+
+/*******************************************************************
+  slewRate    
+  --------
+  https://en.wikipedia.org/wiki/Slew_rate
+  http://users.ece.gatech.edu/mleach/ece4435/tutorial.pdf
+  http://www.ecircuitcenter.com/OpModels/Tanh_Stage/Tanh_Stage.htm
+  http://www.ecircuitcenter.com/OpModels/Tanh_Stage/OpAmp_TANH.CIR
+  http://www.ecircuitcenter.com/OpModels/Ilimit_Slew/ILim_Slew.htm
+  http://www.radio-electronics.com/info/circuits/opamp_basics/operational-amplifier-slew-rate.php
+  
+*******************************************************************/
+
+/*******************************************************************
+  Damping    
+  --------
+  https://en.wikipedia.org/wiki/Damping
+  http://forum.allaboutcircuits.com/threads/how-to-find-the-damping-ratio-of-this-transfer-function.23884/
+  http://fr.mathworks.com/help/control/ref/damp.html
+  http://www.facstaff.bucknell.edu/mastascu/eControlHTML/SysDyn/SysDyn2.html
+  
+  
+*******************************************************************/
+
+
+
+
+
+
+/*******************************************************************
+||||||||||||||||||||||| D U M P |||||||||||||||||||||||||||||||||||
+*******************************************************************/
+
+
+/*******************************************************************
+  geometricPow     
+  ------------
+
+   - Is this even an appropriate name ?
+   - maybe restrict input to [0,1] if you're not finding uses for the other interval
+  
+   f(x) = power_factor * x / (limit_point - x)
+   0 is a root
+   f(x) -> -power_factor as x -> +|-inf  (horizontal asymptote)
+   
+   f(x) -> +inf   as x -> limit_point+  (vertical asymptote)
+   f(x) -> -inf   as x -> limit_point-
+   
+   
+   
+   power_factor > 1 speeds up the transfer
+   power_factor < 1 slows down the transfer
+   power_factor = a / x 'offsets' the root, f(0) = a
+   
+   
+   [-inf,0]       ->   ]-power_factor,0]
+   [0,limit_point+[     ->   [0,+inf[
+   ]limit_point-, +inf] ->   ]-inf, -power_factor[
+      
+   undefined for x = limit
+   useful to to remap [0,limit[ to [0,+inf[
+*******************************************************************/
+/*
+function geometricPow(x, power_factor, limit_point)
+  (
+  x == limit_point ?
+    (
+    x -= 0.00001;
+    );
+    power_factor * x / (limit_point - x);    
+  );
+
+/*******************************************************************
+  sinArcsin     
+  ---------
+*******************************************************************/
+/*
+function sinArcsin(input, drive)
+  (
+  sin(drive * asin(input));
+  );
+
+/*******************************************************************
+  cosArccos     
+  ---------
+*******************************************************************/
+/*
+function cosArccos(input, drive)
+  (
+  cos(drive * acos(input));
+  );
+*/
+
+/*******************************************************************
+  sinArccos     
+  ---------
+*******************************************************************/
+/*
+function sinArccos(input, drive)
+  (
+  sin(drive * acos(input));
+  );
+*/
+/*******************************************************************
+  cosArcsin     
+  ---------
+*******************************************************************/
+/*
+function cosArcsin(input, drive)
+  (
+  cos(drive * asin(input));
+  );
+*/
+/*******************************************************************
+  sinArcsinPow     
+  ---------
+*******************************************************************/
+/*
+function sinArcsinPow(input, drive)
+  (
+  sin(asin(input ^ drive));
+  );
+*/ 
+/*******************************************************************
+  cosArccosPow     
+  ---------
+*******************************************************************/
+/*
+function cosArccosPow(input, drive)
+  (
+  cos(acos(input ^ drive));
+  );
+*/  
+/*******************************************************************
+  sinArccosPow     
+  ---------
+*******************************************************************/
+/*
+function sinArccosPow(input, drive)
+  (
+  sin(acos(input ^ drive));
+  );
+*/
+/*******************************************************************
+  cosArcsinPow     
+  ---------
+*******************************************************************/
+/*
+function cosArcsinPow(input, drive)
+  (
+  cos(asin(input ^ drive));
+  );
+*/
+
+/*******************************************************************
+  Power    
+  -------------
+  https://en.wikipedia.org/wiki/Exponentiation
+  https://en.wikipedia.org/wiki/File:Root_graphs.svg
+  
+  http://math.stackexchange.com/questions/462443/calculating-non-integer-exponent
+  
+  power_factor is not an integer ?
+  http://reliawiki.com/index.php/Inverse_Power_Law_Relationship
+  https://en.wikipedia.org/wiki/Inverse-square_law
+  https://en.wikipedia.org/wiki/Proportionality_(mathematics)
+  
+  exponent = 1      -> linear        -> x
+  exponent > 1      -> exponential   -> x^exp
+  0 < exponent < 1  -> logarithm     -> x
+  exponent = 0      -> constant 
+  
+  f(x) = 1 / x^power_factor
+  f(x) -> +inf   as x -> 0-  (vertical asymptote)
+  f(x) -> -inf   as x -> 0+
+  
+  undefined for x = 0
+  
+  input = 0, returns 0    
+*******************************************************************/
+/*
+function Power(input, exponent)
+  (
+  pow(input, exponent); //HAHA I KNOW, but I want it as a function to learn + populate list
+  //TODO 
+  //try to make that function useful by converting b^x = (e^ln b)^x = e^{x .ln b}
+  );
+*/
+
+
+//|||||||||||||||||||||||||||||DUMP||||||||||||||||||||||||||||| 
+/*
+function damelsDistort_init(highest_harmonic, odd_amplitude, even_amplitude, odd_falloff, even_falloff, seed_file)
+  local(file_handle, n)
+  (
+  
+  //|||||||||||||||||||||||||||||LOAD SEED FILE|||||||||||||||||||||||||||||
+  #line = "";
+  #line.seed = "";
+  #this.all_seeds = "";
+  
+  this.seed.ptr       = memAlloc(128, "seed.ptr");           //all_seeds start offset
+  this.seed.precision = memAlloc(128, "seed.precison");      //seed number of digits precision
+  this.seed.size      = memAlloc(128, "seed.size");          //seed size. If seed size is not a multiple of seed precision, pad with 0 until it is
+  this.seed_count = 0;
+  
+  this.harmonic_amplitude = memAlloc(2048, "harmonic_amplitude"); //   this.harmonic_amplitude == 0 ? was removed
+  
+  file_handle = file_open(seed_file);
+  
+  this.debug_file_avail_count = 0; //DEBUG
+  
+    
+  while(file_avail(file_handle))
+      (
+      file_string(file_handle, #line);
+      //trimString(#line);
+      this.seed_count += 1;
+      
+      this.debug_file_avail_count += 1; //DEBUG
+      
+      match("*precision_digits=%d____%s", #line, this.seed.precision[this.seed_count], #line.seed) ?
+        (
+      
+        //TRUNCATE | PAD #line.seed to highest_harmonic * this.seed.precision[this.seed_count] <<<<<<<<<<<<<***** TODO
+      
+       strcat(#this.all_seeds, #line.seed); //append name to all_names list
+      
+        match("*%d", #seed_value, seed_value)
+        );      
+     
+      ); 
+     
+    
+  file_close(file_handle);   
+     
+  //padString(#this.tmp, " ", characters_per_name);
+  
+*/ 
+  //|||||||||||||||||||||||||||MErge This With Seed File||||||||||||||||||||||||||||
+  /*
+  floor(highest_harmonic); //maybe update with Parity(integer_input)
+  //n % 2 == 0 ? n +=1; //make sure n is an odd integer     
+  this.highest_harmonic = highest_harmonic;
+  
+  sprintf(#this.seed, "%i", seed); //1.Loop seed if highest_harmonic requires a longer seed 2. PROFIT
+  
+  n = 1;
+  
+  
+  while (n <= this.highest_harmonic) //later use a transfer curve on top of this
+      (
+      n % 2 == 0 ? 
+        (
+        this.harmonic_amplitude[n] = even_amplitude;// * (1 * (1 - even_falloff) + 1 / n * even_falloff); 
+        ):(
+        this.harmonic_amplitude[n] = odd_amplitude;//  * (1 * (1 - odd_falloff)  + 1 / n * odd_falloff );
+        );
+      
+      n += 1;
+      );
+  
+  );
+*/  

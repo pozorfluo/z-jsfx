@@ -1,0 +1,379 @@
+/*******************************************************************************
+*  2017 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        Lifted from                                                           *
+*         8x Stereo to 1x Stereo Mixer [IXix]                                  *
+*          and tweaked                                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:>> Send Mixer    
+
+
+
+slider1:    0<-96,0,0.01>┌─═▇▇╡  A  .ıI!
+slider2:  -96<-96,0,0.01>send  A  ◄==▇▇▇═──┼─═▇▇╡  B  .ıI!
+slider3:  -96<-96,0,0.01>└─═▇▇╡  C  .ıI!
+slider4:    0<-100,100,0.1>← A →
+slider5:    0<-100,100,0.1>← B →
+slider6:    0<-100,100,0.1>← C →
+
+slider11: -96<-96,0,0.01>┌─═▇▇╡  A  .ıI!
+slider12:   0<-96,0,0.01>send  B  ◄==▇▇▇═──┼─═▇▇╡  B  .ıI!
+slider13: -96<-96,0,0.01>└─═▇▇╡  C  .ıI!
+slider14:   0<-100,100,0.1>← A →
+slider15:   0<-100,100,0.1>← B →
+slider16:   0<-100,100,0.1>← C →
+
+slider21: -96<-96,0,0.01>┌─═▇▇╡  A  .ıI!
+slider22: -96<-96,0,0.01>send  C  ◄==▇▇▇═──┼─═▇▇╡  B  .ıI!
+slider23:   0<-96,0,0.01>└─═▇▇╡  C  .ıI!
+slider24:   0<-100,100,0.1>← A →
+slider25:   0<-100,100,0.1>← B →
+slider26:   0<-100,100,0.1>← C →
+
+slider31:   0<-96,0,0.01>┌─═▇▇╡  A  .ıI!
+slider32:   0<-96,0,0.01>send  D  ◄==▇▇▇═──┼─═▇▇╡  B  .ıI!
+slider33: -96<-96,0,0.01>└─═▇▇╡  C  .ıI!
+slider34: -100<-100,100,0.1>← A →
+slider35:  100<-100,100,0.1>← B →
+slider36:    0<-100,100,0.1>← C →
+
+slider41:   0<-96,0,0.01>┌─═▇▇╡  A  .ıI!
+slider42: -96<-96,0,0.01>send  E  ◄==▇▇▇═──┼─═▇▇╡  B  .ıI!
+slider43: -96<-96,0,0.01>└─═▇▇╡  C  .ıI!
+slider44:   0<-100,100,0.1>← A →
+slider45:   0<-100,100,0.1>← B →
+slider46:   0<-100,100,0.1>← C →
+
+slider51:   0<-96,0,0.01>┌─═▇▇╡  A  .ıI!
+slider52: -96<-96,0,0.01>send  F  ◄==▇▇▇═──┼─═▇▇╡  B  .ıI!
+slider53: -96<-96,0,0.01>└─═▇▇╡  C  .ıI!
+slider54:   0<-100,100,0.1>← A →
+slider55:   0<-100,100,0.1>← B →
+slider56:   0<-100,100,0.1>← C →
+
+//  ▂▃▅▇█ █▇▅▃▂ █▬█ █▄█ █▬█ █▄█ █▬█ █ ▀█▀ █▬█ █ ▀█▀   ──═▇▇▇╡ ┣▇▇▇═── 
+// ╠▇▇▇═──┼╪────═▇▇▇╡  ◄==▇▇▇═──╪────═▇▇▇╡    
+// ╞▇▇▇═────────═▇▇▇==►  Send Mixer ﾊﾊ八八ﾉヽﾉヽﾉヽﾉ ＼ / ＼/ ＼
+// ╞▇▇▇═────────═▇▇▇==►  Send Mixer ◄==▇▇▇-ﾊﾊ八八ﾉヽﾉヽﾉヽﾉ ＼ / ＼/ ＼
+slider64:0<0,2,1{TODO, OFF,ON,ON STEREO}>Naive Gain Compensation 
+
+////////PIN DESCRIPTION////////////////////
+///////////////////////////////////////////////////////////////////////////////
+@init
+
+
+///////////////////////////////////////////////////////////////////////////////
+@slider
+
+//////// send A
+
+slider1 > -96 ?
+  (
+  send_A_input_A   = exp(slider1 * 0.11552453);
+  pan = (slider4 + 100) / 200;
+  send_A_input_A_L = send_A_input_A * min(1, 1 - (2 * pan - 1));
+  send_A_input_A_R = send_A_input_A * min(1, 2 * pan); 
+  ):(
+  send_A_input_A = send_A_input_A_L = send_A_input_A_R = 0;
+  );
+  
+slider2 > -96 ?
+  (
+  send_A_input_B   = exp(slider2 * 0.11552453);
+  pan = (slider5 + 100) / 200;
+  send_A_input_B_L = send_A_input_B * min(1, 1 - (2 * pan - 1));
+  send_A_input_B_R = send_A_input_B * min(1, 2 * pan); 
+  ):(
+  send_A_input_B = send_A_input_B_L = send_A_input_B_R = 0;
+  );
+
+slider3 > -96 ?
+  (
+  send_A_input_C   = exp(slider3 * 0.11552453);
+  pan = (slider6 + 100) / 200;
+  send_A_input_C_L = send_A_input_C * min(1, 1 - (2 * pan - 1));
+  send_A_input_C_R = send_A_input_C * min(1, 2 * pan); 
+  ):(
+  send_A_input_C = send_A_input_C_L = send_A_input_C_R = 0;
+  );
+
+//////// send B
+
+slider11 > -96 ?
+  (
+  send_B_input_A   = exp(slider11 * 0.11552453);
+  pan = (slider14 + 100) / 200;
+  send_B_input_A_L = send_B_input_A * min(1, 1 - (2 * pan - 1));
+  send_B_input_A_R = send_B_input_A * min(1, 2 * pan); 
+  ):(
+  send_B_input_A = send_B_input_A_L = send_B_input_A_R = 0;
+  );
+  
+slider12 > -96 ?
+  (
+  send_B_input_B   = exp(slider12 * 0.11552453);
+  pan = (slider15 + 100) / 200;
+  send_B_input_B_L = send_B_input_B * min(1, 1 - (2 * pan - 1));
+  send_B_input_B_R = send_B_input_B * min(1, 2 * pan); 
+  ):(
+  send_B_input_B = send_B_input_B_L = send_B_input_B_R = 0;
+  );
+
+slider13 > -96 ?
+  (
+  send_B_input_C   = exp(slider13 * 0.11552453);
+  pan = (slider16 + 100) / 200;
+  send_B_input_C_L = send_B_input_C * min(1, 1 - (2 * pan - 1));
+  send_B_input_C_R = send_B_input_C * min(1, 2 * pan); 
+  ):(
+  send_B_input_C = send_B_input_C_L = send_B_input_C_R = 0;
+  );
+  
+//////// send C
+
+slider21 > -96 ?
+  (
+  send_C_input_A   = exp(slider21 * 0.11552453);
+  pan = (slider24 + 100) / 200;
+  send_C_input_A_L = send_C_input_A * min(1, 1 - (2 * pan - 1));
+  send_C_input_A_R = send_C_input_A * min(1, 2 * pan); 
+  ):(
+  send_C_input_A = send_C_input_A_L = send_C_input_A_R = 0;
+  );
+  
+slider22 > -96 ?
+  (
+  send_C_input_B   = exp(slider22 * 0.11552453);
+  pan = (slider25 + 100) / 200;
+  send_C_input_B_L = send_C_input_B * min(1, 1 - (2 * pan - 1));
+  send_C_input_B_R = send_C_input_B * min(1, 2 * pan); 
+  ):(
+  send_C_input_B = send_C_input_B_L = send_C_input_B_R = 0;
+  );
+
+slider23 > -96 ?
+  (
+  send_C_input_C   = exp(slider23 * 0.11552453);
+  pan = (slider26 + 100) / 200;
+  send_C_input_C_L = send_C_input_C * min(1, 1 - (2 * pan - 1));
+  send_C_input_C_R = send_C_input_C * min(1, 2 * pan); 
+  ):(
+  send_C_input_C = send_C_input_C_L = send_C_input_C_R = 0;
+  );
+
+//////// send D
+
+slider31 > -96 ?
+  (
+  send_D_input_A   = exp(slider31 * 0.11552453);
+  pan = (slider34 + 100) / 200;
+  send_D_input_A_L = send_D_input_A * min(1, 1 - (2 * pan - 1));
+  send_D_input_A_R = send_D_input_A * min(1, 2 * pan); 
+  ):(
+  send_D_input_A = send_D_input_A_L = send_D_input_A_R = 0;
+  );
+  
+slider32 > -96 ?
+  (
+  send_D_input_B   = exp(slider32 * 0.11552453);
+  pan = (slider35 + 100) / 200;
+  send_D_input_B_L = send_D_input_B * min(1, 1 - (2 * pan - 1));
+  send_D_input_B_R = send_D_input_B * min(1, 2 * pan); 
+  ):(
+  send_D_input_B = send_D_input_B_L = send_D_input_B_R = 0;
+  );
+
+slider33 > -96 ?
+  (
+  send_D_input_C   = exp(slider33 * 0.11552453);
+  pan = (slider36 + 100) / 200;
+  send_D_input_C_L = send_D_input_C * min(1, 1 - (2 * pan - 1));
+  send_D_input_C_R = send_D_input_C * min(1, 2 * pan); 
+  ):(
+  send_D_input_C = send_D_input_C_L = send_D_input_C_R = 0;
+  );
+  
+//////// send E
+
+slider41 > -96 ?
+  (
+  send_E_input_A   = exp(slider41 * 0.11552453);
+  pan = (slider44 + 100) / 200;
+  send_E_input_A_L = send_E_input_A * min(1, 1 - (2 * pan - 1));
+  send_E_input_A_R = send_E_input_A * min(1, 2 * pan); 
+  ):(
+  send_E_input_A = send_E_input_A_L = send_E_input_A_R = 0;
+  );
+  
+slider42 > -96 ?
+  (
+  send_E_input_B   = exp(slider42 * 0.11552453);
+  pan = (slider45 + 100) / 200;
+  send_E_input_B_L = send_E_input_B * min(1, 1 - (2 * pan - 1));
+  send_E_input_B_R = send_E_input_B * min(1, 2 * pan); 
+  ):(
+  send_E_input_B = send_E_input_B_L = send_E_input_B_R = 0;
+  );
+
+slider43 > -96 ?
+  (
+  send_E_input_C   = exp(slider43 * 0.11552453);
+  pan = (slider46 + 100) / 200;
+  send_E_input_C_L = send_E_input_C * min(1, 1 - (2 * pan - 1));
+  send_E_input_C_R = send_E_input_C * min(1, 2 * pan); 
+  ):(
+  send_E_input_C = send_E_input_C_L = send_E_input_C_R = 0;
+  );
+
+//////// send F
+
+slider51 > -96 ?
+  (
+  send_F_input_A   = exp(slider51 * 0.11552453);
+  pan = (slider54 + 100) / 200;
+  send_F_input_A_L = send_F_input_A * min(1, 1 - (2 * pan - 1));
+  send_F_input_A_R = send_F_input_A * min(1, 2 * pan); 
+  ):(
+  send_F_input_A = send_F_input_A_L = send_F_input_A_R = 0;
+  );
+  
+slider52 > -96 ?
+  (
+  send_F_input_B   = exp(slider52 * 0.11552453);
+  pan = (slider55 + 100) / 200;
+  send_F_input_B_L = send_F_input_B * min(1, 1 - (2 * pan - 1));
+  send_F_input_B_R = send_F_input_B * min(1, 2 * pan); 
+  ):(
+  send_F_input_B = send_F_input_B_L = send_F_input_B_R = 0;
+  );
+
+slider53 > -96 ?
+  (
+  send_F_input_C   = exp(slider53 * 0.11552453);
+  pan = (slider56 + 100) / 200;
+  send_F_input_C_L = send_F_input_C * min(1, 1 - (2 * pan - 1));
+  send_F_input_C_R = send_F_input_C * min(1, 2 * pan); 
+  ):(
+  send_F_input_C = send_F_input_C_L = send_F_input_C_R = 0;
+  );
+
+/*
+slider54 == 1 ? ( gain =    dry 
+                          + cab_a
+                          + cab_b
+                          + cab_c
+                          + cab_d
+                          + cab_e
+                          + cab_f
+                          + cab_g;
+                          
+                  gain = min(1, 1 / gain);
+                  gain_L = gain_R = gain;
+  ):(
+slider54 == 2 ? ( gain_L =  dry_L 
+                          + cab_a_L
+                          + cab_b_L
+                          + cab_c_L
+                          + cab_d_L
+                          + cab_e_L
+                          + cab_f_L
+                          + cab_g_L;
+                          
+                  gain_R =  dry_R 
+                          + cab_a_R
+                          + cab_b_R
+                          + cab_c_R
+                          + cab_d_R
+                          + cab_e_R
+                          + cab_f_R
+                          + cab_g_R;
+                  
+                  gain_L = min(1, 1 / gain_L);
+                  gain_R = min(1, 1 / gain_R);
+                  gain = 1; 
+  ):(
+                  gain = gain_L = gain_R = 1;
+  ););
+/*     
+////////////////////////////////////////////////////////////////////////////
+@sample
+
+//duuuhh :p
+/*
+input_A = spl0;
+input_B = spl1;
+input_C = spl2;
+*/
+//To use with 3 [m] inputs
+input_A = spl3;
+input_B = spl4;
+input_C = spl0;
+
+
+
+//////// send A
+spl2  =             ( input_A  * send_A_input_A_L
+                    + input_B  * send_A_input_B_L
+                    + input_C  * send_A_input_C_L );
+        
+        
+spl3  =             ( input_A  * send_A_input_A_R
+                    + input_B  * send_A_input_B_R
+                    + input_C  * send_A_input_C_R );
+                    
+//////// send B
+spl4  =             ( input_A  * send_B_input_A_L
+                    + input_B  * send_B_input_B_L
+                    + input_C  * send_B_input_C_L );
+        
+        
+spl5  =             ( input_A  * send_B_input_A_R
+                    + input_B  * send_B_input_B_R
+                    + input_C  * send_B_input_C_R );
+                    
+//////// send C
+spl6  =             ( input_A  * send_C_input_A_L
+                    + input_B  * send_C_input_B_L
+                    + input_C  * send_C_input_C_L );
+        
+        
+spl7  =             ( input_A  * send_C_input_A_R
+                    + input_B  * send_C_input_B_R
+                    + input_C  * send_C_input_C_R );               
+                
+//////// send D
+spl8  =             ( input_A  * send_D_input_A_L
+                    + input_B  * send_D_input_B_L
+                    + input_C  * send_D_input_C_L );
+        
+        
+spl9  =             ( input_A  * send_D_input_A_R
+                    + input_B  * send_D_input_B_R
+                    + input_C  * send_D_input_C_R );
+                    
+//////// send E
+spl10 =             ( input_A  * send_E_input_A_L
+                    + input_B  * send_E_input_B_L
+                    + input_C  * send_E_input_C_L );
+        
+        
+spl11 =             ( input_A  * send_E_input_A_R
+                    + input_B  * send_E_input_B_R
+                    + input_C  * send_E_input_C_R );
+                    
+//////// send F
+spl12 =             ( input_A  * send_F_input_A_L
+                    + input_B  * send_F_input_B_L
+                    + input_C  * send_F_input_C_L );
+        
+        
+spl13  =            ( input_A  * send_F_input_A_R
+                    + input_B  * send_F_input_B_R
+                    + input_C  * send_F_input_C_R );

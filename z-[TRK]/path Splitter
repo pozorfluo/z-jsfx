@@ -1,0 +1,57 @@
+/*******************************************************************************
+*  2018 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+desc:>>stereo path splitter
+
+// these lines tell Reaper the effect has no audio input/output,
+// which enables processing optimizations.
+// MIDI-only FX should always have these lines.
+//in_pin:none
+//out_pin:none
+
+////////PIN DESCRIPTION////////////////////
+////1+2 (current path)
+////3+4 (sidechain)
+////5+6 (path A)
+////7+8 (path B)
+
+in_pin:L
+in_pin:R
+in_pin:L sc
+in_pin:R sc
+in_pin:L //
+in_pin:R //
+
+
+out_pin:L
+out_pin:R
+out_pin:L sc
+out_pin:R sc
+out_pin:L //
+out_pin:R //
+
+
+///////////////////////////////////////////////////////////////////////////////
+@init
+
+///////////////////////////////////////////////////////////////////////////////
+@slider
+
+///////////////////////////////////////////////////////////////////////////////
+@sample
+
+
+////store main path 
+spl4 = spl0;
+spl5 = spl1;
+    

@@ -1,0 +1,132 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:digital Fuzz
+
+slider1:0<-120,64,0.1>Input Gain (dB)
+
+slider5:0<-0.6,0.6,0.00001>Duty Cycle via DC offset (Coarse)
+slider6:0<-0.3,0.3,0.00001>Duty Cycle via DC offset (Medium)
+slider7:0<-0.1,0.1,0.00001>Duty Cycle via DC offset (Fine)
+
+slider9:0<0,10,1>Harmonic Distributor
+slider10:1<1,1000,1>Lewd Fuzz
+slider11:0<0,100,1>Square Fuzz
+slider12:0<0,100,1>Triangle Fuzz
+slider13:0<0,100,1>Power Fuzz <======== PLUG ME
+slider14:0<0,100,1>tanh/modTanH <======== PLUG ME
+slider15:0<0,100,1>Sigmoid Fuzz <======== PLUG ME
+
+slider16:0<-60,0,0.1>Clip (dB)
+
+
+slider17:0<0,3,0{Split L-R + add z-TransferCurves ####################, wubba, lublub}>########################################TODO
+
+
+slider20:-96<-96,6,0.1>DRY (dB)
+slider21:0<-96,6,0.1>WET (dB)
+slider64:0<-120,64,0.1>Output Gain (dB)
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+
+@init
+
+@slider
+gain_input = dBtoAmp(slider1);  
+
+dc_offset = slider5 + slider6 + slider7;
+
+transfer_harmonic_drive = slider9;
+transfer_lewd_drive = slider10;
+
+hard_clip = dBtoAmp(slider16);
+gain_compensation = dBtoAmp(abs(slider16));
+
+
+transfer_square_drive = slider11 / 100;
+transfer_triangle_drive = slider12 / 100;
+
+dry = dBtoAmp(slider20);
+wet = dBtoAmp(slider21);
+
+gain_output = dBtoAmp(slider64);  
+
+@sample
+spl0dry = spl0; //store dry value
+spl1dry = spl1; //store dry value
+
+//INPUT GAIN
+spl0 *= gain_input;
+spl1 *= gain_input;
+
+
+//DC OFFSET -> DUTY CYCLE MODULATION - PRE-EMPHASIS
+spl0 += dc_offset; 
+spl1 += dc_offset;
+
+
+//TRANSFER CURVES - HARMONIC DISTRIBUTOR - nice control of harmonics distribution
+//spl0 = sign(spl0) * abs(pow(spl0, transfer_harmonic_drive)/ sqrt(1 + spl0 ^ transfer_harmonic_drive));
+//spl0 = pow(spl0, drive)/ sqrt(1 + spl0 ^ drive);
+//spl0 *= transfer_harmonic_drive;
+
+
+//TRANSFER CURVES - LEWD - equivalent to Stillwell's louderizer, but he anticipates for drive = 0
+//spl0 *= transfer_lewd_drive;
+//spl0 = spl0 /(1 + abs(spl0));
+
+ 
+//TRANSFER CURVES - Sign - Square Distortion -  Blend
+transfer_square_drive ? 
+  (
+  transfer_square_spl0 = sign(spl0); //Boom Square
+  spl0 = transfer_square_spl0 * transfer_square_drive + spl0 * (1 - transfer_square_drive);
+  
+  transfer_square_spl1 = sign(spl1); //Boom Square
+  spl1 = transfer_square_spl1 * transfer_square_drive + spl1 * (1 - transfer_square_drive); 
+  );
+  
+//TRANSFER CURVES - Arcsin - Triangle Distortion -  Blend
+transfer_triangle_drive ?
+  ( 
+  transfer_triangle_spl0 = asin(spl0) / $pi *2; //Boom Tri-an-guuuuule
+  spl0 = transfer_triangle_spl0 * transfer_triangle_drive + spl0 * (1 - transfer_triangle_drive); 
+
+  transfer_triangle_spl1 = asin(spl1 / $pi *2); //Boom Tri-an-guuuuule
+  spl1 = transfer_triangle_spl1 * transfer_triangle_drive + spl1 * (1 - transfer_triangle_drive);
+  );
+
+//Hard Clip
+spl0 = hardClip(spl0, -hard_clip, hard_clip);
+spl1 = hardClip(spl1, -hard_clip, hard_clip);
+
+spl0 *= gain_compensation; //compensate for hardClip induced gain loss
+spl1 *= gain_compensation; 
+
+//DC OFFSET -> DUTY CYCLE MODULATION - DE-EMPHASIS
+spl0 -= dc_offset;
+spl1 -= dc_offset;
+
+
+//MIX
+
+spl0 = spl0dry * dry + spl0 * wet;
+spl1 = spl1dry * dry + spl1 * wet;
+//spl1 = spl0;
+
+//INPUT GAIN
+spl0 *= gain_output;
+spl1 *= gain_output;

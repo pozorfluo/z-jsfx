@@ -1,0 +1,65 @@
+/*******************************************************************************
+*  2018 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        Lifted from                                                           *
+*         MIDI Map To Key v2 [IXix]                                            *
+*         Copyright 2007 - 2011, Philip S. Considine                           *
+*          and tweaked                                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc: MIDI Note Off Channel Router
+desc: 
+//tags: MIDI processing mapping
+//author: IXix
+
+slider1:0<0,15,1{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>Input Channel
+slider2:0<0,15,1{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}>Note Off Output Channel
+
+
+
+in_pin:none
+out_pin:none
+
+////////////////////////////////////////////////////////////////////////////////
+@init
+
+
+note_on  = $x90;
+note_off = $x80;
+
+////////////////////////////////////////////////////////////////////////////////
+@slider
+input_channel = slider1;
+output_channel = slider2;
+
+
+////////////////////////////////////////////////////////////////////////////////
+@block
+
+while
+  (
+  midirecv(offset, msg1, msg23) ?
+    (  
+    // Extract message type and channel
+    status = msg1 & $xF0;
+    channel = msg1 & $x0F;
+      
+    // Is it a NoteOff event on our channel?
+    channel == input_channel && status == note_off ? 
+      (
+      midisend(offset, status + output_channel, msg23); //pass thru        
+      ):(
+      midisend(offset, msg1, msg23); //pass thru
+      );
+      
+    
+    1; // Force loop to continue until all messages have been processed
+  );
+);
+

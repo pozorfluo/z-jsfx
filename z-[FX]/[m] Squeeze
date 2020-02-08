@@ -1,0 +1,261 @@
+/*******************************************************************************
+*  2017 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                         *
+*******************************************************************************/
+
+desc:Squeeze - Single Stage
+
+slider1:0<0,36,1>Input Gain (db)
+
+slider3:0<0,3,1{1x,2x,4x,8x}>Oversampling Todo
+
+slider11:-96<-96,-6,1>Bias (db) 
+slider12:0<0,0.5,0.001>Bias (V)
+
+//slider21:0<0,9999,1>Squeeze
+slider21:-48<-48,-6,1>REMOVE THE DOUBLE SLIDER, USE db scale
+slider22:0<0,0.5,0.001>Squeeze Threshold (V)
+
+slider23:0<-1,1.5,0.001>Squeeze Factor
+
+
+slider32:-96<-96,-6,1>Squarify (db)
+slider33:0<0,0.5,0.001>Squarify (V)
+
+
+slider35:0<0,10,1{OFF,abs(x),x^2,sqrt,4,5,6,7,8,9}>Get Even !!
+slider36:1<0,2,1{Squeal,Stay Based}>Get Even !!
+slider37:-96<-96,-6,1>Stevens (db)
+slider38:0<0,0.5,0.001>Stevens (V)
+//slider39:0<0,24,1>Stevens (V)
+
+slider41:0.999<0.1,1,0.001>DC Offset Removal f
+
+slider51:0<0,7,1{Dry/Wet, Input Driven, Transfer Multiply, Both, Dry/Wet + Both, Inverse Input Driven, Polarity Twist}>Blend Style
+slider52:1<0,2,0.001>Blend Factor
+slider53:1<0,2,0.001>Blend Drift - TODO
+
+slider54:0<-24,24,1>Pre-Limiter Output Gain (db)
+
+
+//slider56:0<0,100,0.1>Post Input Gain Dry Injection
+
+slider64:1<0,1,1{Passthrough Stereo,Force Mono}>x
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-Oversampler.jsfx-inc
+
+import st-oversampler_2017.jsfx-inc
+
+
+@init
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+itm1 = otm1 = 0;
+
+
+@slider
+
+gain_input = exp(slider1 * 0.11552453);
+gain_output = exp(slider54 * 0.11552453);
+
+dcoffset_factor = slider41; //whatever
+
+slider21 == -48 ?
+  (
+  transfer_squeeze = 0;
+  ):(
+  transfer_squeeze = exp(slider21 * 0.11552453);
+  );
+transfer_squeeze += slider22;
+
+transfer_squeeze_factor = slider23;
+
+slider32 == -96 ?
+  (
+  transfer_square_drive = 0;
+  ):(
+  transfer_square_drive = exp(slider32 * 0.11552453);
+  );
+transfer_square_drive += slider33;
+
+
+transfer_geteven_style = slider35;
+transfer_geteven_fundamental = slider36;
+
+slider37 == -96 ?
+  (
+  transfer_stevens = 0;
+  ):(
+  transfer_stevens = exp(slider37 * 0.11552453);
+  );
+transfer_stevens += slider38;
+
+slider11 == -96 ?
+  (
+  bias = 0;
+  ):(
+  bias = exp(slider11 * 0.11552453);
+  );
+bias += slider12 ;
+
+blend_style = slider51;
+blend_factor = slider52;
+
+//limiter_function = slider55;
+force_mono = slider64;
+
+@sample  
+
+//|||||||||||||||||||||||||||||INPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_input;
+
+spl0_dry = spl0;
+
+
+//|||||||||||||||||||||||||||||BIAS|||||||||||||||||||||||||||||
+spl0 += bias;
+
+//|||||||||||||||||||||||||||||SQUEEZE N SQUARE|||||||||||||||||||||||||||||
+
+transfer_square_spl0 = sign(spl0); //Boom Square
+
+//spl0 * transfer_square_spl0 > transfer_squeeze ?
+abs(spl0) > transfer_squeeze ?
+  (
+  spl0 = transfer_square_spl0 * transfer_square_drive + spl0 * (1 - transfer_square_drive); //SQUARED !!
+  ) : (
+  spl0 *= transfer_squeeze_factor; //SQUEEZED !!
+  );
+  
+
+//|||||||||||||||||||||||||||||GET EVEN||||||||||||||||||||||||||||
+transfer_geteven_style == 1 ? ( transfer_spl0_geteven = spl0 * transfer_geteven_fundamental + max(0, spl0);
+                                spl0 = spl0 * (1 - transfer_stevens) + transfer_spl0_geteven * transfer_stevens;
+  ):(
+transfer_geteven_style == 2 ? ( transfer_spl0_geteven = spl0 * transfer_geteven_fundamental + abs(spl0);
+                                spl0 = spl0 * (1 - transfer_stevens) + transfer_spl0_geteven * transfer_stevens;
+  ):(
+transfer_geteven_style == 3 ? ( transfer_spl0_geteven = spl0 * transfer_geteven_fundamental + sqrt(spl0);
+                                spl0 = spl0 * (1 - transfer_stevens) + transfer_spl0_geteven * transfer_stevens;
+  ):(
+transfer_geteven_style == 4 ? ( transfer_spl0_geteven = spl0 * transfer_geteven_fundamental + abs(tanh(spl0));
+                                spl0 = spl0 * (1 - transfer_stevens) + transfer_spl0_geteven * transfer_stevens;                                
+  ):(
+transfer_geteven_style == 5 ? ( transfer_spl0_geteven = spl0 * transfer_geteven_fundamental + sqr(spl0);
+                                spl0 = spl0 * (1 - transfer_stevens) + transfer_spl0_geteven * transfer_stevens;
+  ):(
+transfer_geteven_style == 6 ? ( transfer_spl0_geteven = spl0 * transfer_geteven_fundamental + spl0 ^ 4;
+                                spl0 = spl0 * (1 - transfer_stevens) + transfer_spl0_geteven * transfer_stevens;
+  ):(
+transfer_geteven_style == 7 ? ( transfer_spl0_geteven = spl0 * transfer_geteven_fundamental + spl0 ^ 6;
+                                spl0 = spl0 * (1 - transfer_stevens) + transfer_spl0_geteven * transfer_stevens;
+  ):(
+transfer_geteven_style == 8 ? ( transfer_spl0_geteven = spl0 * transfer_geteven_fundamental + sqr(spl0)+ spl0 ^ 4 + spl0 ^ 6 + spl0 ^ 8;
+                                spl0 = spl0 * (1 - transfer_stevens) + transfer_spl0_geteven * transfer_stevens;
+  ):(
+transfer_geteven_style == 9 ? ( transfer_spl0_geteven = spl0 * transfer_geteven_fundamental + exp(spl0); //JUST SO YOU KNOW exp() is NEITHER EVEN NOR ODD
+                                spl0 = spl0 * (1 - transfer_stevens) + transfer_spl0_geteven * transfer_stevens;
+  ):(
+  1;
+);););););););););
+
+/*
+transfer_geteven_style == 10 ? ( 
+                                 transfer_spl0_geteven = spl0 * transfer_geteven_fundamental + AmpToDb(slider39) * spl0 ^ slider39;
+                                 spl0 = spl0 * (1 - transfer_stevens) + transfer_spl0_geteven * transfer_stevens;
+*/
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL||||||||||||||||||||||||||||| 
+otm1 = dcoffset_factor * otm1 + spl0 - itm1; itm1 = spl0; spl0 = otm1;
+
+//|||||||||||||||||||||||||||||DYNAMIC BLEND||||||||||||||||||||||||||||
+blend_style == 1 ? ( spl0_dry_dynamic_blend = min(1, abs(spl0_dry) * blend_factor);
+                     spl0 = spl0_dry * (1 - spl0_dry_dynamic_blend) + spl0 * spl0_dry_dynamic_blend;
+                     //(spl0_dry * (1 - spl0_dry_dynamic_blend) + spl0 * spl0_dry_dynamic_blend) * blend_factor + (1 - blend_factor) * spl0;
+  ):(
+blend_style == 2 ? ( spl0 = spl0 / (blend_factor + 0.01) * abs(spl0_dry);
+  ):(
+blend_style == 3 ? ( spl0_dry_dynamic_blend = min(1, abs(spl0_dry) * blend_factor);
+                     spl0_blend_1 = spl0_dry * (1 - spl0_dry_dynamic_blend) + spl0 * spl0_dry_dynamic_blend;
+                     spl0_blend_2 = spl0 / (blend_factor + 0.01) * abs(spl0_dry);
+                     //spl0 /= 2;
+                     spl0 = spl0_blend_2 * (1 - spl0_dry_dynamic_blend) + spl0_blend_1 * spl0_dry_dynamic_blend;
+  ):(
+blend_style == 4 ? ( spl0_dry_dynamic_blend = min(1, abs(spl0_dry) * blend_factor);
+
+                     spl0_blend_0 = spl0 * blend_factor + spl0_dry * (1 - blend_factor);
+                     spl0_blend_1 = spl0_dry * (1 - spl0_dry_dynamic_blend) + spl0 * spl0_dry_dynamic_blend;
+                     spl0_blend_2 = spl0 / (blend_factor + 0.01) * abs(spl0_dry);
+                     //spl0 /= 2;
+                     spl0_blend_0x1 = spl0_blend_0 * blend_factor + spl0_blend_1 * (1 - blend_factor);
+                     spl0 = spl0_blend_2 * (1 - spl0_dry_dynamic_blend) + spl0_blend_0x1 * spl0_dry_dynamic_blend;
+  ):(
+blend_style == 5 ? ( spl0_dry_dynamic_blend = min(1, abs(spl0_dry) * blend_factor);
+                     spl0 = spl0 * (1 - spl0_dry_dynamic_blend) + spl0_dry * spl0_dry_dynamic_blend;
+  ):(
+blend_style == 6 ? ( spl0_dry_dynamic_blend = min(1, abs(spl0_dry));// * blend_factor);
+                     spl0_blend_1 = spl0_dry * (1 - spl0_dry_dynamic_blend) + spl0 * spl0_dry_dynamic_blend;
+                     spl0_blend_2 = spl0 / (1 - blend_factor + 0.01) * abs(spl0_dry);
+                    
+                     spl0_dry > 0 ?
+                      (
+                      spl0 = spl0_dry * (1 - spl0_dry_dynamic_blend) + spl0     * spl0_dry_dynamic_blend;
+                      ):(
+                      spl0 = spl0     * (1 - spl0_dry_dynamic_blend) + spl0_dry * spl0_dry_dynamic_blend;
+                      );
+                      
+                      //Use blend_factor to go 2 different directions
+                      blend_factor > 1 ?
+                        (
+                        spl0 = spl0 * (1 - (blend_factor - 1)) + spl0_blend_1 * (blend_factor - 1);
+                        ):(
+                        spl0 = spl0 * blend_factor             + spl0_blend_2 * (1 - blend_factor);
+                        );
+                                           
+  ):(
+                     spl0 = spl0 * blend_factor + spl0_dry * (1 - blend_factor);
+      
+  ););););););
+//|||||||||||||||||||||||||||||OUTPUT GAIN||||||||||||||||||||||||||||
+spl0 *= gain_output;
+
+//|||||||||||||||||||||||||||||SOFT LIMITER SINGLE||||||||||||||||||||||||||||
+//is_softlimiter_on ?
+//  (
+  spl0 = tanH(spl0);
+//  );
+
+//|||||||||||||||||||||||||||||SOFT LIMITER||||||||||||||||||||||||||||
+/*
+limiter_function == 0 ?  (  spl0 = tanH(spl0, 1);
+  ):(
+limiter_function == 1 ?  (  spl0 = vosTanH(spl0, 1); // GOES WILD IF spl0 is TOO HIGH
+  ):(
+limiter_function == 2 ?  (  spl0 = fastSigmoid(spl0, 1);
+  ):(
+limiter_function == 3 ?  (  spl0 = stillLoud(spl0, 1);
+  ):(
+                            spl0 = stillReaLoud(spl0, 1);
+  ););););
+*/
+
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL||||||||||||||||||||||||||||| 
+//otm1 = dcoffset_factor * otm1 + spl0 - itm1; itm1 = spl0; spl0 = otm1;
+
+
+//|||||||||||||||||||||||||||||PASSTHROUGH STEREO|||||||||||||||||||||||||||||
+force_mono ? spl1 = spl0;
+
+

@@ -1,0 +1,176 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+desc:re Fuzz
+
+slider1:0<-120,64,0.1>Input Gain (dB)
+
+slider5:0<0,0.6,0.00001>Bias (Coarse)
+slider6:0<0,0.3,0.00001>Bias (Medium)
+slider7:0<0,0.1,0.00001>Bias (Fine)
+
+slider11:0<0,1,0.001>Square Fuzz
+slider16:0<-60,0,0.1>Clip (dB)
+
+slider17:200<5,20000,1>Stage LP Cutoff (Hz)
+
+slider18:0.5<0,5,0.1>Stereo Non-Linearites
+slider19:200<5,20000,1>Stereo Non-Linearites Smoothing (Hz)
+
+slider20:-6<-96,6,0.1>DRY (dB)
+slider21:-6<-96,6,0.1>WET (dB)
+
+slider50:1<0,10,1>Stages
+
+slider64:0<-120,64,0.1>Output Gain (dB)
+
+import z/z-MemoryManager.jsfx-inc
+import z/z-Utilities.jsfx-inc
+import z/z-TransferCurves.jsfx-inc
+
+@init
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+itm1=itm2=otm1=otm2=0;
+
+//|||||||||||||||||||||||||||||STAGE LP FILTER|||||||||||||||||||||||||||||
+rc = 1 / (2 * $pi * slider17); // rc filter Smoothing coefficient
+
+rc_a = 1 / (rc * srate + 1);
+
+//|||||||||||||||||||||||||||||STEREO NON-LINEARITIES|||||||||||||||||||||||||||||
+rc_stereo = 1 / (2 * $pi * slider19); // rc filter Smoothing coefficient
+
+rc_a_stereo = 1 / (rc_stereo * srate + 1);
+
+
+// Low-pass
+
+function rc_lp(s, a)
+(
+  this.lp += a * (s - this.lp);
+);
+
+
+@slider
+gain_input = dBtoAmp(slider1);  
+
+dc_offset = slider5 + slider6 + slider7;
+
+
+hard_clip = dBtoAmp(slider16);
+gain_compensation = dBtoAmp(abs(slider16));
+
+
+transfer_square_drive = slider11;
+
+width = slider19 / 1000;
+
+dry = dBtoAmp(slider20);
+wet = dBtoAmp(slider21);
+
+stages = slider50;
+
+gain_output = dBtoAmp(slider64);  
+
+//|||||||||||||||||||||||||||||STAGE LP FILTER|||||||||||||||||||||||||||||
+rc = 1 / (2 * $pi * slider17); // rc filter Smoothing coefficient
+rc_a = 1 / (rc * srate + 1);
+
+//|||||||||||||||||||||||||||||STEREO NON-LINEARITIES|||||||||||||||||||||||||||||
+rc_stereo = 1 / (2 * $pi * slider19); // rc filter Smoothing coefficient
+
+rc_a_stereo = 1 / (rc_stereo * srate + 1);
+
+@sample
+stereo_spl0 = 1 + rand(slider18);
+stereo_spl0 = stereo_spl0.rc_lp(stereo_spl0, rc_a_stereo);
+
+stereo_spl1 = 1 + rand(slider18);
+stereo_spl1 = stereo_spl1.rc_lp(stereo_spl1, rc_a_stereo);
+
+
+spl0dry = tanh(spl0, gain_input * stereo_spl0);// * (1 + width)); // spl0 * gain_input; //store dry value
+spl1dry = tanh(spl1, gain_input * stereo_spl1);// * (1 - width)); //spl1 * gain_input; //store dry value
+
+current_stage = 1;
+
+loop(stages,
+//|||||||||||||||||||||||||||||INPUT GAIN||||||||||||||||||||||||||||
+
+spl0 *= gain_input * stereo_spl0;// * (1 - width);
+spl1 *= gain_input * stereo_spl1;// * (1 + width);
+
+
+//|||||||||||||||||||||||||||||BIAS||||||||||||||||||||||||||||
+
+spl0 += dc_offset * stereo_spl0;// * (1 + width); 
+spl1 += dc_offset * stereo_spl1;// * (1 - width);
+
+
+ 
+//TRANSFER CURVES - Sign - Square Distortion -  Blend
+
+transfer_square_drive ? 
+  (  
+  spl0 = sign(spl0);
+  spl1 = sign(spl1);
+  );
+  
+
+//Hard Clip
+
+spl0 = hardClip(spl0, - hard_clip * stereo_spl0, hard_clip * stereo_spl0);
+spl1 = hardClip(spl1, - hard_clip * stereo_spl1, hard_clip * stereo_spl1);
+
+spl0 *= gain_compensation; //compensate for hardClip induced gain loss
+spl1 *= gain_compensation; 
+
+
+
+//MIX
+spl0 = spl0dry * dry + spl0 * wet;
+spl1 = spl1dry * dry + spl1 * wet;
+
+//spl1 = spl0;
+
+//|||||||||||||||||||||||||||||STAGE LP FILTER|||||||||||||||||||||||||||||
+
+current_stage == 1 ?  ( spl0 = spl0_s1.rc_lp(spl0, rc_a * stereo_spl0);  spl1 = spl1_s1.rc_lp(spl1, rc_a * stereo_spl1);
+  ):(
+current_stage == 2 ?  ( spl0 = spl0_s2.rc_lp(spl0, rc_a * stereo_spl0);  spl1 = spl1_s2.rc_lp(spl1, rc_a * stereo_spl1);
+  ):(
+current_stage == 3 ?  ( spl0 = spl0_s3.rc_lp(spl0, rc_a * stereo_spl0);  spl1 = spl1_s3.rc_lp(spl1, rc_a * stereo_spl1);
+  ):(
+current_stage == 4 ?  ( spl0 = spl0_s4.rc_lp(spl0, rc_a * stereo_spl0);  spl1 = spl1_s4.rc_lp(spl1, rc_a * stereo_spl1);
+  ):(
+current_stage == 5 ?  ( spl0 = spl0_s5.rc_lp(spl0, rc_a * stereo_spl0);  spl1 = spl1_s5.rc_lp(spl1, rc_a * stereo_spl1);
+  ):(
+                        spl0 = spl0_s6.rc_lp(spl0, rc_a * stereo_spl0);  spl1 = spl1_s6.rc_lp(spl1, rc_a * stereo_spl1);
+  );););););
+
+current_stage += 1;
+);
+
+//|||||||||||||||||||||||||||||DC OFFSET REMOVAL|||||||||||||||||||||||||||||
+
+otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+
+//|||||||||||||||||||||||||||||LIMITER|||||||||||||||||||||||||||||
+spl0 = tanh(spl0, 1);
+spl1 = tanh(spl1, 1);
+
+//OUTPUT GAIN
+spl0 *= gain_output;
+spl1 *= gain_output;

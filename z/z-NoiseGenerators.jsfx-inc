@@ -1,0 +1,94 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+
+desc: Noise Generator Library
+
+/* TODO []
+  http://ajaxsoundstudio.com/cookdspdoc/cookdsp/list.jsfx-inc
+  http://fr.mathworks.com/help/dsp/ref/dsp.colorednoise-class.html
+  
+  
+  FUNCTION INDEX []
+  
+*/
+
+@init
+
+
+
+/*******************************************************************
+  noiseCLT    
+  --------
+  
+  "The mathematical basis for this algorithm is contained in the Central Limit
+  Theorem, one of the most important concepts in probability. In its simplest
+  form, the Central Limit Theorem states that a sum of random numbers
+  becomes normally distributed as more and more of the random numbers are
+  added together. The Central Limit Theorem does not require the individual
+  random numbers be from any particular distribution, or even that the
+  random numbers be from the same distribution. The Central Limit Theorem
+  provides the reason why normally distributed signals are seen so widely in
+  nature. Whenever many different random forces are interacting, the
+  resulting pdf becomes a Gaussian." 
+  
+*******************************************************************/
+function noiseCLT(number_of_rnd, standard_deviation_target)
+  local(n, output)
+    (
+    n = 1; output = 0; //init
+    
+    while (n <= number_of_rnd)
+      (
+      output += rand(1); //add random numbers between [0;1]
+      n += 1;
+      );
+    
+    output -= number_of_rnd / 2; //make the mean = 0
+    //0.0833333333 approximate variance (sigma^2) for 1 rnd generator
+    output /= sqrt(0.0833333333 * number_of_rnd); //make the standard variation = 1
+    output *= standard_deviation_target; 
+    //output = reMap(output, -number_of_rnd, number_of_rnd, -1, 1, 1); //remap to  [-1;1] 
+    );
+
+/*******************************************************************
+      
+  --------
+  
+*******************************************************************/
+/*******************************************************************
+      
+  --------
+  
+*******************************************************************/
+/*******************************************************************
+      
+  --------
+  
+*******************************************************************/
+/*******************************************************************
+      
+  --------
+  
+*******************************************************************/
+/*******************************************************************
+      
+  --------
+  
+*******************************************************************/
+/*******************************************************************
+      
+  --------
+  
+*******************************************************************/

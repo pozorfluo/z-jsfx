@@ -1,0 +1,182 @@
+// This effect Copyright (C) 2004 and later Cockos Incorporated
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+desc: organic yet random stuttering gate (simple)
+//slider1:-60<-120,6,1>threshold (dB) 
+slider2:0.05<0.05,1000,10>silence length for fadeout (ms)
+slider3:10<1,100,5>fadein response (ms)
+slider4:0.5<1,300,10>fadeout response (ms)
+
+slider5:10<0.1,100,0.1>Lucky Percent
+//slider5:0<0,127,1>Paramod Delta
+slider6:300<1,300,1>Lag (ms)
+//slider7:10<1,1000,1>Wall Size
+slider64:0<0,1,1{Be Nothing, Fuck It All Away}>Wave Goodbye
+
+@init
+silentcnt = 0;
+seekv = 1; seekto = 1 ;
+lag_count = 0;
+
+@slider
+lucky = slider5; //2 ^ (slider5/6);//slider5 + 1; 
+//thresh = //abs(spl0 - paramod_delta);//2 ^ (slider1/6);
+//wall = slider7 / 10000;
+sillen = slider2 * srate/1000;
+lag    = slider6 * srate/1000;
+fadeout = 1/pow(10,1/(srate*slider4/1000));
+fadein  = 1/pow(10,1/(srate*slider3/1000));
+
+wave_goodbye = slider64;
+
+@sample
+//random_value = rand(paramod_delta) / 1280;//rand(128 * spl_0);
+spl_0 = abs(spl0);// + random_value;  
+random_value = rand((lucky + spl_0 * 100) / 2) / 100;
+//delta = random_value - paramod_delta;// + paramod_delta ; //min(spl_0, paramod_delta - random_value);
+//delta_mult = 1 + random_value - random_value_laggy;
+//thresh = spl_0 + wall * delta_mult;// + delta;// + 0.1 ; //abs(spl0    + paramod_delta);
+//thresh_spl0 = thresh - spl_0;
+
+//a=abs(spl0) > thresh || abs(spl1) > thresh;
+
+random_value_laggy > random_value ?
+  (
+  a = 1;
+  ):(
+  a = 0;
+  );
+
+a ? 
+(
+   silentcnt=0; 
+   seekto=1;
+) : (
+   (silentcnt+=1) > sillen ?  seekto=0;
+);
+
+// we should make this better, me thinks
+
+seekto > 0.5 ? 
+( // fading in
+  seekv=seekv*fadein + (1-fadein);
+)
+:
+( // fading out
+  seekv=seekv*fadeout;
+);
+
+(lag_count += 1) > lag ?
+  (
+  lag_count = 0;
+  spl_0_laggy = spl_0;
+  random_value_laggy = rand((lucky + spl_0_laggy * 100) / 2) / 100; // rand(spl_0_laggy * 100) / 100;//rand(spl_0 * 100) / 100;
+  
+  wave_goodbye == 1 ?
+    (
+    
+    weight_random   = lucky / 5;
+    weight_current  = 100 - weight_random; // - rand(lucky) / 100; // + rand(lucky);
+    
+    ///// SLIDER 3
+    rand(100) > (lucky / 20 + 5) ?
+      (
+      /*
+      previous_slider3 != -1 ?
+        (
+        slider3 = previous_slider3;
+        previous_slider3 = -1;       
+        );
+      */  
+      slider3 = (slider3 * weight_current + rand(100) * weight_random) / 100;
+      ):(
+      //jump to something
+      
+      //previous_slider3 = slider3;
+      
+      rand(100) < (75 - lucky / 4) ?
+        (
+        slider3 = 30;
+        ):(
+        slider3 = rand(100);
+        );
+      );
+    
+    
+    ///// SLIDER 4
+    rand(100) > (lucky / 20 + 5) ?
+      (
+      slider4 = (slider4 * weight_current + rand(300) * weight_random) / 100;
+      ):(
+      //jump to something
+      
+      
+      rand(100) < (75 - lucky / 4) ?
+        (
+        slider4 = 0.5;
+        ):(
+        slider4 = rand(300);
+        );
+      );
+      
+      
+    ///// SLIDER 6
+    rand(100) > (lucky / 20 + 5) ?
+      (
+      slider6 = (slider6 * weight_current + rand(300) * weight_random) / 100;
+      ):(
+      //jump to something
+      
+      
+      rand(100) < (75 - lucky / 4) ?
+        (
+        slider6 = 300;
+        ):(
+        slider6 = rand(300);
+        );
+      );
+        
+    //sillen  = slider2 * srate / 1000;
+    fadeout = 1 / pow(10, 1 / (srate * slider4 / 1000));
+    fadein  = 1 / pow(10, 1 / (srate * slider3 / 1000));
+    //lucky   = slider5;
+    lag     = slider6 * srate / 1000;     
+    
+      
+    what_have_I_become == 1 ?
+      (
+      rand(100) > rand(lucky) ?
+        (
+        what_have_I_become = 0;
+        wave_goodbye = 0;
+        slider5 = previous_lucky;
+        slider3 = previous_slider3; 
+        slider4 = previous_slider4; 
+        slider6 = previous_slider6;  
+        lucky = slider5;
+        );
+      );
+    
+    ):(
+    
+    let_it_slip_away = rand(100) + 1 + lucky / 10;
+    
+    
+    let_it_slip_away > 100 ?
+      (
+      what_have_I_become = 1;
+      previous_lucky = lucky;
+      previous_slider3 = slider3; 
+      previous_slider4 = slider4; 
+      previous_slider6 = slider6; 
+      slider5 = 10 + rand(90);
+      lucky = slider5;
+      wave_goodbye = 1;
+      );
+    
+    );
+
+  
+  );
+
+spl0=spl0*seekv;
+spl1=spl1*seekv;

@@ -1,0 +1,94 @@
+desc:Garbage Out
+
+slider1:-12<-40,0,1>max volume (dB)
+slider2:1<1,15,1>Stages
+slider3:6<1,10,1>hardness
+slider4:0<-120,0,1>fuzzy mix (dB)
+slider5:-60<-120,0,1>randisto mix (dB)
+slider6:20<1,300>shape
+slider7:3<0,5,1>Unleash Stereo 
+slider8:0<-2,2,0.01>Stage Depth
+slider13:0<-120,0,1>WET (dB)
+slider14:-60<-120,0,1>DRY (dB)
+slider15:0<0,3,1{NO,HALF,FULL}>RECTIFY
+@slider
+soft = 2^slider3;
+maxv = 2 ^ (slider1/6);
+stage = slider2;
+wet = 2^(slider4/6);
+dry = 2^(slider5/6);
+unleash = slider7;
+depth = slider8;
+globalwet = 2^(slider13/6);
+globaldry = 2^(slider14/6); 
+recto = slider15;
+@block
+@sample
+
+s0dry = spl0; //store dry value
+s1dry = spl1; //store dry value
+
+i = 0;
+stage = slider2 + rand(unleash);  
+while (i < stage)
+  ( 
+  maxv = 2 ^ ((slider1+i*depth)/6);  
+  t = abs(spl0);
+  t > maxv  ? 
+    (
+    s = sign(spl0);
+    diff = t-maxv;
+    //spl0=s*(maxv + diff/(soft+diff))+rand(i)/1000;
+    spl0 = s*(maxv + diff/(soft+diff));
+    as = abs(spl0);
+    s0 = spl0 * (as + slider6) / (as*(as + s11) + 1);
+    spl0 = max(min(s0,maxv),-maxv)*wet + spl0*dry;
+    );  
+  i += 1;  
+  );
+  
+i = 0;
+stage = slider2 + rand(unleash);  
+ while (i < stage)
+   ( 
+   maxv = 2 ^ ((slider1+i*depth)/6);  
+   t=abs(spl1);
+   t > maxv ? 
+     (
+     s = sign(spl1);
+     diff = t-maxv;
+     spl1 = s*(maxv + diff/(soft+diff));
+     as = abs(spl1);
+     s0 = spl1 * (as + slider6) / (as*(as + s11) + 1);
+ 
+     spl1 = max(min(s0,maxv),-maxv)*wet + spl1*dry;
+     
+     );
+   i += 1;
+   );
+  
+ spl0 = spl0*globalwet + s0dry*globaldry;   // DRY/WET Mix
+ spl1 = spl1*globalwet + s1dry*globaldry;   // DRY/WET Mix  
+  
+  //|||||||||||||||||||||||||||||RECTIFY|||||||||||||||||||||||||||||
+  recto == 1 ?
+    (
+    spl0 < 0 ? spl0 = 0;
+    spl1 < 0 ? spl1 = 0;
+    spl0 += spl0;
+    spl1 += spl1;
+    ) : (
+    recto == 2 ? 
+      (
+      spl0 = abs(spl0);
+      spl1 = abs(spl1);
+      );
+    );
+  //|||||||||||||||||||||||||||||-------|||||||||||||||||||||||||||||
+  
+  //OBSOLETE CRAP
+  //delta = -60-rand(slider7);
+  //unleash = 2^(delta/6);
+  //maxv = 2 ^ ((slider1+i)/6);
+  //maxv -= unleash;
+  

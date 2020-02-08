@@ -1,0 +1,132 @@
+/*******************************************************************************
+*  2016 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      Phase Control [IXix] Copyright 2007 - 2011, Philip S. Considine         *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+desc:>>[BUS RIG 1] (dB)
+
+slider1:-96<-96,0,0.01>||||||||||||||||||||||[ BUS 1 ]||||||||||||||||||||||
+slider2:-96<-96,0,0.01>DI
+slider3:-96<-96,0,0.01>PB 1
+slider4:-96<-96,0,0.01>PB 2
+slider5:-96<-96,0,0.01>SYN
+
+slider32:0<-100,100,0.1>DI_pan
+slider33:0<-100,100,0.1>PB 1_pan
+slider34:0<-100,100,0.1>PB 2_pan
+slider35:0<-100,100,0.1>SYN_pan
+
+////////PIN DESCRIPTION////////////////////
+in_pin:[ MAIN ] L
+in_pin:[ MAIN ] R
+in_pin:DI 
+in_pin:PB 1
+in_pin:PB 2
+in_pin:SYN L
+in_pin:SYN R
+
+
+out_pin:[ MAIN ] L
+out_pin:[ MAIN ] R
+out_pin:DI 
+out_pin:PB 1
+out_pin:PB 2
+out_pin:SYN L
+out_pin:SYN R
+out_pin:[ BUS 1 ] L
+out_pin:[ BUS 1 ] R
+
+///////////////////////////////////////////////////////////////////////////////
+@init
+
+///////////////////////////////////////////////////////////////////////////////
+@slider
+
+slider1 > -96 ?
+  (
+  bus_1_output  = exp(slider1 * 0.11552453);
+  ):(
+  bus_1_output = 0;
+  );
+  
+slider2 > -96 ?
+  (
+  bus_1_send_1  = exp(slider2 * 0.11552453);
+  pan = (slider32 + 100) / 200;
+  bus_1_send_1_L = bus_1_send_1 * min(1, 1 - (2 * pan - 1));
+  bus_1_send_1_R = bus_1_send_1 * min(1, 2 * pan); 
+  ):(
+  bus_1_send_1 = bus_1_send_1_L = bus_1_send_1_R = 0;
+  );
+
+slider3 > -96 ?
+  (
+  bus_1_send_2  = exp(slider3 * 0.11552453);
+  pan = (slider33 + 100) / 200;
+  bus_1_send_2_L = bus_1_send_2 * min(1, 1 - (2 * pan - 1));
+  bus_1_send_2_R = bus_1_send_2 * min(1, 2 * pan); 
+  ):(
+  bus_1_send_2 = bus_1_send_2_L = bus_1_send_2_R = 0;
+  );
+
+slider4 > -96 ?
+  (
+  bus_1_send_3  = exp(slider4 * 0.11552453);
+  pan = (slider34 + 100) / 200;
+  bus_1_send_3_L = bus_1_send_3 * min(1, 1 - (2 * pan - 1));
+  bus_1_send_3_R = bus_1_send_3 * min(1, 2 * pan); 
+  ):(
+  bus_1_send_3 = bus_1_send_3_L = bus_1_send_3_R = 0;
+  );
+
+slider5 > -96 ?
+  (
+  bus_1_send_4  = exp(slider5 * 0.11552453);
+  pan = (slider35 + 100) / 200;
+  bus_1_send_4_L = bus_1_send_4 * min(1, 1 - (2 * pan - 1));
+  bus_1_send_4_R = bus_1_send_4 * min(1, 2 * pan); 
+  ):(
+  bus_1_send_4 = bus_1_send_4_L = bus_1_send_4_R = 0;
+  );
+
+
+////////WARNING : LETS spl2-4 PASSTHROUGH///////////////////////////////////////////////////////////////////////
+/* Rig Map
+0 = [ MAIN ]
+1 = [ MAIN ]
+2 = DI
+3 = L
+4 = R
+*/
+
+@sample
+////RETRIEVE [ MAIN ] >> [ send 4 ] 
+spl5 = spl0;
+spl6 = spl1;
+
+//bus_1
+spl7   =  bus_1_output * (
+          (spl2  * bus_1_send_1_L) + 
+          (spl3  * bus_1_send_2_L) + 
+          (spl4  * bus_1_send_3_L) +
+          (spl5  * bus_1_send_4_L) );
+
+spl8   =  bus_1_output * (
+          (spl2  * bus_1_send_1_R) + 
+          (spl3  * bus_1_send_2_R) + 
+          (spl4  * bus_1_send_3_R) +
+          (spl6  * bus_1_send_4_R) );
+         
+
+////FEED [ BUS 1 ] >> [ MAIN ]
+spl0 = spl7;
+spl1 = spl8;
+    

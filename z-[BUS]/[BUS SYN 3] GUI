@@ -1,0 +1,146 @@
+/*******************************************************************************
+*  2016 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      Phase Control [IXix] Copyright 2007 - 2011, Philip S. Considine         *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+desc:>>[BUS SYN 3] (dB)
+
+slider1:-96<-96,0,0.01>||||||||||||||||||||||[ BUS 3 ]||||||||||||||||||||||
+slider2:-96<-96,0,0.01>SYN A
+slider3:-96<-96,0,0.01>SYN B
+slider4:-96<-96,0,0.01>SYN C
+slider5:-96<-96,0,0.01>[ BUS 1 ]
+slider6:-96<-96,0,0.01>[ BUS 2 ]
+
+slider32:0<-100,100,0.1>SYN A_pan
+slider33:0<-100,100,0.1>SYN B_pan
+slider34:0<-100,100,0.1>SYN C_pan
+slider35:0<-100,100,0.1>[ BUS 1 ]_pan
+slider36:0<-100,100,0.1>[ BUS 2 ]_pan
+
+////////PIN DESCRIPTION////////////////////
+in_pin:[ MAIN ] L
+in_pin:[ MAIN ] R
+in_pin:SYN A L 
+in_pin:SYN A R
+in_pin:SYN B L 
+in_pin:SYN B R
+in_pin:SYN C L 
+in_pin:SYN C R
+in_pin:[ BUS 1 ] L 
+in_pin:[ BUS 1 ] R
+in_pin:[ BUS 2 ] L
+in_pin:[ BUS 2 ] R
+
+out_pin:[ MAIN ] L
+out_pin:[ MAIN ] R
+out_pin:SYN A L 
+out_pin:SYN A R
+out_pin:SYN B L 
+out_pin:SYN B R
+out_pin:SYN C L 
+out_pin:SYN C R
+out_pin:[ BUS 1 ] L
+out_pin:[ BUS 1 ] R
+out_pin:[ BUS 2 ] L
+out_pin:[ BUS 2 ] R
+out_pin:[ BUS 3 ] L
+out_pin:[ BUS 3 ] R
+
+///////////////////////////////////////////////////////////////////////////////
+@init
+
+///////////////////////////////////////////////////////////////////////////////
+@slider
+
+slider1 > -96 ?
+  (
+  bus_3_output  = exp(slider1 * 0.11552453);
+  ):(
+  bus_3_output = 0;
+  );
+  
+slider2 > -96 ?
+  (
+  bus_3_send_1  = exp(slider2 * 0.11552453);
+  pan = (slider32 + 100) / 200;
+  bus_3_send_1_L = bus_3_send_1 * min(1, 1 - (2 * pan - 1));
+  bus_3_send_1_R = bus_3_send_1 * min(1, 2 * pan); 
+  ):(
+  bus_3_send_1 = bus_3_send_1_L = bus_3_send_1_R = 0;
+  );
+
+slider3 > -96 ?
+  (
+  bus_3_send_2  = exp(slider3 * 0.11552453);
+  pan = (slider33 + 100) / 200;
+  bus_3_send_2_L = bus_3_send_2 * min(1, 1 - (2 * pan - 1));
+  bus_3_send_2_R = bus_3_send_2 * min(1, 2 * pan); 
+  ):(
+  bus_3_send_2 = bus_3_send_2_L = bus_3_send_2_R = 0;
+  );
+
+slider4 > -96 ?
+  (
+  bus_3_send_3  = exp(slider4 * 0.11552453);
+  pan = (slider34 + 100) / 200;
+  bus_3_send_3_L = bus_3_send_3 * min(1, 1 - (2 * pan - 1));
+  bus_3_send_3_R = bus_3_send_3 * min(1, 2 * pan); 
+  ):(
+  bus_3_send_3 = bus_3_send_3_L = bus_3_send_3_R = 0;
+  );
+
+slider5 > -96 ?
+  (
+  bus_3_send_4  = exp(slider5 * 0.11552453);
+  pan = (slider35 + 100) / 200;
+  bus_3_send_4_L = bus_3_send_4 * min(1, 1 - (2 * pan - 1));
+  bus_3_send_4_R = bus_3_send_4 * min(1, 2 * pan); 
+  ):(
+  bus_3_send_4 = bus_3_send_4_L = bus_3_send_4_R = 0;
+  );
+
+slider6 > -96 ?
+  (
+  bus_3_send_5  = exp(slider6 * 0.11552453);
+  pan = (slider36 + 100) / 200;
+  bus_3_send_5_L = bus_3_send_5 * min(1, 1 - (2 * pan - 1));
+  bus_3_send_5_R = bus_3_send_5 * min(1, 2 * pan); 
+  ):(
+  bus_3_send_5 = bus_3_send_5_L = bus_3_send_5_R = 0;
+  );
+  
+
+@sample
+////RETRIEVE [ MAIN ] >> [ BUS 2 ] 
+spl10 = spl0;
+spl11 = spl1;
+
+//bus_3
+spl12   =  bus_3_output * (
+          (spl2  * bus_3_send_1_L) + 
+          (spl4  * bus_3_send_2_L) + 
+          (spl6  * bus_3_send_3_L) +
+          (spl8  * bus_3_send_4_L) +
+          (spl10 * bus_3_send_5_L) );
+
+spl13   =  bus_3_output * (
+          (spl3  * bus_3_send_1_R) + 
+          (spl5  * bus_3_send_2_R) + 
+          (spl7  * bus_3_send_3_R) +
+          (spl9  * bus_3_send_4_R) + 
+          (spl11 * bus_3_send_5_R) );
+         
+
+////FEED [ BUS 3 ] >> [ MAIN ]
+spl0 = spl12;
+spl1 = spl13;
+    

@@ -1,0 +1,24 @@
+desc:Power Gain
+
+slider1:0<0,64,1>Input Gain (db)
+slider2:1<0,2,0.1>Power
+
+slider5:0<0,64,0.001>Input Calibration (db)
+
+import z/z-Utilities.jsfx-inc 
+@init
+spl_peak = 1;
+
+@slider
+gain_input = exp(slider1 * 0.11552453);
+power = slider2;
+
+@block
+slider5 = AmpTodB(spl_peak);
+sliderchange(slider5);
+
+@sample
+spl_peak = max(max(spl_peak, spl0), spl1);
+spl0 = sign(spl0) * reMap(abs(spl0), 0, spl_peak, 0, gain_input, power);
+spl1 = sign(spl1) * reMap(abs(spl1), 0, spl_peak, 0, gain_input, power);
+

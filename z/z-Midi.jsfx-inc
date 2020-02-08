@@ -1,0 +1,71 @@
+/*******************************************************************************
+*  2015 Greg Z. - I have no idea what I'm doing                                *
+*  REMEMBER TO CREDIT PROPERLY                                                 *
+*   REMEMBER TO CREDIT PROPERLY                                                *
+*    REMEMBER TO CREDIT PROPERLY                                               *
+*     REMEMBER TO CREDIT PROPERLY                                              *
+*      REMEMBER TO CREDIT PROPERLY                                             *
+*       REMEMBER TO CREDIT PROPERLY                                            *
+*        REMEMBER TO CREDIT PROPERLY                                           *
+*         REMEMBER TO CREDIT PROPERLY                                          *
+*          REMEMBER TO CREDIT PROPERLY                                         *
+*           REMEMBER TO CREDIT PROPERLY                                        *
+*******************************************************************************/
+
+
+desc: Midi Library
+
+/* TODO []
+  
+  http://www.midibox.org/dokuwiki/doku.php?id=midi_specification
+  
+  FUNCTION INDEX []
+  
+  
+  
+   0x80     Note Off
+   0x90     Note On
+   0xA0     Aftertouch
+   0xB0     Continuous controller
+   0xC0     Patch change
+   0xD0     Channel Pressure
+   0xE0     Pitch bend
+   0xF0     (non-musical commands)
+
+*/
+
+@init
+
+
+/*******************************************************************
+  midiToFrequency
+  ===============
+
+  from cookdsp
+  
+  Midi to frequency conversion
+
+********************************************************/
+function midiToFrequency(midinote)
+(
+    440.0 * pow(2.0, (midinote - 69) / 12.0);
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

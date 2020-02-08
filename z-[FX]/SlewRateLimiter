@@ -1,0 +1,62 @@
+desc:Slew Rate Limiter, todo : adjust for sample rate, up/down slew rate
+
+slider1:0<-120,6,0.1>Slew Rate (dbfs / sample)
+
+//DC OFFSET REMOVAL
+slider8:0<0,2,1{NO,YEP}>REMOVE DC OFFSET
+
+slider32:0<-48,24,0.1>Output Gain (dB)
+
+@init
+//MUST INCLUDE SAMPLE RATE
+//slew_rate = slider1 / 100 *2 / srate; //Unimpeded system can jump from -1 to 1 
+
+slew_rate = slider1 / 100 *2 /1000; //Unimpeded system can jump from -1 to 1 
+
+spl0_n_minus_1 = 0; //System rest state
+spl1_n_minus_1 = 0;
+
+//DC OFFSET REMOVAL
+itm1=itm2=otm1=otm2=0;
+
+@slider
+//slew_rate = slider1 / 100000 *2; //Unimpeded system can jump from -1 to 1 
+slew_rate = 2 ^ (slider1 / 6);
+
+//DC OFFSET REMOVAL
+dc_offset_removal = slider8;
+
+//Output Gain  
+Gain_Output = 2 ^ (slider32 / 6);
+
+@sample
+
+//limit change to slew rate
+spl0_delta = spl0 - spl0_n_minus_1;
+spl0_adjusted_delta = min(slew_rate, abs(spl0_delta)) * sign(spl0_delta);
+spl0 = spl0_n_minus_1 + spl0_adjusted_delta;
+
+
+spl1_delta = spl1 - spl1_n_minus_1;
+spl1_adjusted_delta = min(slew_rate, abs(spl1_delta)) * sign(spl1_delta);
+spl1 = spl1_n_minus_1 + spl1_adjusted_delta;
+
+
+//store outputs
+spl0_n_minus_1 = spl0;
+spl1_n_minus_1 = spl1;
+
+//DC OFFSET REMOVAL
+dc_offset_removal == 1 ?
+  (       
+otm1=0.999*otm1 + spl0 - itm1;
+itm1=spl0;
+spl0=otm1;
+otm2=0.999*otm2 + spl1 - itm2;
+itm2=spl1;
+spl1=otm2;
+  );
+  
+//Output Gain
+spl0 *= Gain_Output;
+spl1 *= Gain_Output;  

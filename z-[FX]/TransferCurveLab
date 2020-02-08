@@ -1,0 +1,444 @@
+desc: Transfer Curve Lab
+slider1:-6<-120,6,1>Volume (dB)
+slider2:100<1,24000,1>Frequency (Hz)
+slider3:100<0,100,1>Sine Gen
+slider4:100<0,100,1>Square Gen
+slider5:100<0,100,1>Triangle Gen
+slider6:0<-180,180,0.1>Sine Phase Shift
+slider7:0<-180,180,0.1>Square Phase Shift
+slider8:0<-180,180,0.1>Triangle Phase Shift
+
+
+slider17:0<-1,1,0.001>DC offset
+slider19:0<-120,24,1>Input Gain (dB)
+slider20:0<0,100,1>Transfer Curve -> Triangle Distortion
+slider21:0<0,100,1>Transfer Curve -> Square Distortion
+slider22:0<0,100,1>Transfer Curve -> (pos)Half-Wave Rectification
+slider23:0<0,100,1>Transfer Curve -> (neg)Half-Wave Rectification
+slider24:1<0,20,0.1>Transfer Curve -> x ^ a
+
+
+
+//MIX
+slider30:0<-48,24,0.1>Output Gain (dB)
+
+//cos|sin(drive*arcsin(x))
+slider56:-36<-120,6,1>cos|sin arcsin Drive(dB)
+
+//damelsDistort
+
+slider57:1<1,100,1>Highest harmonic order
+slider58:-36<-120,6,1>Odd order harmonics Volume (dB)
+slider59:-36<-120,6,1>Even order harmonics Volume (dB)
+
+
+
+//testbed
+slider60:-1<-2,2,0.001>minimum
+slider61:1<-2,2,0.001>maximum
+
+slider62:1<0,5,0.01>speed
+slider63:1<0,10,1>limit
+slider64:0<0,2,0.01>x
+
+
+//IMPORT CRITICAL STUFF FIRST
+import z/z-MemoryManager.jsfx-inc
+
+@init
+
+/* TODO
+http://ajaxsoundstudio.com/cookdspdoc/cookdsp/effects.jsfx-inc
+http://ajaxsoundstudio.com/cookdspdoc/scale.html
+http://ajaxsoundstudio.com/cookdspdoc/cookdsp/filters.jsfx-inc
+http://www.embedded.com/design/configurable-systems/4025591/Digital-filtering-without-the-pain
+https://en.wikipedia.org/wiki/Inverse_trigonometric_functions
+https://en.wikipedia.org/wiki/Diode
+http://aries.ucsd.edu/NAJMABADI/CLASS/ECE65/12-W/Slides/ECE65_W12-Diode-2.pdf
+
++Replace Blend by a choice of transfer function or remap w pow
+
++Add parametric Pre/De-Emphasis network
++Add SlewRate
++Add Damping
++disconnect 'drive' from the transfer curve, treat it as a pre/de gain to hit the transfer curve higher/lower ??
+
+*/
+
+//MemoryManager
+memInit(100);
+
+function transferCurve(drive, cutoff)
+  (
+  //init
+  this.nyquist_f = srate * 0.49;
+  this.drive = max(0, min(1, drive));
+  this.cutoff = max(20, min(this.nyquist_f, cutoff));
+  
+  /*
+  this.ny = srate * 0.49;
+  drive < 0 ? drive = 0 : drive > 1 ? drive = 1;
+  this.drive = drive;
+  this.d = (1.0 - this.drive) * 0.3999;
+  cutoff < 20 ? cutoff = 20 : cutoff > this.ny ? cutoff = this.ny; 
+  this.cutoff = cutoff;
+  this.c = exp(-2 * $pi * this.cutoff / srate);
+  this.y1 = this.y2 = 0.0; */
+  );
+  
+
+spl_L.transferCurve(slider20, slider21);
+spl_R.transferCurve(slider20, slider21);
+/*******************************************************************
+  reMAP    
+  -----
+   
+   - copy/pasted from CookDSP Scale
+   - update with selectable transfer curve later
+   
+  
+Maps an input value from an input range to an output range with power factor.
+
+Signature
+----------
+
+ret = scale(input, xmin, xmax, ymin, ymax, ex)
+
+Description
+-----------
+
+The scale function takes an input value, scales it down
+to a 0-1 range according to input range (`xmin` - `xmax`),
+raises it to `ex` power and then rescales the result to
+the output range (`ymin` - `ymax`). This function is useful
+to convert a value from a  linear scale to an exponential one,
+like converting a midi slider (0-127 linear) to a frequency
+scale (20-20000 exponential).
+
+Arguments
+---------
+
+- *input* {float} : The input value to convert.  
+- *xmin* {float} : Minimum of the input range.  
+- *xmax* {float} : Maximum of the input range.  
+- *ymin* {float} : Minimum of the output range.  
+- *ymax* {float} : Maximum of the output range.  
+- *ex* {float} : Power factor (1 is linear, les than 1 is logarithmic, greter than 1 is exponential). 
+ 
+Example
+-------
+   
+    desc:Normalized to Frequency Range
+ 
+    import cookdsp.jsfx-inc
+
+    slider1:0<0,1,0.001>Normalized Frequency
+
+    @init
+    lp.lop(20);
+
+    @slider
+    // 0-1 range converted to frequency range
+    f = scale(slider1, 0, 1, 20, srate/2, 4);
+    lp.lop_set_freq(f);
+
+    @sample
+    spl0 = lp.lop_do(spl0);
+    spl1 = lp.lop_do(spl1);
+
+*******************************************************************/
+function reMap(x, xmin, xmax, ymin, ymax, ex)
+  (
+  x -= xmin;
+  x /= (xmax - xmin);
+  x ^= ex;
+  x *= (ymax - ymin);
+  x + ymin;
+  );
+
+
+/*******************************************************************
+  geometricPow     
+  ------------
+
+   - Is this even an appropriate name ?
+   - maybe restrict input to [0,1] if you're not finding uses for the other interval
+  
+   f(x) = power_factor * x / (limit_point - x)
+   0 is a root
+   f(x) -> -power_factor as x -> +|-inf  (horizontal asymptote)
+   
+   f(x) -> +inf   as x -> limit_point+  (vertical asymptote)
+   f(x) -> -inf   as x -> limit_point-
+   
+   
+   
+   power_factor > 1 speeds up the transfer
+   power_factor < 1 slows down the transfer
+   power_factor = a / x 'offsets' the root, f(0) = a
+   
+   
+   [-inf,0]       ->   ]-power_factor,0]
+   [0,limit_point+[     ->   [0,+inf[
+   ]limit_point-, +inf] ->   ]-inf, -power_factor[
+      
+   undefined for x = limit
+   useful to to remap [0,limit[ to [0,+inf[
+*******************************************************************/
+function geometricPow(x, power_factor, limit_point)
+  (
+  x == limit_point ?
+    (
+    x -= 0.00001;
+    );
+    power_factor * x / (limit_point - x);
+    
+  );
+
+/*******************************************************************
+  hardClip     
+  --------
+  
+  hard clips input to [minimum, maximum]
+  
+  symmetric clipping  : (minimum <= 0) && (maximum >= 0) && abs(miminum) == maximum
+  asymmetric clipping : (minimum <= 0) && (maximum >= 0) && abs(miminum) != maximum
+  funky ??? clipping : sign(minimum) == sign (maximum)
+
+
+*******************************************************************/
+function hardClip(input, minimun, maximum)
+  (
+  max(min(input, maximum), minimum);
+  );
+
+
+
+/*******************************************************************
+  slewRate    
+  --------
+*******************************************************************/
+
+
+  
+/*******************************************************************
+  sinArcsin     
+  ---------
+*******************************************************************/
+function sinArcsin(input, drive)
+  (
+  sin(drive * asin(input));
+  );
+
+/*******************************************************************
+  cosArcsin     
+  ---------
+*******************************************************************/
+function cosArcsin(input, drive)
+  (
+  cos(drive * asin(input));
+  );
+
+/*******************************************************************
+  damelsDistort     
+  --------
+  
+  - based on David Amels patent http://www.google.com/patents/US6611854
+  
+  y=A1*sin(arcsin(x))+A2*cos(2*arcsin(x))+A3*sin(3*arcsin(x))+A4*cos(4*arcsin(x))+ . . . An*sin(n*arcsin(x))+A(n+1)*cos((n+1)*arcsin(x))
+  
+  where x is the input signal, y is the output signal, A is the amplitude of the harmonic level for a given harmonic, 1 being the fundamental,
+ 
+  n is an odd number and (n+1) represents the highest harmonic of interest
+
+*******************************************************************/
+function damelsDistort_init(n, odd_amplitude, even_amplitude)
+  //instance(harmonic_amplitude, highest_harmonic) //Still not sure if I have to declare them
+  (
+  floor(n);
+  n % 2 == 0 ? n +=1; //make sure n is an odd integer
+  this.highest_harmonic = n;
+  
+  this.harmonic_amplitude == 0 ? this.harmonic_amplitude = memAlloc(n, "harmonic_amplitude"); //n ? n+1 ?
+  
+  while (n > 1) //later use a transfer curve on top of this
+      (
+      n % 2 == 0 ? 
+        (
+        this.harmonic_amplitude[n] = even_amplitude; 
+        ):(
+        this.harmonic_amplitude[n] = odd_amplitude;
+        );
+      
+      n -= 1;
+      );
+       
+  );
+  
+
+function damelsDistort(input)
+  local(n)
+  (
+  n = 1;
+  this.output = 0;
+
+ 
+  while (n <= this.highest_harmonic)
+    (
+    n % 2 == 0 ? 
+    (
+    this.output += this.harmonic_amplitude[n] * cos(n * asin(input)); 
+    ):(
+    this.output += this.harmonic_amplitude[n] * sin(n * asin(input));
+    );
+    
+    n +=1;
+    );
+  
+  
+  this.output; //+ input ?
+  );
+
+
+
+//function transferTanh http://folk.ntnu.no/oyvinbra/gdsp/Lesson4Modtanh.html
+/*tanh(x*4) transfer function*/
+
+
+@slider
+memWipe(); // DUH DON'T YOU EVER FORGET THAT AGAIN
+//testbed
+
+minimum = slider60;
+maximum = slider61;
+
+x_remap_me = slider64 * 135;
+x_remap_me = reMap(x_remap_me, 0, 135*2, 0, 1, slider62);
+x = geometricPow(x_remap_me, slider62, slider63);
+
+
+spl_0.damelsDistort_init(slider57, 2 ^ (slider58 / 6), 2 ^ (slider59 / 6));
+
+
+Vol= 2 ^ (slider1 / 6); 
+Freq = 2 * $pi * slider2 / srate;
+  
+     
+Mix_Sine = slider3 / 100;
+Mix_Square = slider4 / 100;
+Mix_Triangle = slider5 / 100;
+  
+  
+  
+Shift_Sine = slider6 * $pi / 180; //degrees to radians
+Shift_Square = slider7 * $pi / 180; 
+Shift_Triangle = slider8 * $pi / 180;
+
+dc_offset = slider17;
+hard_clip = slider18 / 100;
+gain_input = 2 ^ (slider19 / 6);  
+transfer_triangle_drive = slider20 / 100;
+transfer_square_drive = slider21 / 100;
+transfer_poshalfwave_drive = slider22 / 100;
+transfer_neghalfwave_drive = slider23 / 100;
+transfer_xpow = slider24;
+  
+//Output Gain  
+gain_output = 2 ^ (slider30 / 6);
+
+
+
+@sample
+
+
+//SINE - 1 -
+Wave_Sine = sin(Pos + Shift_Sine); 
+
+
+
+// SQUARE - 1 - Sign From Sine Wave
+Wave_Square = sin(Pos + Shift_Square);
+Wave_Square = sign(Wave_Square);
+
+
+//TRIANGLE - 4 - f(x)=arcsin(sin x) <<<<<=== REPLACE W asin(x)/pi*2
+Wave_Triangle = sin(Pos + Shift_Triangle); //Start with Sine | Catch Audio Input
+//Wave_Triangle_Dry = Wave_Triangle; //Store
+Wave_Triangle = asin(Wave_Triangle) / $pi *2; //Boom Tri-an-guuuuule
+//Wave_Triangle = Wave_Triangle * Blend_Triangle + Wave_Triangle_Dry * (1 - Blend_Triangle); //Linear Weighted Blend 
+
+
+//MIX 
+Wave = (Wave_Sine * Mix_Sine + Wave_Square * Mix_Square + Wave_Triangle * Mix_Triangle) ; //  / ( Mix_Sine + Mix_Square + Mix_Triangle )
+Wave *= Vol;
+
+spl0 += Wave;
+spl1 += Wave;
+
+
+//GLOBAL POS
+
+Pos = Pos + Freq;
+(Pos >= 2.0 * $pi) ? Pos -= 2.0 * $pi;
+
+
+
+
+
+
+spl0 *= gain_input;
+spl1 *= gain_input;
+
+//DC OFFSET -> DUTY CYCLE MODULATION
+spl0 += dc_offset;
+spl1 += dc_offset;
+
+
+spl0 += spl_0.damelsDistort(spl0);
+//spl0 = cosArcsin(spl0, 2 ^ (slider56 / 6));
+//spl0 = cos(asin(spl0));
+spl1 = spl0;
+
+spl0 = hardClip(spl0, minimum, maximum);
+
+//TRANSFER CURVES - Arcsin - Triangle Distortion -  Blend
+ 
+transfer_triangle_spl0 = asin(spl0) / $pi *2; //Boom Tri-an-guuuuule
+spl0 = transfer_triangle_spl0 * transfer_triangle_drive + spl0 * (1 - transfer_triangle_drive); 
+
+transfer_triangle_spl1 = asin(spl1 / $pi *2); //Boom Tri-an-guuuuule
+spl1 = transfer_triangle_spl1 * transfer_triangle_drive + spl1 * (1 - transfer_triangle_drive);
+ 
+
+//TRANSFER CURVES - Sign - Square Distortion -  Blend
+transfer_square_spl0 = sign(spl0); //Boom Square
+spl0 = transfer_square_spl0 * transfer_square_drive + spl0 * (1 - transfer_square_drive);
+
+transfer_square_spl1 = sign(spl1); //Boom Square
+spl1 = transfer_square_spl1 * transfer_square_drive + spl1 * (1 - transfer_square_drive); 
+
+//TRANSFER CURVES - (pos)Half-Wave Rectifier 
+transfer_poshalfwave_spl0 = (spl0 + abs(spl0)) / 2;
+spl1 = spl0 = transfer_poshalfwave_spl0 * transfer_poshalfwave_drive + spl0 * (1 - transfer_poshalfwave_drive);
+
+//TRANSFER CURVES - (neg)Half-Wave Rectifier 
+transfer_neghalfwave_spl0 = (spl0 - abs(spl0)) / 2;
+spl1 = spl0 = transfer_neghalfwave_spl0 * transfer_neghalfwave_drive + spl0 * (1 - transfer_neghalfwave_drive);
+
+
+//TRANSFER CURVES - (x + )      ... x ^ a
+//spl1 = spl0 = spl0 ^ transfer_xpow;
+//spl1 = spl0 = spl0 + (sign(spl0) * spl0 ^ transfer_xpow);
+
+//arctan
+//sgn(x)(1-exp(-|x|))
+// tanh
+
+// (1+posfuz)*spl0/(1+posfuz*abs(spl0));
+
+
+//Output Gain 
+spl0 *= gain_output;
+spl1 *= gain_output;
+
+
